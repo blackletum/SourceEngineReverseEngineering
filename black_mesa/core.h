@@ -15,6 +15,5 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate);
 void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate);
 
 void CheckForLocation();
-void CorrectVphysicsEntity(uint32_t ent);
 
 #endif

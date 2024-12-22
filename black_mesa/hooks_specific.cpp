@@ -20,6 +20,21 @@ void HookFunctionsSpecificBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793FD0), (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A24570), (void*)NativeHooks::ScriptThinkEntCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069DB20), (void*)NativeHooks::LaunchMortarHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)NativeHooks::DispatchAnimEventsHook);
+}
+
+uint32_t NativeHooks::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(arg1))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004CE5F0);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Failed to service DispatchAnimEvents");
+    return 0;
 }
 
 uint32_t NativeHooks::LaunchMortarHook(uint32_t arg0)

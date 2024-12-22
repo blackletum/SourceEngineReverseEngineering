@@ -14,7 +14,6 @@ public:
 	static uint32_t SimulateEntitiesHook(uint32_t arg0);
 	static uint32_t ServiceEventQueueHook();
 	static uint32_t UTIL_RemoveHook(uint32_t arg0);
-	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);
 	static uint32_t PhysSimEnt(uint32_t arg0);
 	static uint32_t HookInstaKill(uint32_t arg0);
@@ -35,10 +34,7 @@ public:
 	static uint32_t VpkCacheBufferAllocHook(uint32_t arg0);
 	static uint32_t CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
-	static uint32_t Event_KilledPlayer(uint32_t arg0, uint32_t arg1);
 	static uint32_t RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-	static uint32_t DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t GlobalEntityListClear(uint32_t arg0);
 };

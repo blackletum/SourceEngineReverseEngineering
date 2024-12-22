@@ -14,4 +14,5 @@ public:
 	static uint32_t InputApplySettingsHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
 	static uint32_t LaunchMortarHook(uint32_t arg0);
+	static uint32_t DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1);
 };

@@ -13,10 +13,13 @@ typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_
 typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
 typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtOptLink)(uint32_t, uint32_t);
+typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
+typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
 typedef struct _game_fields {
 	uint32_t CGlobalEntityList;
 	uint32_t sv;
+	uint32_t RemoveImmediateSemaphore;
 } game_fields;
 
 typedef struct _game_offsets {
@@ -30,6 +33,8 @@ typedef struct _game_offsets {
     uint32_t mnetwork_offset;
 	uint32_t collision_property_offset;
 	uint32_t m_CollisionGroup_offset;
+	uint32_t ismarked_offset;
+	uint32_t vphysics_object_offset;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -42,6 +47,7 @@ typedef struct _game_functions {
 	pTwoArgProt EnableEntityCollisions;
 	pOneArgProt CollisionRulesChanged;
 	pThreeArgProt FindEntityByClassname;
+	pOneArgProt CleanupDeleteList;
 } game_functions;
 
 typedef struct _Vector {
@@ -136,6 +142,7 @@ Library* getlibrary(char* file_line);
 void AllowWriteToMappedMemory();
 void ForceMemoryAccess();
 void RestoreMemoryProtections();
+void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);
 void UpdateAllCollisions();
 void RemoveBadEnts();

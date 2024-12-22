@@ -44,59 +44,6 @@ void PopulateHookExclusionListsBlackMesa()
 
 }
 
-void CorrectVphysicsEntity(uint32_t ent)
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-
-    if(IsEntityValid(ent))
-    {
-        uint32_t vphysics_object = *(uint32_t*)(ent+0x1F8);
-
-        if(vphysics_object)
-        {
-            Vector current_origin;
-            Vector current_angles;
-            Vector empty_vector;
-
-            //GetPosition
-            pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xC0)  );
-            pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
-
-            //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
-
-            if(!IsEntityPositionReasonable((uint32_t)&current_origin) && !IsEntityPositionReasonable((uint32_t)&current_angles))
-            {
-                //SetPosition
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
-                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
-
-                rootconsole->ConsolePrint("Corrected vphysics origin & angles!");
-
-                return;
-            }
-
-            if(!IsEntityPositionReasonable((uint32_t)&current_origin))
-            {
-                //SetPosition
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
-                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&current_angles, 1);
-
-                rootconsole->ConsolePrint("Corrected vphysics origin!");
-            }
-
-            if(!IsEntityPositionReasonable((uint32_t)&current_angles))
-            {
-                //SetPosition
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
-                pDynamicFourArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&empty_vector, 1);
-
-                rootconsole->ConsolePrint("Corrected vphysics angles!");
-            }
-        }
-    }
-}
-
 void CheckForLocation()
 {
     uint32_t current_map = fields.sv+0x11;
@@ -162,9 +109,9 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
 
     if(entity_object == 0) return;
 
-    char* classname = (char*)(*(uint32_t*)(entity_object+0x64));
-    uint32_t refHandle = *(uint32_t*)(entity_object+0x334);
-    uint32_t object_verify = GetCBaseEntityBlackMesa(refHandle);
+    char* classname = (char*)(*(uint32_t*)(entity_object+offsets.classname_offset));
+    uint32_t refHandle = *(uint32_t*)(entity_object+offsets.refhandle_offset);
+    uint32_t object_verify = functions.GetCBaseEntity(refHandle);
 
     if(object_verify == 0)
     {
@@ -177,15 +124,7 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
 
     if(object_verify)
     {
-        //VphysicsDestroyObject
-        //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_verify))+0x2A0) );
-        //pDynamicOneArgFunc(object_verify);
-
-        //rootconsole->ConsolePrint("Removing [%s]", clsname);
-
-        //IsMarkedForDeletion
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A2B520);
-        uint32_t isMarked = pDynamicOneArgFunc(object_verify+0x14);
+        uint32_t isMarked = functions.IsMarkedForDeletion(object_verify+offsets.iserver_offset);
 
         if(isMarked)
         {
@@ -204,7 +143,7 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
 
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A92160);
-        pDynamicOneArgFunc(object_verify+0x14);
+        pDynamicOneArgFunc(object_verify+offsets.iserver_offset);
 
         //rootconsole->ConsolePrint("Removed [%s]", clsname);
 
@@ -224,9 +163,9 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate)
 
     if(entity_object == 0) return;
 
-    uint32_t refHandleInsta = *(uint32_t*)(entity_object+0x334);
-    char* classname = (char*) ( *(uint32_t*)(entity_object+0x64) );
-    uint32_t cbase_chk = GetCBaseEntityBlackMesa(refHandleInsta);
+    uint32_t refHandleInsta = *(uint32_t*)(entity_object+offsets.refhandle_offset);
+    char* classname = (char*) ( *(uint32_t*)(entity_object+offsets.classname_offset) );
+    uint32_t cbase_chk = functions.GetCBaseEntity(refHandleInsta);
 
     if(cbase_chk == 0)
     {
@@ -243,9 +182,7 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate)
         }
     }
 
-    //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A2B520);
-    uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
+    uint32_t isMarked = functions.IsMarkedForDeletion(cbase_chk+offsets.iserver_offset);
 
     if(isMarked)
     {
@@ -270,16 +207,16 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate)
         rootconsole->ConsolePrint("fast killed [%s]", classname);
     }
 
-    if((*(uint32_t*)(cbase_chk+0x118) & 1) == 0)
+    if((*(uint32_t*)(cbase_chk+offsets.ismarked_offset) & 1) == 0)
     {
-        if(*(uint32_t*)(server_srv + 0x01811920) == 0)
+        if(*(uint32_t*)(fields.RemoveImmediateSemaphore) == 0)
         {
             // FAST DELETE ONLY
 
             hooked_delete_counter++;
 
             *(uint8_t*)(server_srv + 0x0180F344) = 0;
-            *(uint32_t*)(cbase_chk+0x118) = *(uint32_t*)(cbase_chk+0x118) | 1;
+            *(uint32_t*)(cbase_chk+offsets.ismarked_offset) = *(uint32_t*)(cbase_chk+offsets.ismarked_offset) | 1;
 
             //UpdateOnRemove
             pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1D0) );
@@ -288,7 +225,7 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate)
             *(uint8_t*)(server_srv + 0x0180F345) = 1;
 
             //CALL RELEASE
-            uint32_t iServerObj = cbase_chk+0x14;
+            uint32_t iServerObj = cbase_chk+offsets.iserver_offset;
 
             pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(iServerObj))+0x10) );
             pDynamicOneArgFunc(iServerObj);

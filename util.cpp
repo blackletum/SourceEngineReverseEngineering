@@ -423,6 +423,13 @@ void RestoreMemoryProtections()
     }
 }
 
+void ZeroVector(uint32_t vector)
+{
+    *(float*)(vector) = 0;
+    *(float*)(vector+4) = 0;
+    *(float*)(vector+8) = 0;
+}
+
 bool IsVectorNaN(uint32_t base)
 {
     float s0 = *(float*)(base);
@@ -636,6 +643,18 @@ void RemoveBadEnts()
             
             )
             {
+                char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
+
+                if(strcmp(classname, "player") == 0)
+                {
+                    ZeroVector(abs_origin);
+                    ZeroVector(origin);
+                    ZeroVector(abs_angles);
+                    ZeroVector(abs_velocity);
+
+                    continue;
+                }
+
                 rootconsole->ConsolePrint("Removed bad ent!");
                 functions.RemoveEntityNormal(ent, true);
             }
