@@ -479,8 +479,13 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     {
         rootconsole->ConsolePrint("Saving game!");
 
+        functions.CleanupDeleteList(0);
+
+        //Autosave_Silent
         pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(server_srv + 0x00BEC520);
         pDynamicFastCallOneArgFunc(0);
+
+        functions.CleanupDeleteList(0);
 
         savegame = false;
     }

@@ -131,7 +131,7 @@ void ApplyPatchesBlackMesa()
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
     uint32_t eventqueue_hook = server_srv + 0x008404FD;
-    offset = (uint32_t)HooksBlackMesa::ServiceEventQueueHook - eventqueue_hook - 5;
+    offset = (uint32_t)HooksBlackMesa::EmptyCall - eventqueue_hook - 5;
     *(uint32_t*)(eventqueue_hook+1) = offset;
 
     uint32_t fix_vphysics_pair_crash = server_srv + 0x00378906;
@@ -600,12 +600,6 @@ uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t HooksBlackMesa::ServiceEventQueueHook()
-{
-    pOneArgProt pDynamicOneArgFunc;
-    return 0;
-}
-
 uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -639,6 +633,10 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     functions.CleanupDeleteList(0);
 
+    RemoveBadEnts();
+
+    functions.CleanupDeleteList(0);
+
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
@@ -658,6 +656,10 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
     pDynamicOneArgFunc(0);
+
+    functions.CleanupDeleteList(0);
+
+    RemoveBadEnts();
 
     functions.CleanupDeleteList(0);
 
