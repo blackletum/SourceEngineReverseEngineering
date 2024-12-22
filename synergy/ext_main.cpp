@@ -156,6 +156,9 @@ void ApplyPatchesSynergy()
     offset = (uint32_t)HooksSynergy::EmptyCall - hook_service_event_queue - 5;
     *(uint32_t*)(hook_service_event_queue+1) = offset;
 
+    uint32_t patch_player_restore = server_srv + 0x00BDD0BC;
+    memset((void*)patch_player_restore, 0x90, 0x26);
+
     //CMessageEntity
     uint32_t remove_extra_call = server_srv + 0x0070717B;
     offset = (uint32_t)HooksSynergy::EmptyCall - remove_extra_call - 5;
