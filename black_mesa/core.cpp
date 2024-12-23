@@ -124,6 +124,12 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
 
     if(object_verify)
     {
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
+            return;
+        }
+        
         uint32_t isMarked = functions.IsMarkedForDeletion(object_verify+offsets.iserver_offset);
 
         if(isMarked)

@@ -8,10 +8,12 @@ ValueList leakedResourcesEdtSystem;
 
 bool sdktools_passed;
 bool savegame;
+bool disable_internal_remove_incrementor;
 
 void InitCoreSynergy()
 {
     savegame = false;
+    disable_internal_remove_incrementor = false;
 
     our_libraries[0] = (uint32_t)malloc(1024);
     snprintf((char*)our_libraries[0], 1024, "%s", "/synergy/bin/server_srv.so");
@@ -371,8 +373,8 @@ void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate)
     }
 
     if(chk_ref)
-    {   
-        if(strcmp(classname, "player") == 0)
+    {
+        if(classname && strcmp(classname, "player") == 0)
         {
             rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
             return;
@@ -396,7 +398,8 @@ void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate)
         {
             if(*(uint32_t*)(fields.RemoveImmediateSemaphore) != 0)
             {
-                hooked_delete_counter++;
+                if(disable_internal_remove_incrementor)
+                    hooked_delete_counter++;
             }
         }
 

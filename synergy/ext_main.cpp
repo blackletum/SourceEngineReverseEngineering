@@ -159,6 +159,12 @@ void ApplyPatchesSynergy()
     uint32_t patch_player_restore = server_srv + 0x00BDD0BC;
     memset((void*)patch_player_restore, 0x90, 0x26);
 
+    uint32_t patch_showtriggers_toggle_cmd = server_srv + 0x008815D5;
+    memset((void*)patch_showtriggers_toggle_cmd, 0x90, 6);
+    offset = (uint32_t)HooksSynergy::ShowtriggersToggle - patch_showtriggers_toggle_cmd - 5;
+    *(uint8_t*)(patch_showtriggers_toggle_cmd) = 0xE8;
+    *(uint32_t*)(patch_showtriggers_toggle_cmd+1) = offset;
+
     //CMessageEntity
     uint32_t remove_extra_call = server_srv + 0x0070717B;
     offset = (uint32_t)HooksSynergy::EmptyCall - remove_extra_call - 5;
@@ -586,7 +592,67 @@ uint32_t HooksSynergy::AutosaveHook(uint32_t arg0)
 
 uint32_t HooksSynergy::UTIL_RemoveBaseHook(uint32_t arg0)
 {
-    functions.RemoveEntityNormal(arg0, true);
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(arg0 == 0)
+    {
+        rootconsole->ConsolePrint("Could not kill entity [NULL]");
+        return 0;
+    }
+
+    char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
+    uint32_t m_refHandle = *(uint32_t*)(arg0+offsets.refhandle_offset);
+    uint32_t chk_ref = functions.GetCBaseEntity(m_refHandle);
+
+    if(chk_ref)
+    {
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
+            return 0;
+        }
+        
+        uint32_t isMarked = functions.IsMarkedForDeletion(chk_ref+offsets.iserver_offset);
+        if(isMarked) return 0;
+
+        disable_internal_remove_incrementor = true;
+
+        //UTIL_Remove(CBaseEntity*)
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008A0BC0);
+        pDynamicOneArgFunc(arg0);
+
+        disable_internal_remove_incrementor = false;
+
+        isMarked = functions.IsMarkedForDeletion(arg0+offsets.iserver_offset);
+
+        if(isMarked)
+        {
+            if(*(uint32_t*)(fields.RemoveImmediateSemaphore) != 0)
+            {
+                hooked_delete_counter++;
+            }
+        }
+
+        return 0;
+    }
+
+    rootconsole->ConsolePrint("INVALID ENT!");
+    exit(1);
+    return 0;
+}
+
+uint32_t HooksSynergy::ShowtriggersToggle()
+{
+    uint32_t sv_cheats = *(uint32_t*)(server_srv + 0x00EA2B24);
+    uint32_t something_one = *(uint32_t*)(sv_cheats+0x1C);
+    uint32_t sv_cheats_value = *(uint32_t*)(something_one+0x30);
+
+    if(sv_cheats_value == 1)
+    {
+        rootconsole->ConsolePrint("Toggling showtriggers_toggle");
+        return *(uint32_t*)(server_srv + 0x00EBB5A0);
+    }
+
     return 0;
 }
 
