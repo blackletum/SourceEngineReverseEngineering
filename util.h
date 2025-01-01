@@ -23,14 +23,14 @@ typedef struct _game_fields {
 } game_fields;
 
 typedef struct _game_offsets {
-    uint32_t classname_offset;
-    uint32_t abs_origin_offset;
-    uint32_t abs_angles_offset;
+	uint32_t classname_offset;
+	uint32_t abs_origin_offset;
+	uint32_t abs_angles_offset;
 	uint32_t abs_velocity_offset;
-    uint32_t origin_offset;
-    uint32_t refhandle_offset;
-    uint32_t iserver_offset;
-    uint32_t mnetwork_offset;
+	uint32_t origin_offset;
+	uint32_t refhandle_offset;
+	uint32_t iserver_offset;
+	uint32_t mnetwork_offset;
 	uint32_t collision_property_offset;
 	uint32_t m_CollisionGroup_offset;
 	uint32_t ismarked_offset;
@@ -38,10 +38,9 @@ typedef struct _game_offsets {
 } game_offsets;
 
 typedef struct _game_functions {
-    pTwoArgProt RemoveEntityNormal;
-    pTwoArgProt InstaKill;
+	pOneArgProt RemoveNormal;
+	pOneArgProt RemoveInsta;
     pOneArgProt GetCBaseEntity;
-    pOneArgProt IsMarkedForDeletion;
 	pTwoArgProt SetSolidFlags;
 	pTwoArgProt DisableEntityCollisions;
 	pTwoArgProt EnableEntityCollisions;
@@ -134,7 +133,7 @@ extern ValueList leakedResourcesVpkSystem;
 
 void* copy_val(void* val, size_t copy_size);
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
-void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer);
+void HookFunction(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer);
 Library* FindLibrary(char* lib_name, bool less_intense_search);
 Library* LoadLibrary(char* library_full_path);
 void ClearLoadedLibraries();
@@ -146,6 +145,9 @@ void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);
 void UpdateAllCollisions();
 void RemoveBadEnts();
+void RemoveEntityNormal(uint32_t entity_object, bool validate);
+void InstaKill(uint32_t entity_object, bool validate);
+bool IsMarkedForDeletion(uint32_t arg0);
 bool IsEntityPositionReasonable(uint32_t v);
 uint32_t IsEntityValid(uint32_t entity);
 void LogVpkMemoryLeaks();

@@ -115,12 +115,12 @@ bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
     return false;
 }
 
-void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer)
+void HookFunction(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer)
 {
     uint32_t search_address = base_address;
     uint32_t search_address_max = base_address+size;
 
-    while(search_address <= search_address_max)
+    while(search_address + 3 <= search_address_max)
     {
         uint32_t four_byte_addr = *(uint32_t*)(search_address);
 
@@ -656,10 +656,89 @@ void RemoveBadEnts()
                 }
 
                 rootconsole->ConsolePrint("Removed bad ent!");
-                functions.RemoveEntityNormal(ent, true);
+                RemoveEntityNormal(ent, true);
             }
         }
     }
+}
+
+void RemoveEntityNormal(uint32_t entity_object, bool validate)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(entity_object == 0) return;
+
+    char* classname = (char*)(*(uint32_t*)(entity_object+offsets.classname_offset));
+    uint32_t refHandle = *(uint32_t*)(entity_object+offsets.refhandle_offset);
+    uint32_t object_verify = functions.GetCBaseEntity(refHandle);
+
+    if(object_verify == 0)
+    {
+        if(!validate)
+        {
+            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
+            object_verify = entity_object;
+        }
+    }
+
+    if(object_verify)
+    {
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            rootconsole->ConsolePrint("Tried killing player but was protected!");
+            return;
+        }
+
+        if(IsMarkedForDeletion(object_verify+offsets.iserver_offset)) return;
+
+        functions.RemoveNormal(object_verify);
+
+        if(IsMarkedForDeletion(object_verify+offsets.iserver_offset))
+        {
+            if(*(uint32_t*)(fields.RemoveImmediateSemaphore) != 0)
+                hooked_delete_counter++;
+        }
+
+        //rootconsole->ConsolePrint("Removed [%s]", clsname);
+
+        return;
+    }
+
+    rootconsole->ConsolePrint("Failed to verify entity object!");
+    exit(EXIT_FAILURE);
+}
+
+void InstaKill(uint32_t entity_object, bool validate)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(entity_object == 0) return;
+
+    uint32_t refHandleInsta = *(uint32_t*)(entity_object+offsets.refhandle_offset);
+    char* classname = (char*) ( *(uint32_t*)(entity_object+offsets.classname_offset) );
+    uint32_t cbase_chk = functions.GetCBaseEntity(refHandleInsta);
+
+    if(cbase_chk == 0)
+    {
+        if(!validate)
+        {
+            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
+            cbase_chk = entity_object;
+        }
+        else
+        {
+            rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
+            exit(EXIT_FAILURE);
+            return;
+        }
+    }
+
+    functions.RemoveInsta(cbase_chk);
+}
+
+bool IsMarkedForDeletion(uint32_t arg0)
+{
+    return *(uint32_t*)(*(uint32_t*)(arg0 + 8) + offsets.ismarked_offset) & 1;
 }
 
 uint32_t IsEntityValid(uint32_t entity)
@@ -671,12 +750,8 @@ uint32_t IsEntityValid(uint32_t entity)
 
     if(object)
     {
-        uint32_t isMarked = functions.IsMarkedForDeletion(object+offsets.iserver_offset);
-
-        if(isMarked)
-        {
+        if(IsMarkedForDeletion(object+offsets.iserver_offset))
             return 0;
-        }
 
         return entity;
     }

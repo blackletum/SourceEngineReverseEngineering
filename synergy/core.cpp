@@ -8,12 +8,10 @@ ValueList leakedResourcesEdtSystem;
 
 bool sdktools_passed;
 bool savegame;
-bool disable_internal_remove_incrementor;
 
 void InitCoreSynergy()
 {
     savegame = false;
-    disable_internal_remove_incrementor = false;
 
     our_libraries[0] = (uint32_t)malloc(1024);
     snprintf((char*)our_libraries[0], 1024, "%s", "/synergy/bin/server_srv.so");
@@ -54,7 +52,8 @@ bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size)
 
 void PopulateHookExclusionListsSynergy()
 {
-    
+    hook_exclude_list_base[0] = server_srv;
+    hook_exclude_list_offset[0] = 0x008A0D6F;
 }
 
 uint32_t GetCBaseEntitySynergy(uint32_t EHandle)
@@ -269,151 +268,4 @@ void SaveProcessId()
 
     fprintf(list_file, "%d\n", getppid()); 
     fclose(list_file);
-}
-
-void InstaKillSynergy(uint32_t entity_object, bool validate)
-{
-    pZeroArgProt pDynamicZeroArgFunc;
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(entity_object == 0) return;
-
-    uint32_t refHandleInsta = *(uint32_t*)(entity_object+offsets.refhandle_offset);
-    char* classname = (char*)( *(uint32_t*)(entity_object+offsets.classname_offset));
-    uint32_t cbase_chk = functions.GetCBaseEntity(refHandleInsta);
-
-    if(cbase_chk == 0)
-    {
-        if(!validate)
-        {
-            if(classname)
-            {
-                rootconsole->ConsolePrint("Warning: Entity delete request granted without validation! [%s]", classname);
-            }
-            else
-            {
-                rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
-            }
-
-            cbase_chk = entity_object;
-        }
-        else
-        {
-            rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
-            exit(EXIT_FAILURE);
-            return;
-        }
-    }
-
-    uint32_t isMarked = functions.IsMarkedForDeletion(cbase_chk+offsets.iserver_offset);
-
-    if(isMarked)
-    {
-        rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_RemoveImmediate(CBaseEntity*)");
-        return;
-    }
-
-    if((*(uint32_t*)(cbase_chk+offsets.ismarked_offset) & 1) == 0)
-    {
-        if(*(uint32_t*)(fields.RemoveImmediateSemaphore) == 0)
-        {
-            // FAST DELETE ONLY
-
-            //if(classname) rootconsole->ConsolePrint("Removed [%s]", classname);
-
-            *(uint32_t*)(cbase_chk+offsets.ismarked_offset) = *(uint32_t*)(cbase_chk+offsets.ismarked_offset) | 1;
-
-            //UpdateOnRemove
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1AC) );
-            pDynamicOneArgFunc(cbase_chk);
-
-            //CALL RELEASE
-            uint32_t iServerObj = cbase_chk+offsets.iserver_offset;
-
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(iServerObj))+0x10) );
-            pDynamicOneArgFunc(iServerObj);
-        }
-        else
-        {
-            RemoveEntityNormalSynergy(cbase_chk, validate);
-        }
-    }
-}
-
-void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    
-    if(entity_object == 0)
-    {
-        rootconsole->ConsolePrint("Could not kill entity [NULL]");
-        return;
-    }
-
-    char* classname = (char*)(*(uint32_t*)(entity_object+offsets.classname_offset));
-    uint32_t m_refHandle = *(uint32_t*)(entity_object+offsets.refhandle_offset);
-    uint32_t chk_ref = functions.GetCBaseEntity(m_refHandle);
-
-    if(chk_ref == 0)
-    {
-        if(!validate)
-        {
-            if(classname)
-            {
-                rootconsole->ConsolePrint("Warning: Entity delete request granted without validation! [%s]", classname);
-            }
-            else
-            {
-                rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
-            }
-            
-            chk_ref = entity_object;
-        }
-    }
-
-    if(chk_ref)
-    {
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
-            return;
-        }
-
-        //Check if entity was already removed!
-        uint32_t isMarked = functions.IsMarkedForDeletion(chk_ref+offsets.iserver_offset);
-
-        if(isMarked) return;
-
-        //if(classname) rootconsole->ConsolePrint("Removed [%s]", classname);
-
-        //UTIL_Remove(IServerNetworkable*)
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008A0AB0);
-        pDynamicOneArgFunc(chk_ref+offsets.iserver_offset);
-
-        //Check if entity was removed!
-        isMarked = functions.IsMarkedForDeletion(chk_ref+offsets.iserver_offset);
-
-        if(isMarked)
-        {
-            if(*(uint32_t*)(fields.RemoveImmediateSemaphore) != 0)
-            {
-                if(disable_internal_remove_incrementor)
-                    hooked_delete_counter++;
-            }
-        }
-
-        return;
-    }
-
-    if(classname)
-    {
-        rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle] [%s] [%X]", classname, (uint32_t)__builtin_return_address(0) - server_srv);
-    }
-    else
-    {
-        rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle] [%X]", (uint32_t)__builtin_return_address(0) - server_srv);
-    }
-
-    exit(EXIT_FAILURE);
 }

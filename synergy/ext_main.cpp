@@ -36,11 +36,10 @@ bool InitExtensionSynergy()
     Library* vphysics_srv_lib = FindLibrary(vphysics_srv_fullpath, true);
     Library* sdktools_lib = FindLibrary(sdktools_path, true);
 
-    if(!(engine_srv_lib && dedicated_srv_lib && vphysics_srv_lib &&
-    server_srv_lib && sdktools_lib))
+    if(!(engine_srv_lib && dedicated_srv_lib && vphysics_srv_lib && server_srv_lib && sdktools_lib))
     {
-        ClearLoadedLibraries();
         RestoreMemoryProtections();
+        ClearLoadedLibraries();
         rootconsole->ConsolePrint("----------------------  Failed to load Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
         return false;
     }
@@ -85,10 +84,9 @@ bool InitExtensionSynergy()
     offsets.vphysics_object_offset = 0x208;
     offsets.m_CollisionGroup_offset = 516;
 
-    functions.RemoveEntityNormal = (pTwoArgProt)(RemoveEntityNormalSynergy);
-    functions.InstaKill = (pTwoArgProt)(InstaKillSynergy);
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
-    functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x0083F300);
+    functions.RemoveNormal = (pOneArgProt)(server_srv + 0x008A0BC0);
+    functions.RemoveInsta = (pOneArgProt)(server_srv + 0x008A0DE0);
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00615830);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C2C0);
     functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C420);
@@ -182,7 +180,7 @@ uint32_t HooksSynergy::UTIL_RemoveHookFailsafe(uint32_t arg0)
     // THIS HOOK IS FOR UNUSUAL CALLS TO UTIL_Remove probably from sourcemod!
 
     if(arg0 == 0) return 0;
-    functions.RemoveEntityNormal(arg0-offsets.iserver_offset, true);
+    RemoveEntityNormal(arg0-offsets.iserver_offset, true);
     return 0;
 }
 
@@ -236,9 +234,7 @@ uint32_t HooksSynergy::UpdateOnRemove(uint32_t arg0)
     char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
     if(*(uint32_t*)(fields.RemoveImmediateSemaphore) != 0)
-    {
         normal_delete_counter++;
-    }
 
     //rootconsole->ConsolePrint("normal counter: [%d] [%d] [%s]", normal_delete_counter, hooked_delete_counter, classname);
 
@@ -376,9 +372,8 @@ uint32_t HooksSynergy::PhysSimEnt(uint32_t arg0)
     }
 
     char* clsname =  (char*) ( *(uint32_t*)(arg0+offsets.classname_offset) );
-    uint32_t isMarked = functions.IsMarkedForDeletion(arg0+offsets.iserver_offset);
 
-    if(isMarked)
+    if(IsMarkedForDeletion(arg0+offsets.iserver_offset))
     {
         rootconsole->ConsolePrint("Simulation ignored for [%s]", clsname);
         return 0;
@@ -398,7 +393,7 @@ uint32_t HooksSynergy::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 
 uint32_t HooksSynergy::HookInstaKill(uint32_t arg0)
 {
-    functions.InstaKill(arg0, true);
+    InstaKill(arg0, true);
     return 0;
 }
 
@@ -592,52 +587,7 @@ uint32_t HooksSynergy::AutosaveHook(uint32_t arg0)
 
 uint32_t HooksSynergy::UTIL_RemoveBaseHook(uint32_t arg0)
 {
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(arg0 == 0)
-    {
-        rootconsole->ConsolePrint("Could not kill entity [NULL]");
-        return 0;
-    }
-
-    char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
-    uint32_t m_refHandle = *(uint32_t*)(arg0+offsets.refhandle_offset);
-    uint32_t chk_ref = functions.GetCBaseEntity(m_refHandle);
-
-    if(chk_ref)
-    {
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
-            return 0;
-        }
-        
-        uint32_t isMarked = functions.IsMarkedForDeletion(chk_ref+offsets.iserver_offset);
-        if(isMarked) return 0;
-
-        disable_internal_remove_incrementor = true;
-
-        //UTIL_Remove(CBaseEntity*)
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008A0BC0);
-        pDynamicOneArgFunc(arg0);
-
-        disable_internal_remove_incrementor = false;
-
-        isMarked = functions.IsMarkedForDeletion(arg0+offsets.iserver_offset);
-
-        if(isMarked)
-        {
-            if(*(uint32_t*)(fields.RemoveImmediateSemaphore) != 0)
-            {
-                hooked_delete_counter++;
-            }
-        }
-
-        return 0;
-    }
-
-    rootconsole->ConsolePrint("INVALID ENT!");
-    exit(1);
+    RemoveEntityNormal(arg0, true);
     return 0;
 }
 
@@ -658,16 +608,16 @@ uint32_t HooksSynergy::ShowtriggersToggle()
 
 void HookFunctionsSynergy()
 {
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00700600), (void*)HooksSynergy::CreateEntityByNameHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A0AB0), (void*)HooksSynergy::UTIL_RemoveHookFailsafe);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A0BC0), (void*)HooksSynergy::UTIL_RemoveBaseHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A0DE0), (void*)HooksSynergy::HookInstaKill);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074E3F0), (void*)HooksSynergy::PhysSimEnt);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000C4B70), (void*)HooksSynergy::PackedStoreDestructorHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4850), (void*)HooksSynergy::AcceptInputHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005AF050), (void*)HooksSynergy::UpdateOnRemove);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005D01E0), (void*)HooksSynergy::VPhysicsSetObjectHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005D0240), (void*)HooksSynergy::CollisionRulesChangedHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00BEC520), (void*)HooksSynergy::AutosaveHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000C7EB0), (void*)HooksSynergy::CanSatisfyVpkCacheInternalHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00700600), (void*)HooksSynergy::CreateEntityByNameHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x008A0AB0), (void*)HooksSynergy::UTIL_RemoveHookFailsafe);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x008A0BC0), (void*)HooksSynergy::UTIL_RemoveBaseHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x008A0DE0), (void*)HooksSynergy::HookInstaKill);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0074E3F0), (void*)HooksSynergy::PhysSimEnt);
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000C4B70), (void*)HooksSynergy::PackedStoreDestructorHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x005B4850), (void*)HooksSynergy::AcceptInputHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x005AF050), (void*)HooksSynergy::UpdateOnRemove);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x005D01E0), (void*)HooksSynergy::VPhysicsSetObjectHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x005D0240), (void*)HooksSynergy::CollisionRulesChangedHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BEC520), (void*)HooksSynergy::AutosaveHook);
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000C7EB0), (void*)HooksSynergy::CanSatisfyVpkCacheInternalHook);
 }

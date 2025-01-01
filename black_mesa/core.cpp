@@ -41,7 +41,8 @@ uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle)
 
 void PopulateHookExclusionListsBlackMesa()
 {
-
+    hook_exclude_list_base[0] = server_srv;
+    hook_exclude_list_offset[0] = 0x00A92201;
 }
 
 void CheckForLocation()
@@ -78,7 +79,7 @@ void CheckForLocation()
             {
                 if(trigger_vecMinsAbs->z <= *(float*)(player_abs+0x8) && *(float*)(player_abs+0x8) <= trigger_vecMaxsAbs->z)
                 {
-                    uint32_t collision_property = player+0x160;
+                    uint32_t collision_property = player+offsets.collision_property_offset;
                     uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
 
                     functions.SetSolidFlags(collision_property, 4);
@@ -90,7 +91,7 @@ void CheckForLocation()
 
         if(!in_area)
         {
-            uint32_t collision_property = player+0x160;
+            uint32_t collision_property = player+offsets.collision_property_offset;
             uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
 
             functions.SetSolidFlags(collision_property, 16);
@@ -98,149 +99,5 @@ void CheckForLocation()
 
         free(trigger_vecMinsAbs);
         free(trigger_vecMaxsAbs);
-    }
-}
-
-void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
-{
-    pZeroArgProt pDynamicZeroArgFunc;
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(entity_object == 0) return;
-
-    char* classname = (char*)(*(uint32_t*)(entity_object+offsets.classname_offset));
-    uint32_t refHandle = *(uint32_t*)(entity_object+offsets.refhandle_offset);
-    uint32_t object_verify = functions.GetCBaseEntity(refHandle);
-
-    if(object_verify == 0)
-    {
-        if(!validate)
-        {
-            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
-            object_verify = entity_object;
-        }
-    }
-
-    if(object_verify)
-    {
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
-            return;
-        }
-        
-        uint32_t isMarked = functions.IsMarkedForDeletion(object_verify+offsets.iserver_offset);
-
-        if(isMarked)
-        {
-            //rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
-            return;
-        }
-
-        //IsInPhysCallback
-        pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00978DF0);
-        uint8_t returnVal = pDynamicZeroArgFunc();
-
-        if(returnVal == 0)
-        {
-            hooked_delete_counter++;
-        }
-
-        //UTIL_Remove(IServerNetworkable*)
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A92160);
-        pDynamicOneArgFunc(object_verify+offsets.iserver_offset);
-
-        //rootconsole->ConsolePrint("Removed [%s]", clsname);
-
-        return;
-    }
-
-    rootconsole->ConsolePrint("Failed to verify entity object!");
-    exit(EXIT_FAILURE);
-}
-
-void InstaKillBlackMesa(uint32_t entity_object, bool validate)
-{
-    pZeroArgProt pDynamicZeroArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(entity_object == 0) return;
-
-    uint32_t refHandleInsta = *(uint32_t*)(entity_object+offsets.refhandle_offset);
-    char* classname = (char*) ( *(uint32_t*)(entity_object+offsets.classname_offset) );
-    uint32_t cbase_chk = functions.GetCBaseEntity(refHandleInsta);
-
-    if(cbase_chk == 0)
-    {
-        if(!validate)
-        {
-            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
-            cbase_chk = entity_object;
-        }
-        else
-        {
-            rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
-            exit(EXIT_FAILURE);
-            return;
-        }
-    }
-
-    uint32_t isMarked = functions.IsMarkedForDeletion(cbase_chk+offsets.iserver_offset);
-
-    if(isMarked)
-    {
-        rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_RemoveImmediate(CBaseEntity*)");
-        return;
-    }
-
-    //PhysIsInCallback
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00978DF0);
-    uint32_t isInCallback = pDynamicOneArgFunc(0);
-
-    if(isInCallback)
-    {
-        rootconsole->ConsolePrint("Should not be! (Insta)");
-        exit(EXIT_FAILURE);
-
-        return;
-    }
-
-    if(isTicking)
-    {
-        rootconsole->ConsolePrint("fast killed [%s]", classname);
-    }
-
-    if((*(uint32_t*)(cbase_chk+offsets.ismarked_offset) & 1) == 0)
-    {
-        if(*(uint32_t*)(fields.RemoveImmediateSemaphore) == 0)
-        {
-            // FAST DELETE ONLY
-
-            hooked_delete_counter++;
-
-            *(uint8_t*)(server_srv + 0x0180F344) = 0;
-            *(uint32_t*)(cbase_chk+offsets.ismarked_offset) = *(uint32_t*)(cbase_chk+offsets.ismarked_offset) | 1;
-
-            //UpdateOnRemove
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1D0) );
-            pDynamicOneArgFunc(cbase_chk);
-
-            *(uint8_t*)(server_srv + 0x0180F345) = 1;
-
-            //CALL RELEASE
-            uint32_t iServerObj = cbase_chk+offsets.iserver_offset;
-
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(iServerObj))+0x10) );
-            pDynamicOneArgFunc(iServerObj);
-
-            *(uint8_t*)(server_srv + 0x0180F345) = 0;
-        }
-        else
-        {
-            RemoveEntityNormalBlackMesa(cbase_chk, validate);
-        }
     }
 }

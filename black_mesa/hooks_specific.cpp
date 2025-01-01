@@ -10,17 +10,17 @@ void ApplyPatchesSpecificBlackMesa()
 
 void HookFunctionsSpecificBlackMesa()
 {
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070F600), (void*)NativeHooks::CNihiBallzDestructor);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0092E1D0), (void*)NativeHooks::InputApplySettingsHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007FA870), (void*)NativeHooks::InputSetCSMVolumeHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004F4E80), (void*)NativeHooks::CalcAbsolutePosition);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00994570), (void*)NativeHooks::EnumElementHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004F0FC0), (void*)NativeHooks::TakeDamageHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793A60), (void*)NativeHooks::CPropHevCharger_ShouldApplyEffect);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793FD0), (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A24570), (void*)NativeHooks::ScriptThinkEntCheck);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069DB20), (void*)NativeHooks::LaunchMortarHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)NativeHooks::DispatchAnimEventsHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0070F600), (void*)NativeHooks::CNihiBallzDestructor);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0092E1D0), (void*)NativeHooks::InputApplySettingsHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x007FA870), (void*)NativeHooks::InputSetCSMVolumeHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x004F4E80), (void*)NativeHooks::CalcAbsolutePosition);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00994570), (void*)NativeHooks::EnumElementHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x004F0FC0), (void*)NativeHooks::TakeDamageHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00793A60), (void*)NativeHooks::CPropHevCharger_ShouldApplyEffect);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00793FD0), (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00A24570), (void*)NativeHooks::ScriptThinkEntCheck);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0069DB20), (void*)NativeHooks::LaunchMortarHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)NativeHooks::DispatchAnimEventsHook);
 }
 
 uint32_t NativeHooks::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
