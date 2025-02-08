@@ -218,6 +218,7 @@ void HookFunctionsUtil();
 void SpawnPlayers();
 void CorrectPhysics();
 void ReplicateCheatsOnClient();
+void CorrectCheats();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

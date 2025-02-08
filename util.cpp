@@ -12,11 +12,13 @@ game_functions functions;
 
 bool loaded_extension;
 bool faking_cheats;
-bool correct_cheats;
 bool firstplayer_hasjoined;
 bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
+
+int incorrect_cheats_frames = 0;
+int correct_cheats_frames = 0;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -51,7 +53,6 @@ ValueList game_search_paths;
 void InitUtil()
 {
     loaded_extension = false;
-    correct_cheats = false;
     faking_cheats = false;
     firstplayer_hasjoined = false;
     player_collision_rules_changed = false;
@@ -61,6 +62,8 @@ void InitUtil()
     replicating_client_cheats = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
+    incorrect_cheats_frames = 0;
+    correct_cheats_frames = 0;
     player_spawn_list = AllocateValuesList();
     game_search_paths = AllocateValuesList();
 
@@ -327,6 +330,20 @@ bool FixSlashes(char* string)
     return fixed_name;
 }
 
+void CorrectCheats()
+{
+    char* sv_cheats_value = (char*)(*(uint32_t*)(fields.sv_cheats_cvar+offsets.cvarstring_offset));
+
+    if(strcmp(sv_cheats_value, "1") == 0)
+    {
+        functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
+    }
+    else
+    {
+        functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"0");
+    }
+}
+
 void ReplicateCheatsOnClient()
 {
     faking_cheats = false;
@@ -334,28 +351,27 @@ void ReplicateCheatsOnClient()
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
     replicating_client_cheats = false;
 
+    if(incorrect_cheats_frames >= 500)
+    {
+        incorrect_cheats_frames = 500;
+        CorrectCheats();
+    }
+
     if(!faking_cheats)
     {
-        if(!correct_cheats)
+        if(correct_cheats_frames <= 30)
         {
-            char* sv_cheats_value = (char*)(*(uint32_t*)(fields.sv_cheats_cvar+offsets.cvarstring_offset));
-
-            if(strcmp(sv_cheats_value, "1") == 0)
-            {
-                functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
-            }
-            else
-            {
-                functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"0");
-            }
-
-            rootconsole->ConsolePrint("Corrected cheats!");
-            correct_cheats = true;
+            CorrectCheats();
+            if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
         }
+
+        incorrect_cheats_frames = 0;
+        correct_cheats_frames++;
     }
     else
     {
-        correct_cheats = false;
+        correct_cheats_frames = 0;
+        incorrect_cheats_frames++;
     }
 }
 
@@ -449,6 +465,13 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         if(isActive) return 0;
 
         faking_cheats = true;
+
+        if(incorrect_cheats_frames >= 500)
+        {
+            incorrect_cheats_frames = 500;
+            rootconsole->ConsolePrint("Blocked NETMSG!!!!");
+            return 0;
+        }
     }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);

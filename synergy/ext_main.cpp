@@ -335,25 +335,28 @@ void FixCarSlashes()
 
     while((mainEnt = functions.FindEntityByClassname(fields.CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
     {
-        char* clsname = (char*) ( *(uint32_t*)(mainEnt+offsets.classname_offset) );
+        if(IsEntityValid(mainEnt))
+        {
+            char* clsname = (char*) ( *(uint32_t*)(mainEnt+offsets.classname_offset) );
         
-        if(strcmp(clsname, "prop_vehicle_jeep") != 0 && strcmp(clsname, "prop_vehicle_mp") != 0 && strcmp(clsname, "prop_vehicle_airboat") != 0)
-            continue;
-
-        uint32_t model = *(uint32_t*)(mainEnt+556);
-        uint32_t script = *(uint32_t*)(mainEnt+1544);
-
-        bool fixed_model = FixSlashes((char*)model);
-        bool fixed_script = FixSlashes((char*)script);
-
-        if(fixed_model)
-        {
-            rootconsole->ConsolePrint("FIXED_MODEL_NAME: [%s]", model);
-        }
-
-        if(fixed_script)
-        {
-            rootconsole->ConsolePrint("FIXED_SCRIPT_NAME: [%s]", script);
+            if(strcmp(clsname, "prop_vehicle_jeep") != 0 && strcmp(clsname, "prop_vehicle_mp") != 0 && strcmp(clsname, "prop_vehicle_airboat") != 0)
+                continue;
+    
+            uint32_t model = *(uint32_t*)(mainEnt+556);
+            uint32_t script = *(uint32_t*)(mainEnt+1544);
+    
+            bool fixed_model = FixSlashes((char*)model);
+            bool fixed_script = FixSlashes((char*)script);
+    
+            if(fixed_model)
+            {
+                rootconsole->ConsolePrint("FIXED_MODEL_NAME: [%s]", model);
+            }
+    
+            if(fixed_script)
+            {
+                rootconsole->ConsolePrint("FIXED_SCRIPT_NAME: [%s]", script);
+            }
         }
     }
 }
@@ -661,6 +664,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         FixCarSlashes();
 
+        functions.CleanupDeleteList(0);
+
         saving_now = true;
 
         //Autosave_Silent
@@ -668,6 +673,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         pDynamicFastCallOneArgFunc(0);
 
         saving_now = false;
+
+        functions.CleanupDeleteList(0);
 
         savegame = false;
     }
