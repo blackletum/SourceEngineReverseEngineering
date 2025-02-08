@@ -109,6 +109,7 @@ bool InitExtensionSynergy()
     offsets.ismarked_offset = 0x128;
     offsets.vphysics_object_offset = 0x208;
     offsets.m_CollisionGroup_offset = 516;
+    offsets.cvarstring_offset = 0x24;
 
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x00C2F140);
@@ -131,6 +132,8 @@ bool InitExtensionSynergy()
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
     functions.AddSearchPath = (pFourArgProt)(dedicated_srv + 0x0006DAB0);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0027BC50);
+    functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x002676F0);
+    functions.IsClientActive = (pOneArgProt)(engine_srv + 0x00188680);
 
     PopulateHookExclusionListsSynergy();
 

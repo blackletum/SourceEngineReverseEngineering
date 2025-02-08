@@ -11,10 +11,12 @@ game_offsets offsets;
 game_functions functions;
 
 bool loaded_extension;
-bool toggle_frame;
+bool faking_cheats;
+bool correct_cheats;
 bool firstplayer_hasjoined;
 bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
+bool replicating_client_cheats;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -49,12 +51,14 @@ ValueList game_search_paths;
 void InitUtil()
 {
     loaded_extension = false;
-    toggle_frame = true;
+    correct_cheats = false;
+    faking_cheats = false;
     firstplayer_hasjoined = false;
     player_collision_rules_changed = false;
     player_worldspawn_collision_disabled = false;
     isTicking = false;
     server_sleeping = false;
+    replicating_client_cheats = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
     player_spawn_list = AllocateValuesList();
@@ -65,7 +69,7 @@ void InitUtil()
 
 void HookFunctionsUtil()
 {
-    HookFunction(engine_srv, engine_srv_size, (void*)(functions.SV_ReplicateConVarChange), (void*)HooksUtil::SV_ReplicateConVarChangeHook);
+    HookFunction(engine_srv, engine_srv_size, (void*)(functions.SendNetMsg), (void*)HooksUtil::SendNetMsgHook);
 
     HookFunction(server_srv, server_srv_size, (void*)(functions.CreateEntityByName), (void*)HooksUtil::CreateEntityByNameHook);
     HookFunction(server_srv, server_srv_size, (void*)(functions.RemoveNormalDirect), (void*)HooksUtil::UTIL_RemoveHookFailsafe);
@@ -325,7 +329,34 @@ bool FixSlashes(char* string)
 
 void ReplicateCheatsOnClient()
 {
+    faking_cheats = false;
+    replicating_client_cheats = true;
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
+    replicating_client_cheats = false;
+
+    if(!faking_cheats)
+    {
+        if(!correct_cheats)
+        {
+            char* sv_cheats_value = (char*)(*(uint32_t*)(fields.sv_cheats_cvar+offsets.cvarstring_offset));
+
+            if(strcmp(sv_cheats_value, "1") == 0)
+            {
+                functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
+            }
+            else
+            {
+                functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"0");
+            }
+
+            rootconsole->ConsolePrint("Corrected cheats!");
+            correct_cheats = true;
+        }
+    }
+    else
+    {
+        correct_cheats = false;
+    }
 }
 
 void SpawnPlayers()
@@ -406,12 +437,22 @@ uint32_t HooksUtil::EmptyCall()
     return 0;
 }
 
-uint32_t HooksUtil::SV_ReplicateConVarChangeHook(uint32_t arg0, uint32_t arg1)
+uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pTwoArgProt pDynamicTwoArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
 
-    pDynamicTwoArgFunc = (pTwoArgProt)(functions.SV_ReplicateConVarChange);
-    return pDynamicTwoArgFunc(arg0, arg1);
+    if(replicating_client_cheats)
+    {
+        pOneArgProt IsActive = (pOneArgProt)(functions.IsClientActive);
+        int8_t isActive = IsActive(arg0);
+
+        if(isActive) return 0;
+
+        faking_cheats = true;
+    }
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t HooksUtil::AddSearchPathHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

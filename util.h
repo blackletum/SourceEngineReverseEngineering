@@ -32,7 +32,7 @@ public:
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
 	static uint32_t PlayerSpawnHook(uint32_t arg0);
 	static uint32_t AddSearchPathHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
-	static uint32_t SV_ReplicateConVarChangeHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 };
 
 typedef uint32_t (*pZeroArgProt)();
@@ -71,6 +71,7 @@ typedef struct _game_offsets {
 	uint32_t m_CollisionGroup_offset;
 	uint32_t ismarked_offset;
 	uint32_t vphysics_object_offset;
+	uint32_t cvarstring_offset;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -95,6 +96,8 @@ typedef struct _game_functions {
 	pSevenArgProt CanSatisfyVpkCacheInternal;
 	pFourArgProt AddSearchPath;
 	pTwoArgProt SV_ReplicateConVarChange;
+	pThreeArgProt SendNetMsg;
+	pOneArgProt IsClientActive;
 } game_functions;
 
 typedef struct _Signature {
