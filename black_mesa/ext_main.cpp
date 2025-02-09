@@ -453,60 +453,34 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     isTicking = true;
 
-    functions.CleanupDeleteList(0);
-
-    ReplicateCheatsOnClient();
-
-    uint32_t firstPlayer = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
-
-    if(!firstPlayer)
-    {
-        server_sleeping = true;
-    }
-    else
-    {
-        server_sleeping = false;
-    }
-
     RemoveBadEnts();
 
-    functions.CleanupDeleteList(0);
+    SetServerSleepStatus();
+    SpawnPlayers();
+    FixPlayerCollisionGroup();
+    DisablePlayerWorldSpawnCollision();
+
+    RemoveBadEnts();
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
-    functions.CleanupDeleteList(0);
-
-    RemoveBadEnts();
-
-    SpawnPlayers();
-    FixPlayerCollisionGroup();
-    DisablePlayerWorldSpawnCollision();
-
     UpdateAllCollisions();
-
-    functions.CleanupDeleteList(0);
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
     pDynamicOneArgFunc(0);
 
-    functions.CleanupDeleteList(0);
-
     RemoveBadEnts();
-
-    functions.CleanupDeleteList(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
 
-    functions.CleanupDeleteList(0);
-
     RemoveBadEnts();
-
     CorrectPhysics();
+    ReplicateCheatsOnClient();
 
     return 0;
 }

@@ -625,46 +625,44 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pOneArgProtFastCall pDynamicFastCallOneArgFunc;
     pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
-    functions.CleanupDeleteList(0);
-
-    ReplicateCheatsOnClient();
-
-    uint32_t firstplayer = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
-
-    if(!firstplayer)
-    {
-        server_sleeping = true;
-    }
-    else
-    {
-        server_sleeping = false;
-    }
-
     RemoveBadEnts();
 
-    functions.CleanupDeleteList(0);
+    SetServerSleepStatus();
+    SpawnPlayers();
+    RemoveDanglingRestoredVehicles();
+    EnterVehicles(restore_vehicle_list);
+
+    RemoveBadEnts();
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
     pDynamicOneArgFunc(simulating);
 
-    functions.CleanupDeleteList(0);
+    UpdateAllCollisions();
+
+    //ReverseOrder
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
+    pDynamicFastCallTwoArgFunc(0x2D, 0);
+
+    //PostSystems
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
+    pDynamicFastCallTwoArgFunc(0x41, 0);
     
     RemoveBadEnts();
 
-    SpawnPlayers();
-    RemoveDanglingRestoredVehicles();
-    EnterVehicles(restore_vehicle_list);
+    //ServiceEvents
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
+    pDynamicOneArgFunc(server_srv + 0x00EA2570);
+
+    RemoveBadEnts();
 
     if(savegame)
     {
-        rootconsole->ConsolePrint("Saving game!");
-
         save_frames = 0;
 
         FixCarSlashes();
 
-        functions.CleanupDeleteList(0);
+        RemoveBadEnts();
 
         saving_now = true;
 
@@ -674,38 +672,13 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         saving_now = false;
 
-        functions.CleanupDeleteList(0);
+        RemoveBadEnts();
 
         savegame = false;
     }
 
-    UpdateAllCollisions();
-
-    functions.CleanupDeleteList(0);
-
-    //ReverseOrder
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
-    pDynamicFastCallTwoArgFunc(0x2D, 0);
-
-    //PostSystems
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
-    pDynamicFastCallTwoArgFunc(0x41, 0);
-
-    functions.CleanupDeleteList(0);
-    
-    RemoveBadEnts();
-
-    functions.CleanupDeleteList(0);
-
-    //ServiceEvents
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
-    pDynamicOneArgFunc(server_srv + 0x00EA2570);
-
-    functions.CleanupDeleteList(0);
-
-    RemoveBadEnts();
-
     CorrectPhysics();
+    ReplicateCheatsOnClient();
     
     return 0;
 }
@@ -739,7 +712,9 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     MakePlayersLeaveVehicles();
     FixCarSlashes();
 
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
+
+    rootconsole->ConsolePrint("Saving game!");
 
     savegame_internal = true;
 
@@ -748,7 +723,7 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     savegame_internal = false;
 
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
 
     EnterVehicles(save_player_vehicles_list);
 

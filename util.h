@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 400
+
 typedef enum {
     SYNERGY,
     BLACK_MESA
@@ -219,6 +221,7 @@ void SpawnPlayers();
 void CorrectPhysics();
 void ReplicateCheatsOnClient();
 void CorrectCheats();
+void SetServerSleepStatus();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

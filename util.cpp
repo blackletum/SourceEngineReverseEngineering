@@ -347,13 +347,14 @@ void CorrectCheats()
 void ReplicateCheatsOnClient()
 {
     faking_cheats = false;
+    
     replicating_client_cheats = true;
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
     replicating_client_cheats = false;
 
-    if(incorrect_cheats_frames >= 500)
+    if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
     {
-        incorrect_cheats_frames = 500;
+        incorrect_cheats_frames = CLIENT_FAKE_CHEATS_FRAME_LIMIT;
         CorrectCheats();
     }
 
@@ -466,10 +467,10 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
         faking_cheats = true;
 
-        if(incorrect_cheats_frames >= 500)
+        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
         {
-            incorrect_cheats_frames = 500;
-            rootconsole->ConsolePrint("Blocked NETMSG!!!!");
+            incorrect_cheats_frames = CLIENT_FAKE_CHEATS_FRAME_LIMIT;
+            //rootconsole->ConsolePrint("Blocked NETMSG!!!!");
             return 0;
         }
     }
@@ -593,6 +594,17 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
 
     //LogVpkMemoryLeaks();
     DeleteAllValuesInList(game_search_paths, true, NULL);
+
+    if(game == SYNERGY)
+    {
+        extern ValueList restore_vehicle_list;
+        extern ValueList dangling_restore_vehicles;
+        extern ValueList save_player_vehicles_list;
+
+        DeleteAllValuesInList(restore_vehicle_list, false, NULL);
+        DeleteAllValuesInList(dangling_restore_vehicles, false, NULL);
+        DeleteAllValuesInList(save_player_vehicles_list, false, NULL);
+    }
 
     isTicking = false;
     firstplayer_hasjoined = false;
@@ -1460,7 +1472,7 @@ void InsertEntityToCollisionsList(uint32_t ent)
 
 void UpdateAllCollisions()
 {
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
     
     for(int i = 0; i < 512; i++)
     {
@@ -1504,6 +1516,20 @@ void UpdateAllCollisions()
     }
 
     RemoveBadEnts();
+}
+
+void SetServerSleepStatus()
+{
+    uint32_t firstPlayer = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
+
+    if(!IsEntityValid(firstPlayer))
+    {
+        server_sleeping = true;
+    }
+    else
+    {
+        server_sleeping = false;
+    }
 }
 
 void FixPlayerCollisionGroup()
