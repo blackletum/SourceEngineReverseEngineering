@@ -293,7 +293,7 @@ void HookFunctionsUtil()
         no_operation_signatures[4] = no_operation_signature_edx;
         no_operation_signatures[5] = no_operation_signature_ebx;
 
-        HookMemoryBlock(server_srv, server_srv_size, start_signatures, 6, end_signatures, 6, args_signatures, stack_machine_code, 6, no_operation_signatures, 6, 100, 150, 1, (void*)HooksUtil::CollisionRulesChangedHook);
+        //HookMemoryBlock(server_srv, server_srv_size, start_signatures, 6, end_signatures, 6, args_signatures, stack_machine_code, 6, no_operation_signatures, 6, 100, 150, 1, (void*)HooksUtil::CollisionRulesChangedHook);
     }
 }
 
