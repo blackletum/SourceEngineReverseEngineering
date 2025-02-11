@@ -678,7 +678,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     }
 
     CorrectPhysics();
-    ReplicateCheatsOnClient();
+    //ReplicateCheatsOnClient();
     
     return 0;
 }
