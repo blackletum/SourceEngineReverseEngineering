@@ -5,9 +5,9 @@
 #include "hooks_specific.h"
 
 int save_frames;
-bool saving_now;
 bool savegame_internal;
 uint32_t global_restore_player;
+
 ValueList restore_vehicle_list;
 ValueList dangling_restore_vehicles;
 ValueList save_player_vehicles_list;
@@ -84,9 +84,9 @@ bool InitExtensionSynergy()
     SaveProcessId();
 
     save_frames = 0;
-    saving_now = false;
     savegame_internal = false;
     global_restore_player = 0;
+
     restore_vehicle_list = AllocateValuesList();
     dangling_restore_vehicles = AllocateValuesList();
     save_player_vehicles_list = AllocateValuesList();
@@ -110,6 +110,7 @@ bool InitExtensionSynergy()
     offsets.vphysics_object_offset = 0x208;
     offsets.m_CollisionGroup_offset = 516;
     offsets.cvarstring_offset = 0x24;
+    offsets.isclientactive_offset = 0x6C;
 
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x00C2F140);
@@ -130,10 +131,8 @@ bool InitExtensionSynergy()
     functions.CleanupDeleteList = (pOneArgProt)(server_srv + 0x0064AC50);
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
-    functions.AddSearchPath = (pFourArgProt)(dedicated_srv + 0x0006DAB0);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0027BC50);
     functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x002676F0);
-    functions.IsClientActive = (pOneArgProt)(engine_srv + 0x00188680);
 
     PopulateHookExclusionListsSynergy();
 
@@ -222,111 +221,6 @@ void ApplyPatchesSynergy()
     uint32_t remove_extra_call = server_srv + 0x0070715B;
     offset = (uint32_t)HooksUtil::EmptyCall - remove_extra_call - 5;
     *(uint32_t*)(remove_extra_call+1) = offset;
-}
-
-void ReorderGameSearchPaths()
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-
-    Value* search_path_node = *game_search_paths;
-    if(!search_path_node) return;
-
-    //RemoveSearchPaths
-    pDynamicTwoArgFunc = (pTwoArgProt)(dedicated_srv + 0x000639E0);
-    pDynamicTwoArgFunc(dedicated_srv + 0x00278900, (uint32_t)"GAME");
-
-    //RemoveSearchPaths
-    pDynamicTwoArgFunc = (pTwoArgProt)(dedicated_srv + 0x000639E0);
-    pDynamicTwoArgFunc(dedicated_srv + 0x00278900, (uint32_t)"SHADOW_ep2");
-
-    //RemoveSearchPaths
-    pDynamicTwoArgFunc = (pTwoArgProt)(dedicated_srv + 0x000639E0);
-    pDynamicTwoArgFunc(dedicated_srv + 0x00278900, (uint32_t)"SHADOW_ep1");
-
-    while(search_path_node && search_path_node->nextVal)
-    {
-        char* game_search_path_abs = (char*)search_path_node->value;
-        uint32_t head_tail = *(uint32_t*)(search_path_node->nextVal->value);
-
-        char* game_search_path_hl2 = strstr(game_search_path_abs, "Half-Life 2/");
-        char* game_search_path_syn = strstr(game_search_path_abs, "Synergy/");
-
-        if(game_search_path_hl2 && strcmp(game_search_path_hl2, "Half-Life 2/ep2/") == 0)
-        {
-            search_path_node = search_path_node->nextVal->nextVal;
-            continue;
-        }
-
-        if(game_search_path_hl2 && strcmp(game_search_path_hl2, "Half-Life 2/episodic/") == 0)
-        {
-            search_path_node = search_path_node->nextVal->nextVal;
-            continue;
-        }
-
-        //AddSearchPath
-        pDynamicFourArgFunc = (pFourArgProt)(functions.AddSearchPath);
-        pDynamicFourArgFunc(dedicated_srv + 0x00278900, (uint32_t)game_search_path_abs, (uint32_t)"GAME", head_tail);
-
-        rootconsole->ConsolePrint("Added reordered path %s %s", "GAME", (uint32_t)game_search_path_abs);
-
-        if(game_search_path_hl2 && strcmp(game_search_path_hl2, "Half-Life 2/ep2/ep2_pak_dir.vpk") == 0)
-        {
-            Value* folder_path = FindStringInList(game_search_paths, "Half-Life 2/ep2/", NULL, true, NULL);
-
-            while(folder_path)
-            {
-                char* folder_search_path_trimmed = strstr((char*)folder_path->value, "Half-Life 2/");
-
-                if(folder_search_path_trimmed && strcmp(folder_search_path_trimmed, "Half-Life 2/ep2/") == 0)
-                {
-                    //AddSearchPath
-                    pDynamicFourArgFunc = (pFourArgProt)(functions.AddSearchPath);
-                    pDynamicFourArgFunc(dedicated_srv + 0x00278900, (uint32_t)folder_path->value, (uint32_t)"SHADOW_ep2", head_tail);
-
-                    //AddSearchPath
-                    pDynamicFourArgFunc = (pFourArgProt)(functions.AddSearchPath);
-                    pDynamicFourArgFunc(dedicated_srv + 0x00278900, (uint32_t)folder_path->value, (uint32_t)"GAME", head_tail);
-
-                    rootconsole->ConsolePrint("Added reordered path %s %s", "GAME", (uint32_t)folder_path->value);
-                }
-
-                if(folder_path->nextVal == NULL)
-                    break;
-
-                folder_path = FindStringInList(game_search_paths, "Half-Life 2/ep2/", NULL, true, folder_path->nextVal);
-            }
-        }
-        else if(game_search_path_hl2 && strcmp(game_search_path_hl2, "Half-Life 2/episodic/ep1_pak_dir.vpk") == 0)
-        {
-            Value* folder_path = FindStringInList(game_search_paths, "Half-Life 2/episodic/", NULL, true, NULL);
-
-            while(folder_path)
-            {
-                char* folder_search_path_trimmed = strstr((char*)folder_path->value, "Half-Life 2/");
-
-                if(folder_search_path_trimmed && strcmp(folder_search_path_trimmed, "Half-Life 2/episodic/") == 0)
-                {
-                    //AddSearchPath
-                    pDynamicFourArgFunc = (pFourArgProt)(functions.AddSearchPath);
-                    pDynamicFourArgFunc(dedicated_srv + 0x00278900, (uint32_t)folder_path->value, (uint32_t)"SHADOW_ep1", head_tail);
-
-                    //AddSearchPath
-                    pDynamicFourArgFunc = (pFourArgProt)(functions.AddSearchPath);
-                    pDynamicFourArgFunc(dedicated_srv + 0x00278900, (uint32_t)folder_path->value, (uint32_t)"GAME", head_tail);
-
-                    rootconsole->ConsolePrint("Added reordered path %s %s", "GAME", (uint32_t)folder_path->value);
-                }
-
-                if(folder_path->nextVal == NULL)
-                    break;
-
-                folder_path = FindStringInList(game_search_paths, "Half-Life 2/episodic/", NULL, true, folder_path->nextVal);
-            }
-        }
-
-        search_path_node = search_path_node->nextVal->nextVal;
-    }
 }
 
 void FixCarSlashes()
@@ -450,7 +344,6 @@ void RemoveDanglingRestoredVehicles()
         Value* next_vehicle = first_vehicle->nextVal;
 
         rootconsole->ConsolePrint("Removed dangling vehicle!");
-
         RemoveEntityNormal(functions.GetCBaseEntity((uint32_t)first_vehicle->value), true);
 
         free(first_vehicle);
@@ -638,6 +531,22 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
     pDynamicOneArgFunc(simulating);
 
+    if(savegame)
+    {
+        save_frames = 0;
+
+        FixCarSlashes();
+        RemoveBadEnts();
+
+        //Autosave_Silent
+        pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(server_srv + 0x00BEC530);
+        pDynamicFastCallOneArgFunc(0);
+
+        RemoveBadEnts();
+
+        savegame = false;
+    }
+
     UpdateAllCollisions();
 
     //ReverseOrder
@@ -655,30 +564,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc(server_srv + 0x00EA2570);
 
     RemoveBadEnts();
-
-    if(savegame)
-    {
-        save_frames = 0;
-
-        FixCarSlashes();
-
-        RemoveBadEnts();
-
-        saving_now = true;
-
-        //Autosave_Silent
-        pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(server_srv + 0x00BEC530);
-        pDynamicFastCallOneArgFunc(0);
-
-        saving_now = false;
-
-        RemoveBadEnts();
-
-        savegame = false;
-    }
-
     CorrectPhysics();
-    //ReplicateCheatsOnClient();
+    ReplicateCheatsOnClient();
     
     return 0;
 }
@@ -711,7 +598,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     MakePlayersLeaveVehicles();
     FixCarSlashes();
-
     RemoveBadEnts();
 
     rootconsole->ConsolePrint("Saving game!");
@@ -730,32 +616,11 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     return returnVal;
 }
 
-uint32_t HooksSynergy::MountContentHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    //g_file_system   00278900
-
-    rootconsole->ConsolePrint("\nStarting to mount content\n");
-
-    pDynamicOneArgFunc = (pOneArgProt)(synergy_srv + 0x000440C0);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    //PrintPaths
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000607D0);
-    pDynamicOneArgFunc(dedicated_srv + 0x00278900);
-
-    return returnVal;
-}
-
 void HookFunctionsSynergy()
 {
     HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BEC530), (void*)HooksSynergy::AutosaveHook);
     HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BDC650), (void*)HooksSynergy::RestorePlayerHook);
     HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BE5840), (void*)HooksSynergy::SaveGameStateHook);
-
-    HookFunction(synergy_srv, synergy_srv_size, (void*)(synergy_srv + 0x000440C0), (void*)HooksSynergy::MountContentHook);
 
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 }

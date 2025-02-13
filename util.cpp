@@ -43,12 +43,12 @@ uint32_t sdktools_size;
 
 bool isTicking;
 bool server_sleeping;
+
 uint32_t global_vpk_cache_buffer;
 uint32_t current_vpk_buffer_ref;
 
 ValueList leakedResourcesVpkSystem;
 ValueList player_spawn_list;
-ValueList game_search_paths;
 
 void InitUtil()
 {
@@ -60,12 +60,11 @@ void InitUtil()
     isTicking = false;
     server_sleeping = false;
     replicating_client_cheats = false;
-    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
+    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000*2);
     current_vpk_buffer_ref = 0;
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     player_spawn_list = AllocateValuesList();
-    game_search_paths = AllocateValuesList();
 
     HookFunctionsUtil();
 }
@@ -89,7 +88,6 @@ void HookFunctionsUtil()
 
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.PackedStoreDestructor), (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.CanSatisfyVpkCacheInternal), (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.AddSearchPath), (void*)HooksUtil::AddSearchPathHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 
     //Manual Memory Block Function Hooking (inlined function hooking)
@@ -107,193 +105,187 @@ void HookFunctionsUtil()
         uint8_t start_signature_preload_esi[512] = {0x83, 0xBE, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(start_signature_esi.signature, start_signature_preload_esi, sizeof(start_signature_preload_esi));
         start_signature_esi.signature_size = 7;
+        start_signatures[0] = start_signature_esi;
 
         Signature start_signature_edi;
         uint8_t start_signature_preload_edi[512] = {0x83, 0xBF, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(start_signature_edi.signature, start_signature_preload_edi, sizeof(start_signature_preload_edi));
         start_signature_edi.signature_size = 7;
+        start_signatures[1] = start_signature_edi;
 
         Signature start_signature_eax;
         uint8_t start_signature_preload_eax[512] = {0x83, 0xB8, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(start_signature_eax.signature, start_signature_preload_eax, sizeof(start_signature_preload_eax));
         start_signature_eax.signature_size = 7;
+        start_signatures[2] = start_signature_eax;
 
         Signature start_signature_ecx;
         uint8_t start_signature_preload_ecx[512] = {0x83, 0xB9, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(start_signature_ecx.signature, start_signature_preload_ecx, sizeof(start_signature_preload_ecx));
         start_signature_ecx.signature_size = 7;
+        start_signatures[3] = start_signature_ecx;
 
         Signature start_signature_edx;
         uint8_t start_signature_preload_edx[512] = {0x83, 0xBA, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(start_signature_edx.signature, start_signature_preload_edx, sizeof(start_signature_preload_edx));
         start_signature_edx.signature_size = 7;
+        start_signatures[4] = start_signature_edx;
 
         Signature start_signature_ebx;
         uint8_t start_signature_preload_ebx[512] = {0x83, 0xBB, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(start_signature_ebx.signature, start_signature_preload_ebx, sizeof(start_signature_preload_ebx));
         start_signature_ebx.signature_size = 7;
+        start_signatures[5] = start_signature_ebx;
 
 
         Signature end_signature_esi;
         uint8_t end_signature_preload_esi[512] = {0xFF, 0x56, 0x6C, 0xEB, 0xE6};
         memcpy(end_signature_esi.signature, end_signature_preload_esi, sizeof(end_signature_preload_esi));
         end_signature_esi.signature_size = 5;
+        end_signatures[0] = end_signature_esi;
 
         Signature end_signature_edi;
         uint8_t end_signature_preload_edi[512] = {0xFF, 0x57, 0x6C, 0xEB, 0xE6};
         memcpy(end_signature_edi.signature, end_signature_preload_edi, sizeof(end_signature_preload_edi));
         end_signature_edi.signature_size = 5;
+        end_signatures[1] = end_signature_edi;
 
         Signature end_signature_eax;
         uint8_t end_signature_preload_eax[512] = {0xFF, 0x50, 0x6C, 0xEB, 0xE6};
         memcpy(end_signature_eax.signature, end_signature_preload_eax, sizeof(end_signature_preload_eax));
         end_signature_eax.signature_size = 5;
+        end_signatures[2] = end_signature_eax;
 
         Signature end_signature_ecx;
         uint8_t end_signature_preload_ecx[512] = {0xFF, 0x51, 0x6C, 0xEB, 0xE6};
         memcpy(end_signature_ecx.signature, end_signature_preload_ecx, sizeof(end_signature_preload_ecx));
         end_signature_ecx.signature_size = 5;
+        end_signatures[3] = end_signature_ecx;
 
         Signature end_signature_edx;
         uint8_t end_signature_preload_edx[512] = {0xFF, 0x52, 0x6C, 0xEB, 0xE6};
         memcpy(end_signature_edx.signature, end_signature_preload_edx, sizeof(end_signature_preload_edx));
         end_signature_edx.signature_size = 5;
+        end_signatures[4] = end_signature_edx;
 
         Signature end_signature_ebx;
         uint8_t end_signature_preload_ebx[512] = {0xFF, 0x53, 0x6C, 0xEB, 0xE6};
         memcpy(end_signature_ebx.signature, end_signature_preload_ebx, sizeof(end_signature_preload_ebx));
         end_signature_ebx.signature_size = 5;
+        end_signatures[5] = end_signature_ebx;
 
 
         Signature argument_signature_esi;
         uint8_t argument_signature_preload_esi[512] = {0x83, 0xBE, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(argument_signature_esi.signature, argument_signature_preload_esi, sizeof(argument_signature_preload_esi));
         argument_signature_esi.signature_size = 7;
+        args_signatures[0] = argument_signature_esi;
 
         Signature argument_signature_edi;
         uint8_t argument_signature_preload_edi[512] = {0x83, 0xBF, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(argument_signature_edi.signature, argument_signature_preload_edi, sizeof(argument_signature_preload_edi));
         argument_signature_edi.signature_size = 7;
+        args_signatures[1] = argument_signature_edi;
 
         Signature argument_signature_eax;
         uint8_t argument_signature_preload_eax[512] = {0x83, 0xB8, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(argument_signature_eax.signature, argument_signature_preload_eax, sizeof(argument_signature_preload_eax));
         argument_signature_eax.signature_size = 7;
+        args_signatures[2] = argument_signature_eax;
 
         Signature argument_signature_ecx;
         uint8_t argument_signature_preload_ecx[512] = {0x83, 0xB9, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(argument_signature_ecx.signature, argument_signature_preload_ecx, sizeof(argument_signature_preload_ecx));
         argument_signature_ecx.signature_size = 7;
+        args_signatures[3] = argument_signature_ecx;
 
         Signature argument_signature_edx;
         uint8_t argument_signature_preload_edx[512] = {0x83, 0xBA, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(argument_signature_edx.signature, argument_signature_preload_edx, sizeof(argument_signature_preload_edx));
         argument_signature_edx.signature_size = 7;
+        args_signatures[4] = argument_signature_edx;
 
         Signature argument_signature_ebx;
         uint8_t argument_signature_preload_ebx[512] = {0x83, 0xBB, 0x08, 0x02, 0x00, 0x00, 0x00};
         memcpy(argument_signature_ebx.signature, argument_signature_preload_ebx, sizeof(argument_signature_preload_ebx));
         argument_signature_ebx.signature_size = 7;
+        args_signatures[5] = argument_signature_ebx;
 
 
         Signature stack_signature_esi;
         uint8_t stack_signature_preload_esi[512] = {0x89, 0x34, 0x24};
         memcpy(stack_signature_esi.signature, stack_signature_preload_esi, sizeof(stack_signature_preload_esi));
         stack_signature_esi.signature_size = 3;
+        stack_machine_code[0] = stack_signature_esi;
 
         Signature stack_signature_edi;
         uint8_t stack_signature_preload_edi[512] = {0x89, 0x3C, 0x24};
         memcpy(stack_signature_edi.signature, stack_signature_preload_edi, sizeof(stack_signature_preload_edi));
         stack_signature_edi.signature_size = 3;
+        stack_machine_code[1] = stack_signature_edi;
 
         Signature stack_signature_eax;
         uint8_t stack_signature_preload_eax[512] = {0x89, 0x04, 0x24};
         memcpy(stack_signature_eax.signature, stack_signature_preload_eax, sizeof(stack_signature_preload_eax));
         stack_signature_eax.signature_size = 3;
+        stack_machine_code[2] = stack_signature_eax;
 
         Signature stack_signature_ecx;
         uint8_t stack_signature_preload_ecx[512] = {0x89, 0x0C, 0x24};
         memcpy(stack_signature_ecx.signature, stack_signature_preload_ecx, sizeof(stack_signature_preload_ecx));
         stack_signature_ecx.signature_size = 3;
+        stack_machine_code[3] = stack_signature_ecx;
 
         Signature stack_signature_edx;
         uint8_t stack_signature_preload_edx[512] = {0x89, 0x14, 0x24};
         memcpy(stack_signature_edx.signature, stack_signature_preload_edx, sizeof(stack_signature_preload_edx));
         stack_signature_edx.signature_size = 3;
+        stack_machine_code[4] = stack_signature_edx;
 
         Signature stack_signature_ebx;
         uint8_t stack_signature_preload_ebx[512] = {0x89, 0x1C, 0x24};
         memcpy(stack_signature_ebx.signature, stack_signature_preload_ebx, sizeof(stack_signature_preload_ebx));
         stack_signature_ebx.signature_size = 3;
+        stack_machine_code[5] = stack_signature_ebx;
 
 
         Signature no_operation_signature_esi;
         uint8_t no_operation_signature_preload_esi[512] = {0xFF, 0x96, 0x90, 0x00, 0x00, 0x00};
         memcpy(no_operation_signature_esi.signature, no_operation_signature_preload_esi, sizeof(no_operation_signature_preload_esi));
         no_operation_signature_esi.signature_size = 6;
+        no_operation_signatures[0] = no_operation_signature_esi;
 
         Signature no_operation_signature_edi;
         uint8_t no_operation_signature_preload_edi[512] = {0xFF, 0x97, 0x90, 0x00, 0x00, 0x00};
         memcpy(no_operation_signature_edi.signature, no_operation_signature_preload_edi, sizeof(no_operation_signature_preload_edi));
         no_operation_signature_edi.signature_size = 6;
+        no_operation_signatures[1] = no_operation_signature_edi;
 
         Signature no_operation_signature_eax;
         uint8_t no_operation_signature_preload_eax[512] = {0xFF, 0x90, 0x90, 0x00, 0x00, 0x00};
         memcpy(no_operation_signature_eax.signature, no_operation_signature_preload_eax, sizeof(no_operation_signature_preload_eax));
         no_operation_signature_eax.signature_size = 6;
+        no_operation_signatures[2] = no_operation_signature_eax;
 
         Signature no_operation_signature_ecx;
         uint8_t no_operation_signature_preload_ecx[512] = {0xFF, 0x91, 0x90, 0x00, 0x00, 0x00};
         memcpy(no_operation_signature_ecx.signature, no_operation_signature_preload_ecx, sizeof(no_operation_signature_preload_ecx));
         no_operation_signature_ecx.signature_size = 6;
+        no_operation_signatures[3] = no_operation_signature_ecx;
 
         Signature no_operation_signature_edx;
         uint8_t no_operation_signature_preload_edx[512] = {0xFF, 0x92, 0x90, 0x00, 0x00, 0x00};
         memcpy(no_operation_signature_edx.signature, no_operation_signature_preload_edx, sizeof(no_operation_signature_preload_edx));
         no_operation_signature_edx.signature_size = 6;
+        no_operation_signatures[4] = no_operation_signature_edx;
 
         Signature no_operation_signature_ebx;
         uint8_t no_operation_signature_preload_ebx[512] = {0xFF, 0x93, 0x90, 0x00, 0x00, 0x00};
         memcpy(no_operation_signature_ebx.signature, no_operation_signature_preload_ebx, sizeof(no_operation_signature_preload_ebx));
         no_operation_signature_ebx.signature_size = 6;
-
-
-        start_signatures[0] = start_signature_esi;
-        start_signatures[1] = start_signature_edi;
-        start_signatures[2] = start_signature_eax;
-        start_signatures[3] = start_signature_ecx;
-        start_signatures[4] = start_signature_edx;
-        start_signatures[5] = start_signature_ebx;
-
-        end_signatures[0] = end_signature_esi;
-        end_signatures[1] = end_signature_edi;
-        end_signatures[2] = end_signature_eax;
-        end_signatures[3] = end_signature_ecx;
-        end_signatures[4] = end_signature_edx;
-        end_signatures[5] = end_signature_ebx;
-
-        args_signatures[0] = argument_signature_esi;
-        args_signatures[1] = argument_signature_edi;
-        args_signatures[2] = argument_signature_eax;
-        args_signatures[3] = argument_signature_ecx;
-        args_signatures[4] = argument_signature_edx;
-        args_signatures[5] = argument_signature_ebx;
-
-        stack_machine_code[0] = stack_signature_esi;
-        stack_machine_code[1] = stack_signature_edi;
-        stack_machine_code[2] = stack_signature_eax;
-        stack_machine_code[3] = stack_signature_ecx;
-        stack_machine_code[4] = stack_signature_edx;
-        stack_machine_code[5] = stack_signature_ebx;
-
-        no_operation_signatures[0] = no_operation_signature_esi;
-        no_operation_signatures[1] = no_operation_signature_edi;
-        no_operation_signatures[2] = no_operation_signature_eax;
-        no_operation_signatures[3] = no_operation_signature_ecx;
-        no_operation_signatures[4] = no_operation_signature_edx;
         no_operation_signatures[5] = no_operation_signature_ebx;
 
-        //HookMemoryBlock(server_srv, server_srv_size, start_signatures, 6, end_signatures, 6, args_signatures, stack_machine_code, 6, no_operation_signatures, 6, 100, 150, 1, (void*)HooksUtil::CollisionRulesChangedHook);
+        HookMemoryBlock(server_srv, server_srv_size, start_signatures, 6, end_signatures, 6, args_signatures, stack_machine_code, 6, no_operation_signatures, 6, 100, 150, 1, (void*)HooksUtil::CollisionRulesChangedHook);
     }
 }
 
@@ -354,13 +346,19 @@ void ReplicateCheatsOnClient()
 
     if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
     {
-        incorrect_cheats_frames = CLIENT_FAKE_CHEATS_FRAME_LIMIT;
-        CorrectCheats();
+        if(incorrect_cheats_frames <= CLIENT_FAKE_CHEATS_FRAME_LIMIT+10)
+        {
+            CorrectCheats();
+        }
+        else
+        {
+            incorrect_cheats_frames = CLIENT_FAKE_CHEATS_FRAME_LIMIT+20;
+        }
     }
 
     if(!faking_cheats)
     {
-        if(correct_cheats_frames <= 30)
+        if(correct_cheats_frames <= 10)
         {
             CorrectCheats();
             if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
@@ -460,7 +458,7 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(replicating_client_cheats)
     {
-        pOneArgProt IsActive = (pOneArgProt)(functions.IsClientActive);
+        pOneArgProt IsActive = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(arg0))+offsets.isclientactive_offset));
         int8_t isActive = IsActive(arg0);
 
         if(isActive) return 0;
@@ -477,34 +475,6 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
-}
-
-uint32_t HooksUtil::AddSearchPathHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pFourArgProt pDynamicFourArgFunc;
-
-    if(strcmp((char*)arg2, "GAME") == 0)
-    {
-        if(FindStringInList(game_search_paths, (const char*)arg1, NULL, false, NULL) == NULL)
-        {
-            void* search_path_copy = copy_val((void*)arg1, strlen((char*)arg1)+1);
-
-            uint32_t head_tail_copy = (uint32_t)malloc(sizeof(uint32_t)+1);
-            *(uint32_t*)(head_tail_copy) = 1;
-            *(uint8_t*)(head_tail_copy+3) = 0;
-            
-            Value* new_search_path = CreateNewValue(search_path_copy);
-            Value* head_tail = CreateNewValue((void*)head_tail_copy);
-
-            InsertToValuesList(game_search_paths, new_search_path, NULL, true, false);
-            InsertToValuesList(game_search_paths, head_tail, NULL, true, false);
-
-            rootconsole->ConsolePrint("Added search path %s %s", arg2, search_path_copy);
-        }
-    }
-
-    pDynamicFourArgFunc = (pFourArgProt)(functions.AddSearchPath);
-    return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
 }
 
 uint32_t HooksUtil::CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
@@ -593,7 +563,6 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     //LogVpkMemoryLeaks();
-    DeleteAllValuesInList(game_search_paths, true, NULL);
 
     if(game == SYNERGY)
     {
@@ -724,8 +693,7 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
 
 uint32_t HooksUtil::CollisionRulesChangedHook(uint32_t arg0)
 {
-    uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
-    if(vphysics_object) InsertEntityToCollisionsList(arg0);
+    InsertEntityToCollisionsList(arg0);
     return 0;
 }
 
@@ -1713,13 +1681,12 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         if(game == SYNERGY)
         {
             //Synergy
-            extern bool saving_now;
             extern bool savegame_internal;
 
-            if(saving_now || savegame_internal)
+            if(savegame_internal)
             {
-                InstaKill(object_verify, true);
                 rootconsole->ConsolePrint("WARNING: Removing [%s] while a save file is being made!", classname);
+                InstaKill(object_verify, true);
                 return;
             }
         }

@@ -78,6 +78,7 @@ bool InitExtensionBlackMesa()
     offsets.vphysics_object_offset = 0x1F8;
     offsets.m_CollisionGroup_offset = 500;
     offsets.cvarstring_offset = 0x24;
+    offsets.isclientactive_offset = 0x6C;
 
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntityBlackMesa);
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x005983C0);
@@ -98,10 +99,8 @@ bool InitExtensionBlackMesa()
     functions.CleanupDeleteList = (pOneArgProt)(server_srv + 0x007E6D20);
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000B1AE0);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000B5460);
-    functions.AddSearchPath = (pFourArgProt)(dedicated_srv + 0x00052390);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0016A6C0);
     functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x00157290);
-    functions.IsClientActive = (pOneArgProt)(engine_srv + 0x0007E100);
 
     PopulateHookExclusionListsBlackMesa();
 
