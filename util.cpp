@@ -50,6 +50,13 @@ uint32_t current_vpk_buffer_ref;
 ValueList leakedResourcesVpkSystem;
 ValueList player_spawn_list;
 
+void DeinitUtil()
+{
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)HooksUtil::MallocHookLarge, (void*)malloc);
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)HooksUtil::PackedStoreDestructorHook, (void*)functions.PackedStoreDestructor);
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook, (void*)functions.CanSatisfyVpkCacheInternal);
+}
+
 void InitUtil()
 {
     loaded_extension = false;

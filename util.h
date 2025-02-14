@@ -188,6 +188,7 @@ extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList game_search_paths;
 
+void DeinitUtil();
 void InitUtil();
 void* copy_val(void* val, size_t copy_size);
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);

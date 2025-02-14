@@ -1,6 +1,7 @@
 #ifndef EXT_MAIN_H
 #define EXT_MAIN_H
 
+void DeinitExtensionBlackMesa();
 bool InitExtensionBlackMesa();
 void ApplyPatchesBlackMesa();
 void HookFunctionsBlackMesa();

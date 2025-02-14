@@ -4,6 +4,18 @@
 #include "ext_main.h"
 #include "hooks_specific.h"
 
+void DeinitExtensionBlackMesa()
+{
+    if(game == BLACK_MESA)
+    {
+        AllowWriteToMappedMemory();
+        DeinitUtil();
+        RestoreMemoryProtections();
+        
+        rootconsole->ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
+    }
+}
+
 bool InitExtensionBlackMesa()
 {
     if(loaded_extension)

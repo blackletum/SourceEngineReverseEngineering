@@ -12,6 +12,18 @@ ValueList restore_vehicle_list;
 ValueList dangling_restore_vehicles;
 ValueList save_player_vehicles_list;
 
+void DeinitExtensionSynergy()
+{
+    if(game == SYNERGY)
+    {
+        AllowWriteToMappedMemory();
+        DeinitUtil();
+        RestoreMemoryProtections();
+
+        rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded  ----------------------");
+    }
+}
+
 bool InitExtensionSynergy()
 {
     if(loaded_extension)

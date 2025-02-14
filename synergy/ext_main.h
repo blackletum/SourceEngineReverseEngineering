@@ -1,6 +1,7 @@
 #ifndef EXT_MAIN_H
 #define EXT_MAIN_H
 
+void DeinitExtensionSynergy();
 bool InitExtensionSynergy();
 void ApplyPatchesSynergy();
 void HookFunctionsSynergy();
