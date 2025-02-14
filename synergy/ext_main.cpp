@@ -539,10 +539,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     RemoveBadEnts();
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
-    pDynamicOneArgFunc(simulating);
-
     if(savegame)
     {
         save_frames = 0;
@@ -558,6 +554,13 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         savegame = false;
     }
+
+    EnterVehicles(save_player_vehicles_list);
+    RemoveBadEnts();
+
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
+    pDynamicOneArgFunc(simulating);
 
     UpdateAllCollisions();
 
@@ -622,8 +625,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     savegame_internal = false;
 
     RemoveBadEnts();
-
-    EnterVehicles(save_player_vehicles_list);
 
     return returnVal;
 }

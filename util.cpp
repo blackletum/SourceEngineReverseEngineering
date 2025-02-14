@@ -147,6 +147,9 @@ void CorrectCheats()
 
 void ReplicateCheatsOnClient()
 {
+    if(incorrect_cheats_frames > 10000) incorrect_cheats_frames = 10000;
+    if(correct_cheats_frames > 10000) correct_cheats_frames = 10000;
+    
     faking_cheats = false;
     
     replicating_client_cheats = true;
