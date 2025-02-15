@@ -1528,9 +1528,10 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         if(game == SYNERGY)
         {
             //Synergy
+            extern bool savegame_autosave;
             extern bool savegame_internal;
 
-            if(savegame_internal)
+            if(savegame_autosave || savegame_internal)
             {
                 rootconsole->ConsolePrint("WARNING: Removing [%s] while a save file is being made!", classname);
                 InstaKill(object_verify, true);

@@ -5,6 +5,7 @@
 #include "hooks_specific.h"
 
 int save_frames;
+bool savegame_autosave;
 bool savegame_internal;
 uint32_t global_restore_player;
 
@@ -97,6 +98,7 @@ bool InitExtensionSynergy()
 
     save_frames = 0;
     savegame_internal = false;
+    savegame_autosave = false;
     global_restore_player = 0;
 
     restore_vehicle_list = AllocateValuesList();
@@ -544,14 +546,20 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     if(savegame)
     {
+        rootconsole->ConsolePrint("Autosave created!");
+        
         save_frames = 0;
 
         FixCarSlashes();
         RemoveBadEnts();
 
+        savegame_autosave = true;
+
         //Autosave_Silent
         pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(server_srv + 0x00BEC530);
         pDynamicFastCallOneArgFunc(0);
+
+        savegame_autosave = false;
 
         RemoveBadEnts();
 
