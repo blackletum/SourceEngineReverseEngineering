@@ -544,6 +544,10 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     RemoveBadEnts();
 
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
+    pDynamicOneArgFunc(simulating);
+
     if(savegame)
     {
         rootconsole->ConsolePrint("Autosave created!");
@@ -565,12 +569,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         savegame = false;
     }
-
-    RemoveBadEnts();
-
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
-    pDynamicOneArgFunc(simulating);
 
     UpdateAllCollisions();
 
