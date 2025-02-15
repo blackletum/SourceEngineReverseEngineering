@@ -113,6 +113,7 @@ bool InitExtensionBlackMesa()
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000B5460);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0016A6C0);
     functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x00157290);
+    functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0002B0E0);
 
     PopulateHookExclusionListsBlackMesa();
 

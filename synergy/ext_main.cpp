@@ -145,6 +145,7 @@ bool InitExtensionSynergy()
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0027BC50);
     functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x002676F0);
+    functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0004E780);
 
     PopulateHookExclusionListsSynergy();
 
@@ -320,7 +321,6 @@ void MakePlayersLeaveVehicles()
     {
         if(IsEntityValid(player))
         {
-            Vector emptyVector;
             uint32_t player_vehicle = functions.GetCBaseEntity(*(uint32_t*)(player+0x0D38));
 
             if(IsEntityValid(player_vehicle))
@@ -338,6 +338,8 @@ void MakePlayersLeaveVehicles()
                     InsertToValuesList(save_player_vehicles_list, vehicle_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, passenger_value, NULL, true, false);
                 }
+
+                Vector emptyVector;
 
                 //LeaveVehicle
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+0x648) );
@@ -536,6 +538,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     SpawnPlayers();
     RemoveDanglingRestoredVehicles();
     EnterVehicles(restore_vehicle_list);
+    EnterVehicles(save_player_vehicles_list);
 
     RemoveBadEnts();
 
@@ -555,7 +558,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    EnterVehicles(save_player_vehicles_list);
     RemoveBadEnts();
 
     //SimulateEntities
@@ -613,7 +615,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     MakePlayersLeaveVehicles();
     FixCarSlashes();
-    RemoveBadEnts();
 
     rootconsole->ConsolePrint("Saving game!");
 
@@ -623,8 +624,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     uint32_t returnVal = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
 
     savegame_internal = false;
-
-    RemoveBadEnts();
 
     return returnVal;
 }

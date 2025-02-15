@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 400
+#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 300
 
 typedef enum {
     SYNERGY,
@@ -28,7 +28,7 @@ public:
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t UpdateOnRemove(uint32_t arg0);
 	static uint32_t VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t CollisionRulesChangedHook(uint32_t arg0);
+	static uint32_t RecheckCollisionFilterHook(uint32_t arg0);
 	static uint32_t GlobalEntityListClear(uint32_t arg0);
 	static uint32_t CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
@@ -98,6 +98,7 @@ typedef struct _game_functions {
 	pSevenArgProt CanSatisfyVpkCacheInternal;
 	pTwoArgProt SV_ReplicateConVarChange;
 	pThreeArgProt SendNetMsg;
+	pOneArgProt RecheckCollisionFilter;
 } game_functions;
 
 typedef struct _Signature {

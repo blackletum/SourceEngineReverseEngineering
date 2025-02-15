@@ -16,6 +16,7 @@ bool firstplayer_hasjoined;
 bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
+bool allow_collision_recheck;
 
 int incorrect_cheats_frames = 0;
 int correct_cheats_frames = 0;
@@ -67,6 +68,7 @@ void InitUtil()
     isTicking = false;
     server_sleeping = false;
     replicating_client_cheats = false;
+    allow_collision_recheck = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000*2);
     current_vpk_buffer_ref = 0;
     incorrect_cheats_frames = 0;
@@ -78,6 +80,8 @@ void InitUtil()
 
 void HookFunctionsUtil()
 {
+    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(functions.RecheckCollisionFilter), (void*)HooksUtil::RecheckCollisionFilterHook);
+
     HookFunction(engine_srv, engine_srv_size, (void*)(functions.SendNetMsg), (void*)HooksUtil::SendNetMsgHook);
 
     HookFunction(server_srv, server_srv_size, (void*)(functions.CreateEntityByName), (void*)HooksUtil::CreateEntityByNameHook);
@@ -88,7 +92,6 @@ void HookFunctionsUtil()
     HookFunction(server_srv, server_srv_size, (void*)(functions.AcceptInput), (void*)HooksUtil::AcceptInputHook);
     HookFunction(server_srv, server_srv_size, (void*)(functions.UpdateOnRemoveBase), (void*)HooksUtil::UpdateOnRemove);
     HookFunction(server_srv, server_srv_size, (void*)(functions.VphysicsSetObject), (void*)HooksUtil::VPhysicsSetObjectHook);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.CollisionRulesChanged), (void*)HooksUtil::CollisionRulesChangedHook);
     HookFunction(server_srv, server_srv_size, (void*)(functions.ClearAllEntities), (void*)HooksUtil::GlobalEntityListClear);
     HookFunction(server_srv, server_srv_size, (void*)(functions.SpawnPlayer), (void*)HooksUtil::PlayerSpawnHook);
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
@@ -161,10 +164,6 @@ void ReplicateCheatsOnClient()
         if(incorrect_cheats_frames <= CLIENT_FAKE_CHEATS_FRAME_LIMIT+10)
         {
             CorrectCheats();
-        }
-        else
-        {
-            incorrect_cheats_frames = CLIENT_FAKE_CHEATS_FRAME_LIMIT+20;
         }
     }
 
@@ -364,7 +363,7 @@ uint32_t HooksUtil::PlayerSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    uint32_t refHandle = *(uint32_t*)(arg0+offsets.refhandle_offset);
+    firstplayer_hasjoined = true;
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.SpawnPlayer);
     return pDynamicOneArgFunc(arg0);
@@ -503,9 +502,34 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
     return pDynamicSixArgProt(arg0, arg1, arg2, arg3, arg4, arg5);
 }
 
-uint32_t HooksUtil::CollisionRulesChangedHook(uint32_t arg0)
+uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
 {
-    InsertEntityToCollisionsList(arg0);
+    pOneArgProt pDynamicOneArgFunc;
+    // arg0 = vphysics object dereferenced already
+
+    if(allow_collision_recheck)
+    {
+        //rootconsole->ConsolePrint("Allowed recheck!");
+        pDynamicOneArgFunc = (pOneArgProt)(functions.RecheckCollisionFilter);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    uint32_t ent = 0;
+
+    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        if(IsEntityValid(ent))
+        {
+            uint32_t vphysics_object = *(uint32_t*)(ent+offsets.vphysics_object_offset);
+
+            if(vphysics_object && vphysics_object == arg0)
+            {
+                //rootconsole->ConsolePrint("Found vphysics object to recheck!");
+                InsertEntityToCollisionsList(ent);
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -1263,7 +1287,9 @@ void UpdateAllCollisions()
             if(IsEntityValid(object))
             {
                 //rootconsole->ConsolePrint("Updated collisions!");
+                allow_collision_recheck = true;
                 functions.CollisionRulesChanged(object);
+                allow_collision_recheck = false;
             }
 
             collisions_entity_list[i] = 0;
@@ -1280,7 +1306,9 @@ void UpdateAllCollisions()
 
             if(!m_Network)
             {
+                allow_collision_recheck = true;
                 functions.CollisionRulesChanged(ent);
+                allow_collision_recheck = false;
             }
         }
     }
@@ -1291,7 +1319,9 @@ void UpdateAllCollisions()
     {
         if(IsEntityValid(ent))
         {
+            allow_collision_recheck = true;
             functions.CollisionRulesChanged(ent);
+            allow_collision_recheck = false;
         }
     }
 
@@ -1461,6 +1491,8 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         {
             if(isTicking)
             {
+                rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
+
                 if(game == SYNERGY)
                 {
                     Vector emptyVector;
@@ -1470,6 +1502,10 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
                     pDynamicThreeArgFunc(object_verify, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
 
                     functions.SpawnPlayer(object_verify);
+
+                    emptyVector.x = 0;
+                    emptyVector.y = 0;
+                    emptyVector.z = 0;
 
                     //LeaveVehicle
                     pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object_verify))+0x648) );
@@ -1483,7 +1519,6 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
                     functions.SpawnPlayer(object_verify);
                 }
 
-                rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
                 return;
             }
         }
