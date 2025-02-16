@@ -79,9 +79,11 @@ bool InitExtensionBlackMesa()
 
     offsets.classname_offset = 0x64;
     offsets.abs_origin_offset = 0x294;
-    offsets.abs_angles_offset = 0x310;
-    offsets.abs_velocity_offset = 0x22C;
     offsets.origin_offset = 0x31C;
+    offsets.abs_angles_offset = 0x310;
+    offsets.angles_offset = 0x328;
+    offsets.abs_velocity_offset = 0x22C;
+    offsets.velocity_offset = 0x2A0;
     offsets.mnetwork_offset = 0x20;
     offsets.refhandle_offset = 0x334;
     offsets.iserver_offset = 0x14;

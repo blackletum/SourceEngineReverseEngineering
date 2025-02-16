@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 300
+#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 500
 
 typedef enum {
     SYNERGY,
@@ -62,9 +62,11 @@ typedef struct _game_fields {
 typedef struct _game_offsets {
 	uint32_t classname_offset;
 	uint32_t abs_origin_offset;
-	uint32_t abs_angles_offset;
-	uint32_t abs_velocity_offset;
 	uint32_t origin_offset;
+	uint32_t abs_angles_offset;
+	uint32_t angles_offset;
+	uint32_t abs_velocity_offset;
+	uint32_t velocity_offset;
 	uint32_t refhandle_offset;
 	uint32_t iserver_offset;
 	uint32_t mnetwork_offset;

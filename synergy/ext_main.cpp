@@ -113,9 +113,11 @@ bool InitExtensionSynergy()
 
     offsets.classname_offset = 0x74;
     offsets.abs_origin_offset = 0x2A4;
-    offsets.abs_angles_offset = 0x338;
-    offsets.abs_velocity_offset = 0x23C;
     offsets.origin_offset = 0x344;
+    offsets.abs_angles_offset = 0x338;
+    offsets.angles_offset = 0x350;
+    offsets.abs_velocity_offset = 0x23C;
+    offsets.velocity_offset = 0x2B0;
     offsets.mnetwork_offset = 0x30;
     offsets.refhandle_offset = 0x35C;
     offsets.iserver_offset = 0x24;

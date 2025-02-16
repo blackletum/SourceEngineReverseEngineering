@@ -276,12 +276,7 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
         faking_cheats = true;
 
-        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
-        {
-            incorrect_cheats_frames = CLIENT_FAKE_CHEATS_FRAME_LIMIT;
-            //rootconsole->ConsolePrint("Blocked NETMSG!!!!");
-            return 0;
-        }
+        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT) return 0;
     }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);
@@ -1435,7 +1430,9 @@ void RemoveBadEnts()
             uint32_t abs_origin = ent+offsets.abs_origin_offset;
             uint32_t origin = ent+offsets.origin_offset;
             uint32_t abs_angles = ent+offsets.abs_angles_offset;
+            uint32_t angles = ent+offsets.angles_offset;
             uint32_t abs_velocity = ent+offsets.abs_velocity_offset;
+            uint32_t velocity = ent+offsets.velocity_offset;
 
             if
             (
@@ -1446,7 +1443,11 @@ void RemoveBadEnts()
             || 
             !IsEntityPositionReasonable(abs_angles)
             ||
+            !IsEntityPositionReasonable(angles)
+            ||
             !IsEntityPositionReasonable(abs_velocity)
+            ||
+            !IsEntityPositionReasonable(velocity)
             
             )
             {
