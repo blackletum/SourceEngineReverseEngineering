@@ -469,6 +469,11 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     RemoveBadEnts();
 
+    //Pre simulation
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
+
+    //Post simulation
     SetServerSleepStatus();
     SpawnPlayers();
     FixPlayerCollisionGroup();
@@ -480,6 +485,12 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
+    RemoveBadEnts();
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
+    pDynamicOneArgFunc(0);
+
     UpdateAllCollisions();
 
     //PostSystems
@@ -487,14 +498,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc(0);
 
     RemoveBadEnts();
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
-    pDynamicOneArgFunc(0);
-
-    RemoveBadEnts();
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
 
     return 0;
 }

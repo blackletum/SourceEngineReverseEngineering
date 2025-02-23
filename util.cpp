@@ -402,7 +402,40 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
+    //FINAL CHECKS
+
     char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
+
+    if(functions.GetCBaseEntity(*(uint32_t*)(arg0+offsets.refhandle_offset)) == 0)
+    {
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            rootconsole->ConsolePrint("\n\nAllowed player entity without validation [%p]\n\n", ((uint32_t)__builtin_return_address(0) - server_srv));
+        }
+        else
+        {
+            rootconsole->ConsolePrint("CORRUPTED ENTITY! [%p]", ((uint32_t)__builtin_return_address(0) - server_srv));
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
+
+    uint32_t ent = 0;
+
+    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        if(IsEntityValid(ent) && ent != arg0)
+        {
+            uint32_t vphysics_object_check = *(uint32_t*)(ent+offsets.vphysics_object_offset);
+
+            if(vphysics_object && vphysics_object_check && vphysics_object == vphysics_object_check)
+            {
+                rootconsole->ConsolePrint("Removed entity with the same physics object!!!");
+                RemoveEntityNormal(ent, true);
+            }
+        }
+    }
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.UpdateOnRemoveBase);
     return pDynamicOneArgFunc(arg0);
@@ -507,6 +540,18 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         //rootconsole->ConsolePrint("Allowed recheck!");
         pDynamicOneArgFunc = (pOneArgProt)(functions.RecheckCollisionFilter);
         return pDynamicOneArgFunc(arg0);
+    }
+
+    if(game == SYNERGY)
+    {
+        extern bool savegame_autosave;
+        extern bool savegame_internal;
+
+        if(savegame_autosave || savegame_internal)
+        {
+            rootconsole->ConsolePrint("Attempted to recheck collision filter while saving game!");
+            exit(EXIT_FAILURE);
+        }
     }
 
     uint32_t ent = 0;
@@ -1272,6 +1317,23 @@ void InsertEntityToCollisionsList(uint32_t ent)
 void UpdateAllCollisions()
 {
     RemoveBadEnts();
+
+    uint32_t ent = 0;
+
+    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        if(IsEntityValid(ent))
+        {
+            uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
+
+            if(!m_Network)
+            {
+                allow_collision_recheck = true;
+                functions.CollisionRulesChanged(ent);
+                allow_collision_recheck = false;
+            }
+        }
+    }
     
     for(int i = 0; i < 512; i++)
     {
@@ -1288,23 +1350,6 @@ void UpdateAllCollisions()
             }
 
             collisions_entity_list[i] = 0;
-        }
-    }
-
-    uint32_t ent = 0;
-
-    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        if(IsEntityValid(ent))
-        {
-            uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
-
-            if(!m_Network)
-            {
-                allow_collision_recheck = true;
-                functions.CollisionRulesChanged(ent);
-                allow_collision_recheck = false;
-            }
         }
     }
     
@@ -1488,6 +1533,8 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
     if(object_verify)
     {
+        if(IsMarkedForDeletion(object_verify+offsets.iserver_offset)) return;
+
         if(classname && strcmp(classname, "player") == 0)
         {
             if(isTicking)
@@ -1523,8 +1570,6 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
                 return;
             }
         }
-
-        if(IsMarkedForDeletion(object_verify+offsets.iserver_offset)) return;
 
         if(game == SYNERGY)
         {

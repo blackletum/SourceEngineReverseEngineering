@@ -538,6 +538,11 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     RemoveBadEnts();
 
+    //Pre simulation
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
+
+    //Post simulation
     SetServerSleepStatus();
     SpawnPlayers();
     RemoveDanglingRestoredVehicles();
@@ -550,6 +555,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
     pDynamicOneArgFunc(simulating);
 
+    RemoveBadEnts();
+
+    //ServiceEvents
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
+    pDynamicOneArgFunc(server_srv + 0x00EA2570);
+
     UpdateAllCollisions();
 
     //ReverseOrder
@@ -559,12 +570,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     //PostSystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
     pDynamicFastCallTwoArgFunc(0x41, 0);
-    
-    RemoveBadEnts();
-
-    //ServiceEvents
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
-    pDynamicOneArgFunc(server_srv + 0x00EA2570);
 
     RemoveBadEnts();
 
@@ -589,9 +594,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         savegame = false;
     }
-
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
     
     return 0;
 }
