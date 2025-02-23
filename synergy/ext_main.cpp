@@ -561,16 +561,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
     pDynamicOneArgFunc(server_srv + 0x00EA2570);
 
-    UpdateAllCollisions();
-
-    //ReverseOrder
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
-    pDynamicFastCallTwoArgFunc(0x2D, 0);
-
-    //PostSystems
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
-    pDynamicFastCallTwoArgFunc(0x41, 0);
-
     RemoveBadEnts();
 
     if(savegame)
@@ -594,7 +584,18 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         savegame = false;
     }
-    
+
+    UpdateAllCollisions();
+
+    //ReverseOrder
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
+    pDynamicFastCallTwoArgFunc(0x2D, 0);
+
+    //PostSystems
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
+    pDynamicFastCallTwoArgFunc(0x41, 0);
+
+    RemoveBadEnts();
     return 0;
 }
 

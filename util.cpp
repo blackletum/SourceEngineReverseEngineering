@@ -542,18 +542,6 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    if(game == SYNERGY)
-    {
-        extern bool savegame_autosave;
-        extern bool savegame_internal;
-
-        if(savegame_autosave || savegame_internal)
-        {
-            rootconsole->ConsolePrint("Attempted to recheck collision filter while saving game!");
-            exit(EXIT_FAILURE);
-        }
-    }
-
     uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
