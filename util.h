@@ -76,6 +76,8 @@ typedef struct _game_offsets {
 	uint32_t vphysics_object_offset;
 	uint32_t cvarstring_offset;
 	uint32_t isclientactive_offset;
+	uint32_t maxclients_offset;
+	uint32_t current_map_offset;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -101,6 +103,9 @@ typedef struct _game_functions {
 	pTwoArgProt SV_ReplicateConVarChange;
 	pThreeArgProt SendNetMsg;
 	pOneArgProt RecheckCollisionFilter;
+	pFourArgProt ClientCommand;
+	pTwoArgProt PEntityOfEntIndex;
+	pTwoArgProt GetPlayerUserId;
 } game_functions;
 
 typedef struct _Signature {
@@ -224,6 +229,9 @@ void CorrectPhysics();
 void ReplicateCheatsOnClient();
 void CorrectCheats();
 void SetServerSleepStatus();
+void SendClientConnectCommands();
+void SendClientCommands(uint32_t player_edict);
+void NotifyCheatsFaking();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

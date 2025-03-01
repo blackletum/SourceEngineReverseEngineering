@@ -127,6 +127,8 @@ bool InitExtensionSynergy()
     offsets.m_CollisionGroup_offset = 516;
     offsets.cvarstring_offset = 0x24;
     offsets.isclientactive_offset = 0x6C;
+    offsets.maxclients_offset = 0x14C;
+    offsets.current_map_offset = 0x11;
 
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x00C2F140);
@@ -150,6 +152,9 @@ bool InitExtensionSynergy()
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0027BC50);
     functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x002676F0);
     functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0004E780);
+    functions.ClientCommand = (pFourArgProt)(engine_srv + 0x002A4B40);
+    functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x002A3F60);
+    functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x002A3E10);
 
     PopulateHookExclusionListsSynergy();
 
@@ -163,7 +168,7 @@ bool InitExtensionSynergy()
 
     RestoreMemoryProtections();
 
-    rootconsole->ConsolePrint("\n\nServer Map: [%s]\n\n", fields.sv+0x11);
+    rootconsole->ConsolePrint("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
     rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded  ----------------------");
     loaded_extension = true;
 
@@ -541,6 +546,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     //Pre simulation
     CorrectPhysics();
     ReplicateCheatsOnClient();
+    SendClientConnectCommands();
 
     //Post simulation
     SetServerSleepStatus();

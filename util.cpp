@@ -50,6 +50,7 @@ uint32_t current_vpk_buffer_ref;
 
 ValueList leakedResourcesVpkSystem;
 ValueList player_spawn_list;
+ValueList players_connect_commands_list;
 
 void DeinitUtil()
 {
@@ -74,6 +75,7 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     player_spawn_list = AllocateValuesList();
+    players_connect_commands_list = AllocateValuesList();
 
     HookFunctionsUtil();
 }
@@ -99,6 +101,118 @@ void HookFunctionsUtil()
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.PackedStoreDestructor), (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.CanSatisfyVpkCacheInternal), (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
+}
+
+void SendClientConnectCommands()
+{
+    int maxclients = *(int*)(fields.sv+offsets.maxclients_offset);
+
+    for(int i = 1; i < maxclients; i++)
+    {
+        uint32_t player_edict = functions.PEntityOfEntIndex(0, i);
+
+        if(player_edict)
+        {
+            int userid = functions.GetPlayerUserId(0, player_edict);
+
+            if(userid != -1)
+            {
+                bool found_player = false;
+                Value* first_connect_player = *players_connect_commands_list;
+    
+                while(first_connect_player && first_connect_player->nextVal)
+                {
+                    int player_index = (int)first_connect_player->value;
+                    int frames = (int)first_connect_player->nextVal->value;
+    
+                    if(player_index == i)
+                    {
+                        if(frames < 200)
+                        {
+                            SendClientCommands(player_edict);
+                            //rootconsole->ConsolePrint("found player");
+                        }
+    
+                        if(frames > 1000) frames = 200;
+                        first_connect_player->nextVal->value = (void*)(frames+1);
+                        found_player = true;
+                        break;
+                    }
+    
+                    first_connect_player = first_connect_player->nextVal->nextVal;
+                }
+    
+                if(found_player) continue;
+    
+                Value* new_player_index = CreateNewValue((void*)i);
+                Value* start_frames = CreateNewValue((void*)0);
+    
+                InsertToValuesList(players_connect_commands_list, new_player_index, NULL, true, false);
+                InsertToValuesList(players_connect_commands_list, start_frames, NULL, true, false);
+            }
+            else
+            {
+                ValueList new_player_connects_list = AllocateValuesList();
+                Value* first_connect_player = *players_connect_commands_list;
+    
+                while(first_connect_player && first_connect_player->nextVal)
+                {
+                    int player_index = (int)first_connect_player->value;
+                    int frames = (int)first_connect_player->nextVal->value;
+    
+                    if(player_index != i)
+                    {
+                        Value* new_player_index = CreateNewValue((void*)player_index);
+                        Value* start_frames = CreateNewValue((void*)frames);
+    
+                        InsertToValuesList(new_player_connects_list, new_player_index, NULL, true, false);
+                        InsertToValuesList(new_player_connects_list, start_frames, NULL, true, false);
+                    }
+                    else
+                    {
+                        rootconsole->ConsolePrint("Removed dead player!");
+                    }
+    
+                    Value* nextValue = first_connect_player->nextVal->nextVal;
+    
+                    free(first_connect_player->nextVal);
+                    free(first_connect_player);
+    
+                    first_connect_player = nextValue;
+                }
+    
+                free(players_connect_commands_list);
+                players_connect_commands_list = new_player_connects_list;
+            }
+        }
+    }
+}
+
+void NotifyCheatsFaking()
+{
+    Value* first_player = *players_connect_commands_list;
+    bool continue_faking = false;
+
+    while(first_player && first_player->nextVal)
+    {
+        int player_index = (int)first_player->value;
+        int frames = (int)first_player->nextVal->value;
+
+        if(frames < 200) continue_faking = true;
+
+        first_player = first_player->nextVal->nextVal;
+    }
+
+    if(continue_faking)
+    {
+        faking_cheats = true;
+        //rootconsole->ConsolePrint("Faking cheats!");
+    }
+}
+
+void SendClientCommands(uint32_t player_edict)
+{
+    functions.ClientCommand(0, player_edict, (uint32_t)"reload_particleseffects_client", 0);
 }
 
 void CorrectPhysics()
@@ -154,6 +268,8 @@ void ReplicateCheatsOnClient()
     if(correct_cheats_frames > 10000) correct_cheats_frames = 10000;
     
     faking_cheats = false;
+
+    NotifyCheatsFaking();
     
     replicating_client_cheats = true;
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
@@ -169,7 +285,7 @@ void ReplicateCheatsOnClient()
 
     if(!faking_cheats)
     {
-        if(correct_cheats_frames <= 10)
+        if(correct_cheats_frames <= 1000)
         {
             CorrectCheats();
             if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
@@ -269,13 +385,7 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(replicating_client_cheats)
     {
-        pOneArgProt IsActive = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(arg0))+offsets.isclientactive_offset));
-        int8_t isActive = IsActive(arg0);
-
-        if(isActive) return 0;
-
-        faking_cheats = true;
-
+        if(!faking_cheats) return 0;
         if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT) return 0;
     }
 
@@ -369,6 +479,8 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     //LogVpkMemoryLeaks();
+
+    DeleteAllValuesInList(players_connect_commands_list, false, NULL);
 
     if(game == SYNERGY)
     {
@@ -1407,7 +1519,7 @@ void DisablePlayerWorldSpawnCollision()
             float player_velocity_y = *(uint32_t*)(player+offsets.abs_velocity_offset+4);
             float player_velocity_z = *(uint32_t*)(player+offsets.abs_velocity_offset+8);
 
-            if(player_velocity_x > 3260000000.0 || player_velocity_y > 3260000000.0)
+            if(player_velocity_x > 3000000000.0 || player_velocity_y > 3000000000.0)
             {
                 functions.DisableEntityCollisions(player, worldspawn);
             }
@@ -1512,7 +1624,12 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
     if(object_verify == 0)
     {
-        if(!validate)
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            rootconsole->ConsolePrint("Allowed player entity without validation");
+            object_verify = entity_object;
+        }
+        else if(!validate)
         {
             rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
             object_verify = entity_object;
@@ -1596,7 +1713,12 @@ void InstaKill(uint32_t entity_object, bool validate)
 
     if(cbase_chk == 0)
     {
-        if(!validate)
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            rootconsole->ConsolePrint("Allowed player entity without validation");
+            cbase_chk = entity_object;
+        }
+        else if(!validate)
         {
             rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
             cbase_chk = entity_object;

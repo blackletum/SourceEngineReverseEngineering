@@ -93,6 +93,8 @@ bool InitExtensionBlackMesa()
     offsets.m_CollisionGroup_offset = 500;
     offsets.cvarstring_offset = 0x24;
     offsets.isclientactive_offset = 0x6C;
+    offsets.maxclients_offset = 0x14C;
+    offsets.current_map_offset = 0x11;
 
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntityBlackMesa);
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x005983C0);
@@ -116,6 +118,9 @@ bool InitExtensionBlackMesa()
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0016A6C0);
     functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x00157290);
     functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0002B0E0);
+    functions.ClientCommand = (pFourArgProt)(engine_srv + 0x0018A7B0);
+    functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x0018A220);
+    functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x001891F0);
 
     PopulateHookExclusionListsBlackMesa();
 
@@ -129,8 +134,10 @@ bool InitExtensionBlackMesa()
 
     RestoreMemoryProtections();
 
+    rootconsole->ConsolePrint("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
     rootconsole->ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
     loaded_extension = true;
+
     return true;
 }
 
@@ -169,13 +176,6 @@ void ApplyPatchesBlackMesa()
     uint32_t remove_post_systems = server_srv + 0x008404F8;
     offset = (uint32_t)HooksUtil::EmptyCall - remove_post_systems - 5;
     *(uint32_t*)(remove_post_systems+1) = offset;
-
-    uint32_t precache_other_patch = server_srv + 0x00A96061;
-    offset = (uint32_t)HooksBlackMesa::InstaKillPatchHook - precache_other_patch - 5;
-    *(uint32_t*)(precache_other_patch+1) = offset;
-
-    uint32_t fix_vphysics_pair_crash = server_srv + 0x00378906;
-    *(uint8_t*)(fix_vphysics_pair_crash) = 0xEB;
 
     uint32_t fix_localplayer_crash = server_srv + 0x0042C421;
     memset((void*)fix_localplayer_crash, 0x90, 6);
@@ -443,12 +443,6 @@ uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
     return returnVal;
 }
 
-uint32_t HooksBlackMesa::InstaKillPatchHook(uint32_t arg0)
-{
-    InstaKill(arg0, false);
-    return 0;
-}
-
 uint32_t HooksBlackMesa::CXenShieldController_UpdateOnRemoveHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -472,6 +466,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     //Pre simulation
     CorrectPhysics();
     ReplicateCheatsOnClient();
+    SendClientConnectCommands();
 
     //Post simulation
     SetServerSleepStatus();
