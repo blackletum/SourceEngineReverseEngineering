@@ -277,7 +277,7 @@ void ReplicateCheatsOnClient()
 
     if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
     {
-        if(incorrect_cheats_frames <= CLIENT_FAKE_CHEATS_FRAME_LIMIT+10)
+        if(incorrect_cheats_frames <= CLIENT_FAKE_CHEATS_FRAME_LIMIT+1000)
         {
             CorrectCheats();
         }
