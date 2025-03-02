@@ -308,27 +308,21 @@ void ReplicateCheatsOnClient()
 
     SendClientConnectCommands();
 
-    if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
-    {
-        if(incorrect_cheats_frames <= CLIENT_FAKE_CHEATS_FRAME_LIMIT+1000)
-        {
-            CorrectCheats();
-        }
-    }
-
     if(!faking_cheats)
     {
-        if(correct_cheats_frames <= 1000)
-        {
-            CorrectCheats();
-            if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
-        }
+        CorrectCheats();
+        if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
 
         incorrect_cheats_frames = 0;
         correct_cheats_frames++;
     }
     else
     {
+        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
+        {
+            CorrectCheats();
+        }
+        
         correct_cheats_frames = 0;
         incorrect_cheats_frames++;
     }
