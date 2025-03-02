@@ -157,10 +157,10 @@ void SendClientConnectCommands()
                         }
 
                         //double frames
-                        if(frames < 5)
+                        if(frames < 1)
                         {
                             SendClientCommands(player_edict);
-                            //rootconsole->ConsolePrint("found player");
+                            rootconsole->ConsolePrint("found player");
                         }
     
                         if(frames > 1000) frames = 1000;
