@@ -18,8 +18,9 @@ bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
 bool allow_collision_recheck;
 
-int incorrect_cheats_frames = 0;
-int correct_cheats_frames = 0;
+int connected_clients;
+int incorrect_cheats_frames;
+int correct_cheats_frames;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -74,6 +75,7 @@ void InitUtil()
     current_vpk_buffer_ref = 0;
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
+    connected_clients = 0;
     player_spawn_list = AllocateValuesList();
     players_connect_commands_list = AllocateValuesList();
 
@@ -103,11 +105,31 @@ void HookFunctionsUtil()
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
+int GetEarliestClients()
+{
+    int maxclients = *(int*)(fields.sv+offsets.maxclients_offset);
+    int earliest_clients = 0;
+
+    for(int i = 1; i <= maxclients; i++)
+    {
+        uint32_t player_edict = functions.PEntityOfEntIndex(0, i);
+
+        if(player_edict)
+        {
+            int userid = functions.GetPlayerUserId(0, player_edict);
+            if(userid != -1) earliest_clients++;
+        }
+    }
+
+    return earliest_clients;
+}
+
 void SendClientConnectCommands()
 {
     int maxclients = *(int*)(fields.sv+offsets.maxclients_offset);
+    int earliest_clients = GetEarliestClients();
 
-    for(int i = 1; i < maxclients; i++)
+    for(int i = 1; i <= maxclients; i++)
     {
         uint32_t player_edict = functions.PEntityOfEntIndex(0, i);
 
@@ -127,14 +149,23 @@ void SendClientConnectCommands()
     
                     if(player_index == i)
                     {
-                        if(frames < 200)
+                        if(earliest_clients != connected_clients)
+                        {
+                            //rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
+                            found_player = true;
+                            break;
+                        }
+
+                        //double frames
+                        if(frames < 5)
                         {
                             SendClientCommands(player_edict);
                             //rootconsole->ConsolePrint("found player");
                         }
     
-                        if(frames > 1000) frames = 200;
+                        if(frames > 1000) frames = 1000;
                         first_connect_player->nextVal->value = (void*)(frames+1);
+
                         found_player = true;
                         break;
                     }
@@ -198,16 +229,13 @@ void NotifyCheatsFaking()
         int player_index = (int)first_player->value;
         int frames = (int)first_player->nextVal->value;
 
-        if(frames < 200) continue_faking = true;
+        //double frames
+        if(frames < 180) continue_faking = true;
 
         first_player = first_player->nextVal->nextVal;
     }
 
-    if(continue_faking)
-    {
-        faking_cheats = true;
-        //rootconsole->ConsolePrint("Faking cheats!");
-    }
+    faking_cheats = continue_faking;
 }
 
 void SendClientCommands(uint32_t player_edict)
@@ -269,11 +297,16 @@ void ReplicateCheatsOnClient()
     
     faking_cheats = false;
 
+    SendClientConnectCommands();
     NotifyCheatsFaking();
+
+    connected_clients = 0;
     
     replicating_client_cheats = true;
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
     replicating_client_cheats = false;
+
+    SendClientConnectCommands();
 
     if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
     {
@@ -385,8 +418,12 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(replicating_client_cheats)
     {
+        connected_clients++;
+
         if(!faking_cheats) return 0;
         if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT) return 0;
+
+        //rootconsole->ConsolePrint("Faking!");
     }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);

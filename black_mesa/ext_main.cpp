@@ -466,7 +466,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     //Pre simulation
     CorrectPhysics();
     ReplicateCheatsOnClient();
-    SendClientConnectCommands();
 
     //Post simulation
     SetServerSleepStatus();

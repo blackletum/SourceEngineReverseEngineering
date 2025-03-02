@@ -232,6 +232,7 @@ void SetServerSleepStatus();
 void SendClientConnectCommands();
 void SendClientCommands(uint32_t player_edict);
 void NotifyCheatsFaking();
+int GetEarliestClients();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

@@ -546,7 +546,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     //Pre simulation
     CorrectPhysics();
     ReplicateCheatsOnClient();
-    SendClientConnectCommands();
 
     //Post simulation
     SetServerSleepStatus();
