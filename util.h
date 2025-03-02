@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 500
+#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 100
 
 typedef enum {
     SYNERGY,

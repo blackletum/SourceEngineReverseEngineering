@@ -117,7 +117,7 @@ int GetEarliestClients()
         if(player_edict)
         {
             int userid = functions.GetPlayerUserId(0, player_edict);
-            if(userid != -1) earliest_clients++;
+            if(userid != -1 && userid != 0) earliest_clients++;
         }
     }
 
@@ -136,8 +136,9 @@ void SendClientConnectCommands()
         if(player_edict)
         {
             int userid = functions.GetPlayerUserId(0, player_edict);
+            //rootconsole->ConsolePrint("USERID: [%d]", userid);
 
-            if(userid != -1)
+            if(userid != -1 && userid != 0)
             {
                 bool found_player = false;
                 Value* first_connect_player = *players_connect_commands_list;
@@ -151,12 +152,11 @@ void SendClientConnectCommands()
                     {
                         if(earliest_clients != connected_clients)
                         {
-                            //rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
+                            rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
                             found_player = true;
                             break;
                         }
-
-                        //double frames
+                        
                         if(frames < 1)
                         {
                             SendClientCommands(player_edict);
@@ -230,7 +230,7 @@ void NotifyCheatsFaking()
         int frames = (int)first_player->nextVal->value;
 
         //double frames
-        if(frames < 180) continue_faking = true;
+        if(frames < 50) continue_faking = true;
 
         first_player = first_player->nextVal->nextVal;
     }
@@ -320,6 +320,7 @@ void ReplicateCheatsOnClient()
     {
         if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
         {
+            rootconsole->ConsolePrint("Over the limit!");
             CorrectCheats();
         }
         
@@ -415,7 +416,12 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         connected_clients++;
 
         if(!faking_cheats) return 0;
-        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT) return 0;
+        
+        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
+        {
+            rootconsole->ConsolePrint("Blocked!");
+            return 0;
+        }
 
         //rootconsole->ConsolePrint("Faking!");
     }
