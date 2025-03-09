@@ -106,6 +106,7 @@ typedef struct _game_functions {
 	pFourArgProt ClientCommand;
 	pTwoArgProt PEntityOfEntIndex;
 	pTwoArgProt GetPlayerUserId;
+	pOneArgProt IsFakeClient;
 } game_functions;
 
 typedef struct _Signature {
@@ -214,7 +215,8 @@ void ForceMemoryAccess();
 void RestoreMemoryProtections();
 void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);
-void UpdateAllCollisions();
+bool IsVectorInf(uint32_t base);
+void UpdateCollisions();
 void RemoveBadEnts();
 void RemoveEntityNormal(uint32_t entity_object, bool validate);
 void InstaKill(uint32_t entity_object, bool validate);

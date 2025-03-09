@@ -5,6 +5,7 @@
 #include "hooks_specific.h"
 
 int save_frames;
+bool savegame;
 bool savegame_autosave;
 bool savegame_internal;
 uint32_t global_restore_player;
@@ -97,6 +98,7 @@ bool InitExtensionSynergy()
     SaveProcessId();
 
     save_frames = 0;
+    savegame = false;
     savegame_internal = false;
     savegame_autosave = false;
     global_restore_player = 0;
@@ -155,6 +157,7 @@ bool InitExtensionSynergy()
     functions.ClientCommand = (pFourArgProt)(engine_srv + 0x002A4B40);
     functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x002A3F60);
     functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x002A3E10);
+    functions.IsFakeClient = (pOneArgProt)(server_srv + 0x007A8200);
 
     PopulateHookExclusionListsSynergy();
 
@@ -221,6 +224,18 @@ void ApplyPatchesSynergy()
     uint32_t nearplayer_bypass = server_srv + 0x00C2AE3C;
     *(uint8_t*)(nearplayer_bypass) = 0xE9;
     *(uint32_t*)(nearplayer_bypass+1) = 0x1A9;
+
+    uint32_t weapon_pitch_dropship_patch = server_srv + 0x00AAAB44;
+    offset = (uint32_t)HooksSynergy::LookupPoseParameterDropshipHook - weapon_pitch_dropship_patch - 5;
+    *(uint32_t*)(weapon_pitch_dropship_patch+1) = offset;
+
+    uint32_t weapon_yaw_dropship_patch = server_srv + 0x00AAABB2;
+    offset = (uint32_t)HooksSynergy::LookupPoseParameterDropshipHook - weapon_yaw_dropship_patch - 5;
+    *(uint32_t*)(weapon_yaw_dropship_patch+1) = offset;
+
+    uint32_t helicopter_sphere_fix = server_srv + 0x00A44B59;
+    *(uint8_t*)(helicopter_sphere_fix) = 0xE9;
+    *(uint32_t*)(helicopter_sphere_fix+1) = 0xA3;
 
     //spawning crash
     uint32_t patch_player_spawn_crash = server_srv + 0x00C2F28C;
@@ -408,6 +423,77 @@ void EnterVehicles(ValueList vehi_list)
     *vehi_list = NULL;
 }
 
+uint32_t HooksSynergy::CombineDropshipSpawnHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAE700);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    *(uint8_t*)(server_srv + 0x00F6E734) = 0;
+
+    //PopulatePoseParameters - Dropship
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA8E0);
+    pDynamicOneArgFunc(arg0);
+
+    return returnVal;
+}
+
+uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
+    
+    uint32_t dropship_container_refhandle = *(uint32_t*)(arg0+0x1030);
+    uint32_t container_object = functions.GetCBaseEntity(dropship_container_refhandle);
+    uint32_t modelinfo = *(uint32_t*)(server_srv + 0x00EC7460);
+
+    if(container_object)
+    {
+        uint32_t studio_hdr = *(uint32_t*)(container_object+0x4B0);
+
+        if(studio_hdr)
+        {
+            rootconsole->ConsolePrint("Dropship gun patched! x1");
+    
+            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0056F370);
+            return pDynamicThreeArgFunc(container_object, studio_hdr, arg2);
+        }
+
+        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(container_object))+0x1C) );
+        uint32_t studio_object = pDynamicOneArgFunc(container_object);
+
+        pDynamicTwoArgFunc = (pTwoArgProt)( *(uint32_t*)((*(uint32_t*)modelinfo)+8) );
+        uint32_t final_studio = pDynamicTwoArgFunc(modelinfo, studio_object);
+
+        if(final_studio)
+        {
+            rootconsole->ConsolePrint("Locked studio for dropship!");
+
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0056AF30);
+            pDynamicOneArgFunc(container_object);
+        }
+
+        studio_hdr = *(uint32_t*)(container_object+0x4B0);
+
+        if(*(uint32_t*)(studio_hdr) == 0) studio_hdr = 0;
+
+        if(studio_hdr)
+        {
+            rootconsole->ConsolePrint("Dropship gun patched! x2");
+    
+            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0056F370);
+            return pDynamicThreeArgFunc(container_object, studio_hdr, arg2);
+        }
+    }
+
+    rootconsole->ConsolePrint("Failed to patch dropship gun!");
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0056F370);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
 uint32_t HooksSynergy::VehicleInitializeRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
@@ -541,32 +627,16 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pOneArgProtFastCall pDynamicFastCallOneArgFunc;
     pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
-    RemoveBadEnts();
-
-    //Pre simulation
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
-
-    //Post simulation
     SetServerSleepStatus();
     SpawnPlayers();
-    RemoveDanglingRestoredVehicles();
-    EnterVehicles(restore_vehicle_list);
-    EnterVehicles(save_player_vehicles_list);
 
-    RemoveBadEnts();
+    functions.CleanupDeleteList(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
     pDynamicOneArgFunc(simulating);
 
-    RemoveBadEnts();
-
-    //ServiceEvents
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
-    pDynamicOneArgFunc(server_srv + 0x00EA2570);
-
-    RemoveBadEnts();
+    functions.CleanupDeleteList(0);
 
     if(savegame)
     {
@@ -575,7 +645,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         save_frames = 0;
 
         FixCarSlashes();
-        RemoveBadEnts();
+        functions.CleanupDeleteList(0);
 
         savegame_autosave = true;
 
@@ -585,12 +655,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         savegame_autosave = false;
 
-        RemoveBadEnts();
+        functions.CleanupDeleteList(0);
 
         savegame = false;
     }
 
-    UpdateAllCollisions();
+    UpdateCollisions();
 
     //ReverseOrder
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
@@ -600,7 +670,22 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
-    RemoveBadEnts();
+    functions.CleanupDeleteList(0);
+
+    //ServiceEvents
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
+    pDynamicOneArgFunc(server_srv + 0x00EA2570);
+
+    functions.CleanupDeleteList(0);
+
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
+    RemoveDanglingRestoredVehicles();
+    EnterVehicles(restore_vehicle_list);
+    EnterVehicles(save_player_vehicles_list);
+
+    UpdateCollisions();
+
     return 0;
 }
 
@@ -650,6 +735,7 @@ void HookFunctionsSynergy()
     HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BEC530), (void*)HooksSynergy::AutosaveHook);
     HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BDC650), (void*)HooksSynergy::RestorePlayerHook);
     HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BE5840), (void*)HooksSynergy::SaveGameStateHook);
+    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00AAE700), (void*)HooksSynergy::CombineDropshipSpawnHook);
 
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 }

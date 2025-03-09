@@ -142,7 +142,7 @@ uint32_t NativeHooks::TakeDamageHook(uint32_t arg0, uint32_t arg1)
     if(arg1)
     {
         uint32_t chkRef = *(uint32_t*)(arg1+0x28);
-        uint32_t object = GetCBaseEntityBlackMesa(chkRef);
+        uint32_t object = functions.GetCBaseEntity(chkRef);
 
         if(IsEntityValid(object))
         {

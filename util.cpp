@@ -525,9 +525,14 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
         extern ValueList dangling_restore_vehicles;
         extern ValueList save_player_vehicles_list;
 
+        extern bool savegame;
+
         DeleteAllValuesInList(restore_vehicle_list, false, NULL);
         DeleteAllValuesInList(dangling_restore_vehicles, false, NULL);
         DeleteAllValuesInList(save_player_vehicles_list, false, NULL);
+
+        savegame = true;
+
     }
 
     isTicking = false;
@@ -1359,44 +1364,41 @@ void RestoreMemoryProtections()
     }
 }
 
-void ZeroVector(uint32_t vector)
+inline void ZeroVector(uint32_t vector)
 {
     *(float*)(vector) = 0;
     *(float*)(vector+4) = 0;
     *(float*)(vector+8) = 0;
 }
 
-bool IsVectorNaN(uint32_t base)
+inline bool IsVectorNaN(uint32_t base)
 {
     float s0 = *(float*)(base);
     float s1 = *(float*)(base+4);
     float s2 = *(float*)(base+8);
 
-    if(s0 != s0 || s1 != s1 || s2 != s2)
-        return true;
-
-    return false;
+    return (s0 != s0) || (s1 != s1) || (s2 != s2);
 }
 
-bool IsValidVector(uint32_t base)
+inline bool IsVectorInf(uint32_t base)
 {
     float s0 = *(float*)(base);
     float s1 = *(float*)(base+4);
     float s2 = *(float*)(base+8);
 
-    // Check for NaN and infinity
-    if(isnan(s0) || isnan(s1) || isnan(s2) ||
-        isinf(s0) || isinf(s1) || isinf(s2))
-        return false;
+    return ((s0 != 0) && ((s0 / 2) == s0)) ||
+           ((s1 != 0) && ((s1 / 2) == s1)) ||
+           ((s2 != 0) && ((s2 / 2) == s2));
+}
 
-    // Optional: Check for denormalized values
-    if(is_denormalized(s0) || is_denormalized(s1) || is_denormalized(s2))
-        return false;
 
+inline bool IsValidVector(uint32_t base)
+{
+    if(IsVectorNaN(base) || IsVectorInf(base)) return false;
     return true;
 }
 
-bool IsEntityPositionReasonable(uint32_t v)
+inline bool IsEntityPositionReasonable(uint32_t v)
 {
     float x = *(float*)(v);
     float y = *(float*)(v+4);
@@ -1420,21 +1422,13 @@ void InsertEntityToCollisionsList(uint32_t ent)
     if(IsEntityValid(ent))
     {
         char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
-
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            player_collision_rules_changed = true;
-            return;
-        }
+        uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
 
         for(int i = 0; i < 512; i++)
         {
             if(collisions_entity_list[i] != 0)
             {
-                uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
-
-                if(refHandle == collisions_entity_list[i])
-                    return;
+                if(refHandle == collisions_entity_list[i]) return;
             }
         }
 
@@ -1442,36 +1436,15 @@ void InsertEntityToCollisionsList(uint32_t ent)
         {
             if(collisions_entity_list[i] == 0)
             {
-                uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
                 collisions_entity_list[i] = refHandle;
-
                 break;
             }
         }
     }
 }
 
-void UpdateAllCollisions()
-{
-    RemoveBadEnts();
-
-    uint32_t ent = 0;
-
-    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        if(IsEntityValid(ent))
-        {
-            uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
-
-            if(!m_Network)
-            {
-                allow_collision_recheck = true;
-                functions.CollisionRulesChanged(ent);
-                allow_collision_recheck = false;
-            }
-        }
-    }
-    
+void UpdateCollisions()
+{ 
     for(int i = 0; i < 512; i++)
     {
         if(collisions_entity_list[i] != 0)
@@ -1487,18 +1460,6 @@ void UpdateAllCollisions()
             }
 
             collisions_entity_list[i] = 0;
-        }
-    }
-    
-    ent = 0;
-
-    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"player")) != 0)
-    {
-        if(IsEntityValid(ent))
-        {
-            allow_collision_recheck = true;
-            functions.CollisionRulesChanged(ent);
-            allow_collision_recheck = false;
         }
     }
 
@@ -1544,12 +1505,11 @@ void FixPlayerCollisionGroup()
 
 void DisablePlayerWorldSpawnCollision()
 {
+    uint32_t worldspawn = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
     uint32_t player = 0;
 
     while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
-        uint32_t worldspawn = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
-
         if(IsEntityValid(worldspawn) && IsEntityValid(player))
         {
             float player_velocity_x = *(uint32_t*)(player+offsets.abs_velocity_offset);
@@ -1621,13 +1581,15 @@ void RemoveBadEnts()
             
             !IsEntityPositionReasonable(abs_origin)
             || 
-            !IsEntityPositionReasonable(origin)
-            || 
             !IsEntityPositionReasonable(abs_angles)
             ||
-            !IsEntityPositionReasonable(angles)
-            ||
             !IsEntityPositionReasonable(abs_velocity)
+
+            ||
+
+            !IsEntityPositionReasonable(origin)
+            ||
+            !IsEntityPositionReasonable(angles)
             ||
             !IsEntityPositionReasonable(velocity)
             
@@ -1703,9 +1665,11 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
                     functions.SpawnPlayer(object_verify);
                 }
-                else
+                else if(game == BLACK_MESA)
                 {
-                    functions.SpawnPlayer(object_verify);
+                    ZeroVector(object_verify+offsets.abs_origin_offset);
+                    ZeroVector(object_verify+offsets.origin_offset);
+
                     functions.SpawnPlayer(object_verify);
                 }
 

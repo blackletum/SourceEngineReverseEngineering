@@ -10,12 +10,9 @@ ValueList leakedResourcesSaveRestoreSystem;
 ValueList leakedResourcesEdtSystem;
 
 bool sdktools_passed;
-bool savegame;
 
 void InitCoreSynergy()
 {
-    savegame = false;
-
     our_libraries[0] = (uint32_t)malloc(1024);
     snprintf((char*)our_libraries[0], 1024, "%s", "/synergy/bin/server_srv.so");
 

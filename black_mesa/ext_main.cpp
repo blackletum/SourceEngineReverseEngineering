@@ -121,6 +121,7 @@ bool InitExtensionBlackMesa()
     functions.ClientCommand = (pFourArgProt)(engine_srv + 0x0018A7B0);
     functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x0018A220);
     functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x001891F0);
+    functions.IsFakeClient = (pOneArgProt)(server_srv + 0x009AD270);
 
     PopulateHookExclusionListsBlackMesa();
 
@@ -208,7 +209,7 @@ void CorrectVphysicsEntity(uint32_t ent)
 
     if(IsEntityValid(ent))
     {
-        uint32_t vphysics_object = *(uint32_t*)(ent+0x1F8);
+        uint32_t vphysics_object = *(uint32_t*)(ent+offsets.vphysics_object_offset);
 
         if(vphysics_object)
         {
@@ -216,39 +217,44 @@ void CorrectVphysicsEntity(uint32_t ent)
             Vector current_angles;
             Vector empty_vector;
 
+            bool bad_origin = false;
+            bool bad_angles = false;
+
             //GetPosition
             pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xC0)  );
             pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
 
             //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
 
-            if(!IsEntityPositionReasonable((uint32_t)&current_origin) && !IsEntityPositionReasonable((uint32_t)&current_angles))
-            {
-                //SetPosition
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
-                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
-
-                rootconsole->ConsolePrint("Corrected vphysics origin & angles!");
-
-                return;
-            }
-
             if(!IsEntityPositionReasonable((uint32_t)&current_origin))
             {
-                //SetPosition
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
-                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&current_angles, 1);
-
+                bad_origin = true;
                 rootconsole->ConsolePrint("Corrected vphysics origin!");
             }
 
             if(!IsEntityPositionReasonable((uint32_t)&current_angles))
             {
+                bad_angles = true;
+                rootconsole->ConsolePrint("Corrected vphysics angles!");
+            }
+
+            if(bad_origin && bad_angles)
+            {
                 //SetPosition
                 pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
-                pDynamicFourArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&empty_vector, 1);
-
-                rootconsole->ConsolePrint("Corrected vphysics angles!");
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
+            }
+            else if(bad_origin)
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&current_angles, 1);
+            }
+            else if(bad_angles)
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&empty_vector, 1); 
             }
         }
     }
@@ -461,37 +467,34 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     isTicking = true;
 
-    RemoveBadEnts();
-
-    //Pre simulation
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
-
-    //Post simulation
     SetServerSleepStatus();
     SpawnPlayers();
-    FixPlayerCollisionGroup();
-    DisablePlayerWorldSpawnCollision();
 
-    RemoveBadEnts();
+    functions.CleanupDeleteList(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
-    RemoveBadEnts();
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
-    pDynamicOneArgFunc(0);
-
-    UpdateAllCollisions();
+    UpdateCollisions();
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
     pDynamicOneArgFunc(0);
 
-    RemoveBadEnts();
+    functions.CleanupDeleteList(0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
+    pDynamicOneArgFunc(0);
+
+    functions.CleanupDeleteList(0);
+
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
+    DisablePlayerWorldSpawnCollision();
+
+    UpdateCollisions();
 
     return 0;
 }
@@ -504,7 +507,7 @@ uint32_t HooksBlackMesa::TestGroundMove(uint32_t arg0, uint32_t arg1, uint32_t a
     {
         float inf_val_chk = *(float*)(arg6+0x20);
 
-        if(isinf(inf_val_chk))
+        if((inf_val_chk != 0) && ((inf_val_chk / 2) == inf_val_chk))
         {
             rootconsole->ConsolePrint("+Inf detected!");
             return 0;
