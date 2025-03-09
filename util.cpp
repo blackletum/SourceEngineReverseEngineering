@@ -1462,8 +1462,6 @@ void UpdateCollisions()
             collisions_entity_list[i] = 0;
         }
     }
-
-    RemoveBadEnts();
 }
 
 void SetServerSleepStatus()

@@ -627,6 +627,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pOneArgProtFastCall pDynamicFastCallOneArgFunc;
     pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
+    RemoveBadEnts();
+
     SetServerSleepStatus();
     SpawnPlayers();
 

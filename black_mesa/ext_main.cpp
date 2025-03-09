@@ -467,6 +467,8 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     isTicking = true;
 
+    RemoveBadEnts();
+
     SetServerSleepStatus();
     SpawnPlayers();
 
