@@ -662,6 +662,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
+    UpdateOtherCollisions();
     UpdateCollisions();
 
     //ReverseOrder

@@ -217,6 +217,7 @@ void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);
 bool IsVectorInf(uint32_t base);
 void UpdateCollisions();
+void UpdateOtherCollisions();
 void RemoveBadEnts();
 void RemoveEntityNormal(uint32_t entity_object, bool validate);
 void InstaKill(uint32_t entity_object, bool validate);

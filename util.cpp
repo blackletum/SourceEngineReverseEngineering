@@ -1443,6 +1443,26 @@ void InsertEntityToCollisionsList(uint32_t ent)
     }
 }
 
+void UpdateOtherCollisions()
+{
+    uint32_t entity = 0;
+
+    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
+    {
+        if(IsEntityValid(entity))
+        {
+            uint32_t m_Network = *(uint32_t*)(entity+offsets.mnetwork_offset);
+
+            if(!m_Network)
+            {
+                allow_collision_recheck = true;
+                functions.CollisionRulesChanged(entity);
+                allow_collision_recheck = false;
+            }
+        }
+    }
+}
+
 void UpdateCollisions()
 { 
     for(int i = 0; i < 512; i++)
@@ -1454,6 +1474,7 @@ void UpdateCollisions()
             if(IsEntityValid(object))
             {
                 //rootconsole->ConsolePrint("Updated collisions!");
+
                 allow_collision_recheck = true;
                 functions.CollisionRulesChanged(object);
                 allow_collision_recheck = false;
@@ -1567,40 +1588,45 @@ void RemoveBadEnts()
     {
         if(IsEntityValid(ent))
         {
-            uint32_t abs_origin = ent+offsets.abs_origin_offset;
-            uint32_t origin = ent+offsets.origin_offset;
-            uint32_t abs_angles = ent+offsets.abs_angles_offset;
-            uint32_t angles = ent+offsets.angles_offset;
-            uint32_t abs_velocity = ent+offsets.abs_velocity_offset;
-            uint32_t velocity = ent+offsets.velocity_offset;
+            uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
 
-            if
-            (
-            
-            !IsEntityPositionReasonable(abs_origin)
-            || 
-            !IsEntityPositionReasonable(abs_angles)
-            ||
-            !IsEntityPositionReasonable(abs_velocity)
-
-            ||
-
-            !IsEntityPositionReasonable(origin)
-            ||
-            !IsEntityPositionReasonable(angles)
-            ||
-            !IsEntityPositionReasonable(velocity)
-            
-            )
+            if(m_Network)
             {
-                char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
+                uint32_t abs_origin = ent+offsets.abs_origin_offset;
+                uint32_t origin = ent+offsets.origin_offset;
+                uint32_t abs_angles = ent+offsets.abs_angles_offset;
+                uint32_t angles = ent+offsets.angles_offset;
+                uint32_t abs_velocity = ent+offsets.abs_velocity_offset;
+                uint32_t velocity = ent+offsets.velocity_offset;
+
+                if
+                (
                 
-                if(classname)
-                    rootconsole->ConsolePrint("Removed bad ent! [%s]", classname);
-                else
-                    rootconsole->ConsolePrint("Removed bad ent!");
+                !IsEntityPositionReasonable(abs_origin)
+                || 
+                !IsEntityPositionReasonable(abs_angles)
+                ||
+                !IsEntityPositionReasonable(abs_velocity)
+    
+                ||
+    
+                !IsEntityPositionReasonable(origin)
+                ||
+                !IsEntityPositionReasonable(angles)
+                ||
+                !IsEntityPositionReasonable(velocity)
                 
-                RemoveEntityNormal(ent, true);
+                )
+                {
+                    char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
+                    
+                    if(classname)
+                        rootconsole->ConsolePrint("Removed bad ent! [%s]", classname);
+                    else
+                        rootconsole->ConsolePrint("Removed bad ent!");
+                    
+                    RemoveEntityNormal(ent, true);
+                }
             }
         }
     }

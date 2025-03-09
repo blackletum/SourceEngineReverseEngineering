@@ -478,6 +478,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
+    UpdateOtherCollisions();
     UpdateCollisions();
 
     //PostSystems
