@@ -686,6 +686,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     RemoveBadEnts();
     UpdateCollisions();
+    UpdateOtherCollisions();
 
     return 0;
 }
