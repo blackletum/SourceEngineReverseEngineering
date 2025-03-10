@@ -1443,6 +1443,21 @@ void InsertEntityToCollisionsList(uint32_t ent)
     }
 }
 
+void UpdatePlayerCollisions()
+{
+    uint32_t entity = 0;
+
+    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"player")) != 0)
+    {
+        if(IsEntityValid(entity))
+        {
+            allow_collision_recheck = true;
+            functions.CollisionRulesChanged(entity);
+            allow_collision_recheck = false;
+        }
+    }
+}
+
 void UpdateOtherCollisions()
 {
     uint32_t entity = 0;

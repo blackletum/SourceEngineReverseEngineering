@@ -496,7 +496,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     RemoveBadEnts();
     UpdateCollisions();
-    UpdateOtherCollisions();
+    UpdatePlayerCollisions();
 
     return 0;
 }

@@ -218,6 +218,7 @@ bool IsVectorNaN(uint32_t base);
 bool IsVectorInf(uint32_t base);
 void UpdateCollisions();
 void UpdateOtherCollisions();
+void UpdatePlayerCollisions();
 void RemoveBadEnts();
 void RemoveEntityNormal(uint32_t entity_object, bool validate);
 void InstaKill(uint32_t entity_object, bool validate);
