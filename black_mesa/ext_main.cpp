@@ -467,8 +467,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     isTicking = true;
 
-    RemoveBadEnts();
-
     SetServerSleepStatus();
     SpawnPlayers();
 
@@ -478,8 +476,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
-    UpdateOtherCollisions();
-    UpdateCollisions();
+    functions.CleanupDeleteList(0);
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
@@ -497,6 +494,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     ReplicateCheatsOnClient();
     DisablePlayerWorldSpawnCollision();
 
+    RemoveBadEnts();
     UpdateCollisions();
 
     return 0;
