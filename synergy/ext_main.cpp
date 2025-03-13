@@ -182,6 +182,9 @@ void ApplyPatchesSynergy()
 {
     uint32_t offset = 0;
 
+    uint32_t phys_freeze_fix = server_srv + 0x0077B6A9;
+    *(uint8_t*)(phys_freeze_fix) = 0xEB;
+
     uint32_t hook_dedicated_vpk_malloc = dedicated_srv + 0x000C81D4;
     offset = (uint32_t)HooksSynergy::DirectMallocHookDedicatedSrv - hook_dedicated_vpk_malloc - 5;
     *(uint32_t*)(hook_dedicated_vpk_malloc+1) = offset;

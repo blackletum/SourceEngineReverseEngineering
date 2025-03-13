@@ -146,6 +146,9 @@ void ApplyPatchesBlackMesa()
 {
     uint32_t offset = 0;
 
+    uint32_t phys_freeze_fix = server_srv + 0x00378906;
+    *(uint8_t*)(phys_freeze_fix) = 0xEB;
+
     uint32_t patch_ragdoll_break_create = server_srv + 0x009FD863;
     offset = (uint32_t)HooksBlackMesa::CreateNoSpawnHookRagdollBreaking - patch_ragdoll_break_create - 5;
     *(uint32_t*)(patch_ragdoll_break_create+1) = offset;
