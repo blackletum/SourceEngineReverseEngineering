@@ -311,7 +311,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
 {
     pFourArgProt pDynamicFourArgFunc;
 
-    if(is_currently_ragdoll_breaking && ragdoll_breaking_gib_counter > 8)
+    if(is_currently_ragdoll_breaking && ragdoll_breaking_gib_counter > 6)
     {
         rootconsole->ConsolePrint("Ignored gib from ragdoll breaker!");
 
@@ -332,7 +332,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
     {
         if(is_currently_ragdoll_breaking)
         {
-            if(ragdoll_breaking_gib_counter == 8)
+            if(ragdoll_breaking_gib_counter == 6)
             {
                 last_ragdoll_gib = new_object;
             }
@@ -481,6 +481,12 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     functions.CleanupDeleteList(0);
 
+    UpdateCollisions();
+    UpdateOtherCollisions();
+    UpdatePlayerCollisions();
+
+    functions.CleanupDeleteList(0);
+
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
     pDynamicOneArgFunc(0);
@@ -498,9 +504,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     DisablePlayerWorldSpawnCollision();
 
     RemoveBadEnts();
-    UpdateCollisions();
-    UpdateOtherCollisions();
-    UpdatePlayerCollisions();
 
     return 0;
 }

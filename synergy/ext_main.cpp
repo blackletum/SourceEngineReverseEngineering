@@ -665,6 +665,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
+    UpdateCollisions();
+    UpdateOtherCollisions();
+    UpdatePlayerCollisions();
+
+    functions.CleanupDeleteList(0);
+
     //ReverseOrder
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
@@ -688,9 +694,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     EnterVehicles(save_player_vehicles_list);
 
     RemoveBadEnts();
-    UpdateCollisions();
-    UpdateOtherCollisions();
-    UpdatePlayerCollisions();
 
     return 0;
 }
