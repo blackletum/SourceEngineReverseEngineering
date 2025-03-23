@@ -345,9 +345,6 @@ void SpawnPlayers()
             functions.SpawnPlayer(player);
 
             functions.CleanupDeleteList(0);
-
-            firstplayer_hasjoined = true;
-            player_worldspawn_collision_disabled = false;
         }
 
         Value* next_player = first_player->nextVal;
@@ -505,6 +502,15 @@ uint32_t HooksUtil::PlayerSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
+    if(!firstplayer_hasjoined)
+    {
+        if(game == SYNERGY)
+        {
+            extern int savegame_delayed;
+            savegame_delayed = 0;
+        }
+    }
+
     firstplayer_hasjoined = true;
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.SpawnPlayer);
@@ -525,14 +531,9 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
         extern ValueList dangling_restore_vehicles;
         extern ValueList save_player_vehicles_list;
 
-        extern bool savegame;
-
         DeleteAllValuesInList(restore_vehicle_list, false, NULL);
         DeleteAllValuesInList(dangling_restore_vehicles, false, NULL);
         DeleteAllValuesInList(save_player_vehicles_list, false, NULL);
-
-        savegame = true;
-
     }
 
     isTicking = false;

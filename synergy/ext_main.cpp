@@ -5,6 +5,7 @@
 #include "hooks_specific.h"
 
 int save_frames;
+int savegame_delayed;
 bool savegame;
 bool savegame_autosave;
 bool savegame_internal;
@@ -98,6 +99,7 @@ bool InitExtensionSynergy()
     SaveProcessId();
 
     save_frames = 0;
+    savegame_delayed = 0;
     savegame = false;
     savegame_internal = false;
     savegame_autosave = false;
@@ -549,6 +551,13 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
     pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(arg1))+0x648) );
     pDynamicThreeArgFunc(arg1, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
 
+    if(!firstplayer_hasjoined)
+    {
+        savegame_delayed = 0;
+    }
+
+    firstplayer_hasjoined = true;
+
     return returnVal;
 }
 
@@ -620,9 +629,12 @@ uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
 uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 {
     isTicking = true;
-    save_frames++;
 
-    if(save_frames > 1000) save_frames = 100;
+    save_frames++;
+    savegame_delayed++;
+
+    if(save_frames > 10000) save_frames = 10000;
+    if(savegame_delayed > 10000) savegame_delayed = 10000;
 
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
@@ -641,11 +653,9 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    if(savegame)
+    if(savegame || savegame_delayed == 150)
     {
         rootconsole->ConsolePrint("Autosave created!");
-        
-        save_frames = 0;
 
         FixCarSlashes();
         functions.CleanupDeleteList(0);
@@ -668,8 +678,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     UpdateCollisions();
     UpdateOtherCollisions();
     UpdatePlayerCollisions();
-
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
 
     //ReverseOrder
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
@@ -692,8 +701,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     RemoveDanglingRestoredVehicles();
     EnterVehicles(restore_vehicle_list);
     EnterVehicles(save_player_vehicles_list);
-
-    RemoveBadEnts();
 
     return 0;
 }
@@ -723,6 +730,8 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pFourArgProt pDynamicFourArgFunc;
+
+    save_frames = 0;
 
     MakePlayersLeaveVehicles();
     FixCarSlashes();

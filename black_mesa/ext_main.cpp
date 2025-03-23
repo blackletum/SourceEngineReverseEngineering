@@ -484,8 +484,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     UpdateCollisions();
     UpdateOtherCollisions();
     UpdatePlayerCollisions();
-
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
@@ -502,8 +501,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     CorrectPhysics();
     ReplicateCheatsOnClient();
     DisablePlayerWorldSpawnCollision();
-
-    RemoveBadEnts();
 
     return 0;
 }
