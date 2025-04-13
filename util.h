@@ -3,12 +3,23 @@
 
 #include <math.h>
 
-#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 100
+#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 50
+#define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 
-typedef enum {
-    SYNERGY,
-    BLACK_MESA
-} Game;
+typedef uint32_t (*pZeroArgProt)();
+typedef uint32_t (*pOneArgProt)(uint32_t);
+typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
+typedef uint32_t (*pThreeArgProt)(uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+
+typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtRegParm)(uint32_t, uint32_t);
+typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
+typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
 class HooksUtil
 {
@@ -22,34 +33,19 @@ public:
 	static uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
 	static uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t PhysSimEnt(uint32_t arg0);
-	static uint32_t HookInstaKill(uint32_t arg0);
-	static uint32_t UTIL_RemoveHookFailsafe(uint32_t arg0);
-	static uint32_t UTIL_RemoveBaseHook(uint32_t arg0);
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t UpdateOnRemove(uint32_t arg0);
 	static uint32_t VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t RecheckCollisionFilterHook(uint32_t arg0);
-	static uint32_t GlobalEntityListClear(uint32_t arg0);
 	static uint32_t CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
-	static uint32_t PlayerSpawnHook(uint32_t arg0);
 	static uint32_t SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t VpkCacheBufferAllocHook(uint32_t arg0);
+	static uint32_t SetOwnerEntityHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t CalcAbsolutePositionHook(uint32_t arg0);
+	static uint32_t VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1);
 };
-
-typedef uint32_t (*pZeroArgProt)();
-typedef uint32_t (*pOneArgProt)(uint32_t);
-typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
-typedef uint32_t (*pThreeArgProt)(uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-
-typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtOptLink)(uint32_t, uint32_t);
-typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
-typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
 typedef struct _game_fields {
 	uint32_t CGlobalEntityList;
@@ -57,6 +53,8 @@ typedef struct _game_fields {
 	uint32_t RemoveImmediateSemaphore;
 	uint32_t sv_cheats_cvar;
 	uint32_t deferMindist;
+	uint32_t modelinfo;
+	uint32_t g_EventQueue;
 } game_fields;
 
 typedef struct _game_offsets {
@@ -78,6 +76,8 @@ typedef struct _game_offsets {
 	uint32_t isclientactive_offset;
 	uint32_t maxclients_offset;
 	uint32_t current_map_offset;
+	uint32_t getposition_vphysics_offset;
+	uint32_t setposition_vphysics_offset;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -85,7 +85,6 @@ typedef struct _game_functions {
 	pOneArgProt RemoveNormalDirect;
 	pOneArgProt RemoveNormal;
 	pOneArgProt RemoveInsta;
-    pOneArgProt GetCBaseEntity;
 	pTwoArgProt SetSolidFlags;
 	pTwoArgProt DisableEntityCollisions;
 	pTwoArgProt EnableEntityCollisions;
@@ -106,7 +105,19 @@ typedef struct _game_functions {
 	pFourArgProt ClientCommand;
 	pTwoArgProt PEntityOfEntIndex;
 	pTwoArgProt GetPlayerUserId;
-	pOneArgProt IsFakeClient;
+	pTwoArgProtFastCall InvokeMethodReverseOrderFastCall;
+	pTwoArgProtFastCall InvokePerFrameMethodFastCall;
+	pTwoArgProtRegParm InvokeMethodReverseOrderRegParm;
+	pTwoArgProtRegParm InvokePerFrameMethodRegParm;
+	pOneArgProt ServiceEvents;
+	pOneArgProt Physics_RunThinkFunctions;
+	pTwoArgProt SetOwnerEntity;
+	pTwoArgProt DispatchAnimEvents;
+	pOneArgProt CalcAbsolutePosition;
+	pTwoArgProt VPhysicsUpdate;
+	pFourArgProt CreateNoSpawn;
+	pThreeArgProt MapEntity_ParseAllEntities;
+	pOneArgProt DispatchSpawn;
 } game_functions;
 
 typedef struct _Signature {
@@ -157,7 +168,8 @@ typedef struct _EntityOrigin {
 	float z;
 } EntityOrigin;
 
-extern Game game;
+extern void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow);
+extern uint32_t GetCBaseEntity(uint32_t EHandle);
 
 extern game_fields fields;
 extern game_offsets offsets;
@@ -195,7 +207,7 @@ extern bool server_sleeping;
 extern uint32_t global_vpk_cache_buffer;
 extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
-extern ValueList game_search_paths;
+extern ValueList players_connect_commands_list;
 
 void DeinitUtil();
 void InitUtil();
@@ -220,8 +232,6 @@ void UpdateCollisions();
 void UpdateOtherCollisions();
 void UpdatePlayerCollisions();
 void RemoveBadEnts();
-void RemoveEntityNormal(uint32_t entity_object, bool validate);
-void InstaKill(uint32_t entity_object, bool validate);
 bool IsMarkedForDeletion(uint32_t arg0);
 bool IsEntityPositionReasonable(uint32_t v);
 uint32_t IsEntityValid(uint32_t entity);
@@ -233,10 +243,12 @@ void CorrectPhysics();
 void ReplicateCheatsOnClient();
 void CorrectCheats();
 void SetServerSleepStatus();
-void SendClientConnectCommands();
+void SendClientConnectCommands(bool increment_frames);
 void SendClientCommands(uint32_t player_edict);
 void NotifyCheatsFaking();
 int GetEarliestClients();
+bool AttemptToRemoveEntity(uint32_t entity_object, bool validate);
+void CorrectVphysicsEntity(uint32_t ent);
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);
@@ -252,7 +264,5 @@ void DisablePlayerCollisions();
 void DisablePlayerWorldSpawnCollision();
 bool FixSlashes(char* string);
 bool IsValidVector(uint32_t base);
-bool is_denormalized(float value);
-bool is_negative_zero(float value);
 
 #endif

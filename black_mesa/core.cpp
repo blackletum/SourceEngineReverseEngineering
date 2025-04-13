@@ -1,3 +1,5 @@
+#ifdef SE_BMS
+
 #include "extension.h"
 #include "util.h"
 #include "core.h"
@@ -6,7 +8,11 @@ uint32_t last_ragdoll_gib;
 int ragdoll_breaking_gib_counter;
 bool is_currently_ragdoll_breaking;
 
-void InitCoreBlackMesa()
+black_mesa_game_fields black_mesa_fields;
+black_mesa_game_offsets black_mesa_offsets;
+black_mesa_game_functions black_mesa_functions;
+
+void InitCore()
 {
     //Populate our libraries
 
@@ -23,7 +29,7 @@ void InitCoreBlackMesa()
     snprintf((char*)our_libraries[3], 1024, "%s", "/bin/dedicated_srv.so");
 }
 
-uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle)
+uint32_t GetCBaseEntity(uint32_t EHandle)
 {
     uint32_t shift_right = EHandle >> 0x0D;
     uint32_t disassembly = EHandle & 0x1FFF;
@@ -39,7 +45,7 @@ uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle)
     return 0;
 }
 
-void PopulateHookExclusionListsBlackMesa()
+void PopulateHookExclusionLists()
 {
     hook_exclude_list_base[0] = server_srv;
     hook_exclude_list_offset[0] = 0x00A92201;
@@ -101,3 +107,34 @@ void CheckForLocation()
         free(trigger_vecMaxsAbs);
     }
 }
+
+void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    if(AttemptToRemoveEntity(object, validate))
+    {
+        char* classname = (char*)(*(uint32_t*)(object+offsets.classname_offset));
+        
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            if(isTicking)
+            {
+                rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
+
+                ZeroVector(object+offsets.abs_origin_offset);
+                ZeroVector(object+offsets.origin_offset);
+
+                functions.SpawnPlayer(object);
+
+                return;
+            }
+        }
+
+        if(slow)    functions.RemoveNormal(object);
+        else        functions.RemoveInsta(object);
+    }
+}
+
+// SE_BMS
+#endif

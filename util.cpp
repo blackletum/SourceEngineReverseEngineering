@@ -4,8 +4,6 @@
 #include <link.h>
 #include <sys/mman.h>
 
-Game game;
-
 game_fields fields;
 game_offsets offsets;
 game_functions functions;
@@ -78,6 +76,7 @@ void InitUtil()
     connected_clients = 0;
     player_spawn_list = AllocateValuesList();
     players_connect_commands_list = AllocateValuesList();
+    leakedResourcesVpkSystem = AllocateValuesList();
 
     HookFunctionsUtil();
 }
@@ -88,16 +87,15 @@ void HookFunctionsUtil()
 
     HookFunction(engine_srv, engine_srv_size, (void*)(functions.SendNetMsg), (void*)HooksUtil::SendNetMsgHook);
 
-    HookFunction(server_srv, server_srv_size, (void*)(functions.CreateEntityByName), (void*)HooksUtil::CreateEntityByNameHook);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.RemoveNormalDirect), (void*)HooksUtil::UTIL_RemoveHookFailsafe);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.RemoveNormal), (void*)HooksUtil::UTIL_RemoveBaseHook);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.RemoveInsta), (void*)HooksUtil::HookInstaKill);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.PhysSimEnt), (void*)HooksUtil::PhysSimEnt);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.AcceptInput), (void*)HooksUtil::AcceptInputHook);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.UpdateOnRemoveBase), (void*)HooksUtil::UpdateOnRemove);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.VphysicsSetObject), (void*)HooksUtil::VPhysicsSetObjectHook);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.ClearAllEntities), (void*)HooksUtil::GlobalEntityListClear);
-    HookFunction(server_srv, server_srv_size, (void*)(functions.SpawnPlayer), (void*)HooksUtil::PlayerSpawnHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.CreateEntityByName, (void*)HooksUtil::CreateEntityByNameHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
+    HookFunction(server_srv, server_srv_size, (void*)functions.AcceptInput, (void*)HooksUtil::AcceptInputHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.UpdateOnRemoveBase, (void*)HooksUtil::UpdateOnRemove);
+    HookFunction(server_srv, server_srv_size, (void*)functions.VphysicsSetObject, (void*)HooksUtil::VPhysicsSetObjectHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.SetOwnerEntity, (void*)HooksUtil::SetOwnerEntityHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.PackedStoreDestructor), (void*)HooksUtil::PackedStoreDestructorHook);
@@ -124,7 +122,7 @@ int GetEarliestClients()
     return earliest_clients;
 }
 
-void SendClientConnectCommands()
+void SendClientConnectCommands(bool increment_frames)
 {
     int maxclients = *(int*)(fields.sv+offsets.maxclients_offset);
     int earliest_clients = GetEarliestClients();
@@ -164,7 +162,7 @@ void SendClientConnectCommands()
                         }
     
                         if(frames > 1000) frames = 1000;
-                        first_connect_player->nextVal->value = (void*)(frames+1);
+                        if(increment_frames) first_connect_player->nextVal->value = (void*)(frames+1);
 
                         found_player = true;
                         break;
@@ -222,20 +220,20 @@ void SendClientConnectCommands()
 void NotifyCheatsFaking()
 {
     Value* first_player = *players_connect_commands_list;
-    bool continue_faking = false;
 
     while(first_player && first_player->nextVal)
     {
         int player_index = (int)first_player->value;
         int frames = (int)first_player->nextVal->value;
 
-        //double frames
-        if(frames < 50) continue_faking = true;
+        if(frames < 3)
+        {
+            faking_cheats = true;
+            return;
+        }
 
         first_player = first_player->nextVal->nextVal;
     }
-
-    faking_cheats = continue_faking;
 }
 
 void SendClientCommands(uint32_t player_edict)
@@ -297,7 +295,7 @@ void ReplicateCheatsOnClient()
     
     faking_cheats = false;
 
-    SendClientConnectCommands();
+    SendClientConnectCommands(false);
     NotifyCheatsFaking();
 
     connected_clients = 0;
@@ -306,7 +304,7 @@ void ReplicateCheatsOnClient()
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
     replicating_client_cheats = false;
 
-    SendClientConnectCommands();
+    SendClientConnectCommands(true);
 
     if(!faking_cheats)
     {
@@ -336,7 +334,7 @@ void SpawnPlayers()
 
     while(first_player)
     {
-        uint32_t player = functions.GetCBaseEntity((uint32_t)first_player->value);
+        uint32_t player = GetCBaseEntity((uint32_t)first_player->value);
 
         if(IsEntityValid(player))
         {
@@ -354,6 +352,64 @@ void SpawnPlayers()
     }
 
     *player_spawn_list = NULL;
+}
+
+void CorrectVphysicsEntity(uint32_t ent)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(IsEntityValid(ent))
+    {
+        uint32_t vphysics_object = *(uint32_t*)(ent+offsets.vphysics_object_offset);
+
+        if(vphysics_object)
+        {
+            Vector current_origin;
+            Vector current_angles;
+            Vector empty_vector;
+
+            bool bad_origin = false;
+            bool bad_angles = false;
+
+            //GetPosition
+            pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.getposition_vphysics_offset)  );
+            pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
+
+            //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
+
+            if(!IsEntityPositionReasonable((uint32_t)&current_origin))
+            {
+                bad_origin = true;
+                rootconsole->ConsolePrint("Corrected vphysics origin!");
+            }
+
+            if(!IsEntityPositionReasonable((uint32_t)&current_angles))
+            {
+                bad_angles = true;
+                rootconsole->ConsolePrint("Corrected vphysics angles!");
+            }
+
+            if(bad_origin && bad_angles)
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
+            }
+            else if(bad_origin)
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&current_angles, 1);
+            }
+            else if(bad_angles)
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&empty_vector, 1); 
+            }
+        }
+    }
 }
 
 uint32_t HooksUtil::CallocHook(uint32_t nitems, uint32_t size)
@@ -455,6 +511,71 @@ uint32_t HooksUtil::CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1,
     return returnVal;
 }
 
+uint32_t HooksUtil::VpkCacheBufferAllocHook(uint32_t arg0)
+{
+    uint32_t ebp = 0;
+    asm volatile ("movl %%ebp, %0" : "=r" (ebp));
+
+    uint32_t arg0_return = *(uint32_t*)(ebp-4);
+    uint32_t packed_store_ref = arg0_return-0x228;
+
+    uint32_t vpk_buffer = *(uint32_t*)(arg0+0x10);
+
+    if(vpk_buffer == 0)
+    {
+        current_vpk_buffer_ref = arg0;
+        return global_vpk_cache_buffer;
+    }
+
+    bool saved_reference = false;
+
+    Value* a_leak = *leakedResourcesVpkSystem;
+
+    while(a_leak)
+    {
+        VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(a_leak->value);
+        uint32_t packed_object = the_leak->packed_ref;
+
+        if(packed_object == packed_store_ref)
+        {
+            saved_reference = true;
+
+            ValueList vpk_leak_list = the_leak->leaked_refs;
+
+            Value* new_vpk_leak = CreateNewValue((void*)(vpk_buffer));
+            bool added = InsertToValuesList(vpk_leak_list, new_vpk_leak, NULL, false, true);
+
+            if(added)
+            {
+                rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, vpk_buffer);
+            }
+
+            break;
+        }
+
+        a_leak = a_leak->nextVal;
+    }
+
+    if(!saved_reference)
+    {
+        VpkMemoryLeak* omg_leaks = (VpkMemoryLeak*)(malloc(sizeof(VpkMemoryLeak)));
+        ValueList empty_list = AllocateValuesList();
+
+        Value* original_vpk_buffer = CreateNewValue((void*)vpk_buffer);
+        InsertToValuesList(empty_list, original_vpk_buffer, NULL, false, false);
+
+        omg_leaks->packed_ref = packed_store_ref;
+        omg_leaks->leaked_refs = empty_list;
+
+        Value* leaked_resource = CreateNewValue((void*)omg_leaks);
+        InsertToValuesList(leakedResourcesVpkSystem, leaked_resource, NULL, false, false);
+
+        rootconsole->ConsolePrint("[VPK Hook First] " HOOK_MSG, vpk_buffer);
+    }
+
+    return vpk_buffer;
+}
+
 uint32_t HooksUtil::PackedStoreDestructorHook(uint32_t arg0)
 {
     //Remove ref to store only valid objects!
@@ -498,58 +619,63 @@ uint32_t HooksUtil::PackedStoreDestructorHook(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t HooksUtil::PlayerSpawnHook(uint32_t arg0)
+uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(arg1))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    if(arg1 != 0) rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity!");
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
+    return pDynamicTwoArgFunc(arg0, 0);
+}
+
+uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(arg1))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.DispatchAnimEvents);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Failed to service DispatchAnimEvents");
+    return 0;
+}
+
+uint32_t HooksUtil::CalcAbsolutePositionHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(!firstplayer_hasjoined)
+    if(IsEntityValid(arg0))
     {
-        if(game == SYNERGY)
-        {
-            extern int savegame_delayed;
-            savegame_delayed = 0;
-        }
+        pDynamicOneArgFunc = (pOneArgProt)(functions.CalcAbsolutePosition);
+        return pDynamicOneArgFunc(arg0);
     }
 
-    firstplayer_hasjoined = true;
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.SpawnPlayer);
-    return pDynamicOneArgFunc(arg0);
+    //rootconsole->ConsolePrint("Attempted to use a dead object!");
+    return 0;
 }
 
-uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
+uint32_t HooksUtil::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
-    //LogVpkMemoryLeaks();
-
-    DeleteAllValuesInList(players_connect_commands_list, false, NULL);
-
-    if(game == SYNERGY)
+    if(IsEntityValid(arg0))
     {
-        extern ValueList restore_vehicle_list;
-        extern ValueList dangling_restore_vehicles;
-        extern ValueList save_player_vehicles_list;
+        CorrectVphysicsEntity(arg0);
 
-        DeleteAllValuesInList(restore_vehicle_list, false, NULL);
-        DeleteAllValuesInList(dangling_restore_vehicles, false, NULL);
-        DeleteAllValuesInList(save_player_vehicles_list, false, NULL);
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.VPhysicsUpdate);
+        return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    isTicking = false;
-    firstplayer_hasjoined = false;
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.ClearAllEntities);
-    return pDynamicOneArgFunc(arg0);
-}
-
-uint32_t HooksUtil::UTIL_RemoveHookFailsafe(uint32_t arg0)
-{
-    // THIS IS UTIL_Remove(IServerNetworable*)
-    // THIS HOOK IS FOR UNUSUAL CALLS TO UTIL_Remove probably from sourcemod!
-
-    if(arg0 == 0) return 0;
-    RemoveEntityNormal(arg0-offsets.iserver_offset, true);
+    rootconsole->ConsolePrint("Entity was invalid in vphysics update!");
     return 0;
 }
 
@@ -561,7 +687,7 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 
     char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
-    if(functions.GetCBaseEntity(*(uint32_t*)(arg0+offsets.refhandle_offset)) == 0)
+    if(GetCBaseEntity(*(uint32_t*)(arg0+offsets.refhandle_offset)) == 0)
     {
         if(classname && strcmp(classname, "player") == 0)
         {
@@ -575,7 +701,6 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
     }
 
     uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
-
     uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
@@ -587,7 +712,7 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
             if(vphysics_object && vphysics_object_check && vphysics_object == vphysics_object_check)
             {
                 rootconsole->ConsolePrint("Removed entity with the same physics object!!!");
-                RemoveEntityNormal(ent, true);
+                HandleSpecificEntityRemoval(ent, true, true);
             }
         }
     }
@@ -608,7 +733,7 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
     }
 
     uint32_t sim_ent_ref = *(uint32_t*)(arg0+offsets.refhandle_offset);
-    uint32_t object_check = functions.GetCBaseEntity(sim_ent_ref);
+    uint32_t object_check = GetCBaseEntity(sim_ent_ref);
 
     if(object_check == 0)
     {
@@ -635,12 +760,6 @@ uint32_t HooksUtil::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(functions.CreateEntityByName);
     return pDynamicTwoArgFunc(arg0, arg1);
-}
-
-uint32_t HooksUtil::HookInstaKill(uint32_t arg0)
-{
-    InstaKill(arg0, true);
-    return 0;
 }
 
 uint32_t HooksUtil::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
@@ -713,12 +832,6 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         }
     }
 
-    return 0;
-}
-
-uint32_t HooksUtil::UTIL_RemoveBaseHook(uint32_t arg0)
-{
-    RemoveEntityNormal(arg0, true);
     return 0;
 }
 
@@ -1365,14 +1478,14 @@ void RestoreMemoryProtections()
     }
 }
 
-inline void ZeroVector(uint32_t vector)
+void ZeroVector(uint32_t vector)
 {
     *(float*)(vector) = 0;
     *(float*)(vector+4) = 0;
     *(float*)(vector+8) = 0;
 }
 
-inline bool IsVectorNaN(uint32_t base)
+bool IsVectorNaN(uint32_t base)
 {
     float s0 = *(float*)(base);
     float s1 = *(float*)(base+4);
@@ -1381,7 +1494,7 @@ inline bool IsVectorNaN(uint32_t base)
     return (s0 != s0) || (s1 != s1) || (s2 != s2);
 }
 
-inline bool IsVectorInf(uint32_t base)
+bool IsVectorInf(uint32_t base)
 {
     float s0 = *(float*)(base);
     float s1 = *(float*)(base+4);
@@ -1393,13 +1506,13 @@ inline bool IsVectorInf(uint32_t base)
 }
 
 
-inline bool IsValidVector(uint32_t base)
+bool IsValidVector(uint32_t base)
 {
     if(IsVectorNaN(base) || IsVectorInf(base)) return false;
     return true;
 }
 
-inline bool IsEntityPositionReasonable(uint32_t v)
+bool IsEntityPositionReasonable(uint32_t v)
 {
     float x = *(float*)(v);
     float y = *(float*)(v+4);
@@ -1425,6 +1538,8 @@ void InsertEntityToCollisionsList(uint32_t ent)
         char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
         uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
 
+        if(classname && strcmp(classname, "player") == 0) return;
+
         for(int i = 0; i < 512; i++)
         {
             if(collisions_entity_list[i] != 0)
@@ -1446,6 +1561,8 @@ void InsertEntityToCollisionsList(uint32_t ent)
 
 void UpdatePlayerCollisions()
 {
+    functions.CleanupDeleteList(0);
+
     uint32_t entity = 0;
 
     while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"player")) != 0)
@@ -1457,10 +1574,14 @@ void UpdatePlayerCollisions()
             allow_collision_recheck = false;
         }
     }
+
+    functions.CleanupDeleteList(0);
 }
 
 void UpdateOtherCollisions()
 {
+    functions.CleanupDeleteList(0);
+
     uint32_t entity = 0;
 
     while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
@@ -1477,15 +1598,19 @@ void UpdateOtherCollisions()
             }
         }
     }
+
+    functions.CleanupDeleteList(0);
 }
 
 void UpdateCollisions()
-{ 
+{
+    functions.CleanupDeleteList(0);
+
     for(int i = 0; i < 512; i++)
     {
         if(collisions_entity_list[i] != 0)
         {
-            uint32_t object = functions.GetCBaseEntity(collisions_entity_list[i]);
+            uint32_t object = GetCBaseEntity(collisions_entity_list[i]);
 
             if(IsEntityValid(object))
             {
@@ -1499,6 +1624,8 @@ void UpdateCollisions()
             collisions_entity_list[i] = 0;
         }
     }
+
+    functions.CleanupDeleteList(0);
 }
 
 void SetServerSleepStatus()
@@ -1604,45 +1731,40 @@ void RemoveBadEnts()
     {
         if(IsEntityValid(ent))
         {
-            uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
+            uint32_t abs_origin = ent+offsets.abs_origin_offset;
+            uint32_t origin = ent+offsets.origin_offset;
+            uint32_t abs_angles = ent+offsets.abs_angles_offset;
+            uint32_t angles = ent+offsets.angles_offset;
+            uint32_t abs_velocity = ent+offsets.abs_velocity_offset;
+            uint32_t velocity = ent+offsets.velocity_offset;
 
-            if(m_Network)
+            if
+            (
+            
+            !IsEntityPositionReasonable(abs_origin)
+            || 
+            !IsEntityPositionReasonable(abs_angles)
+            ||
+            !IsEntityPositionReasonable(abs_velocity)
+
+            ||
+
+            !IsEntityPositionReasonable(origin)
+            ||
+            !IsEntityPositionReasonable(angles)
+            ||
+            !IsEntityPositionReasonable(velocity)
+            
+            )
             {
-                uint32_t abs_origin = ent+offsets.abs_origin_offset;
-                uint32_t origin = ent+offsets.origin_offset;
-                uint32_t abs_angles = ent+offsets.abs_angles_offset;
-                uint32_t angles = ent+offsets.angles_offset;
-                uint32_t abs_velocity = ent+offsets.abs_velocity_offset;
-                uint32_t velocity = ent+offsets.velocity_offset;
-
-                if
-                (
+                char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
                 
-                !IsEntityPositionReasonable(abs_origin)
-                || 
-                !IsEntityPositionReasonable(abs_angles)
-                ||
-                !IsEntityPositionReasonable(abs_velocity)
-    
-                ||
-    
-                !IsEntityPositionReasonable(origin)
-                ||
-                !IsEntityPositionReasonable(angles)
-                ||
-                !IsEntityPositionReasonable(velocity)
+                if(classname)
+                    rootconsole->ConsolePrint("Removed bad ent! [%s]", classname);
+                else
+                    rootconsole->ConsolePrint("Removed bad ent!");
                 
-                )
-                {
-                    char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
-                    
-                    if(classname)
-                        rootconsole->ConsolePrint("Removed bad ent! [%s]", classname);
-                    else
-                        rootconsole->ConsolePrint("Removed bad ent!");
-                    
-                    RemoveEntityNormal(ent, true);
-                }
+                HandleSpecificEntityRemoval(ent, true, true);
             }
         }
     }
@@ -1650,16 +1772,16 @@ void RemoveBadEnts()
     functions.CleanupDeleteList(0);
 }
 
-void RemoveEntityNormal(uint32_t entity_object, bool validate)
+bool AttemptToRemoveEntity(uint32_t entity_object, bool validate)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(entity_object == 0) return;
+    if(entity_object == 0) return false;
 
     char* classname = (char*)(*(uint32_t*)(entity_object+offsets.classname_offset));
     uint32_t refHandle = *(uint32_t*)(entity_object+offsets.refhandle_offset);
-    uint32_t object_verify = functions.GetCBaseEntity(refHandle);
+    uint32_t object_verify = GetCBaseEntity(refHandle);
 
     if(object_verify == 0)
     {
@@ -1675,104 +1797,11 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         }
     }
 
-    if(object_verify)
-    {
-        if(IsMarkedForDeletion(object_verify+offsets.iserver_offset)) return;
-
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            if(isTicking)
-            {
-                rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
-
-                if(game == SYNERGY)
-                {
-                    Vector emptyVector;
-
-                    //LeaveVehicle
-                    pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object_verify))+0x648) );
-                    pDynamicThreeArgFunc(object_verify, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
-
-                    functions.SpawnPlayer(object_verify);
-
-                    emptyVector.x = 0;
-                    emptyVector.y = 0;
-                    emptyVector.z = 0;
-
-                    //LeaveVehicle
-                    pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object_verify))+0x648) );
-                    pDynamicThreeArgFunc(object_verify, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
-
-                    functions.SpawnPlayer(object_verify);
-                }
-                else if(game == BLACK_MESA)
-                {
-                    ZeroVector(object_verify+offsets.abs_origin_offset);
-                    ZeroVector(object_verify+offsets.origin_offset);
-
-                    functions.SpawnPlayer(object_verify);
-                }
-
-                return;
-            }
-        }
-
-        if(game == SYNERGY)
-        {
-            //Synergy
-            extern bool savegame_autosave;
-            extern bool savegame_internal;
-
-            if(savegame_autosave || savegame_internal)
-            {
-                rootconsole->ConsolePrint("WARNING: Removing [%s] while a save file is being made!", classname);
-                InstaKill(object_verify, true);
-                return;
-            }
-        }
-
-        functions.RemoveNormal(object_verify);
-
-        //rootconsole->ConsolePrint("Removed [%s]", clsname);
-
-        return;
-    }
+    if(object_verify) return true;
 
     rootconsole->ConsolePrint("Failed to verify entity object!");
     exit(EXIT_FAILURE);
-}
-
-void InstaKill(uint32_t entity_object, bool validate)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(entity_object == 0) return;
-
-    uint32_t refHandleInsta = *(uint32_t*)(entity_object+offsets.refhandle_offset);
-    char* classname = (char*) ( *(uint32_t*)(entity_object+offsets.classname_offset) );
-    uint32_t cbase_chk = functions.GetCBaseEntity(refHandleInsta);
-
-    if(cbase_chk == 0)
-    {
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            rootconsole->ConsolePrint("Allowed player entity without validation");
-            cbase_chk = entity_object;
-        }
-        else if(!validate)
-        {
-            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
-            cbase_chk = entity_object;
-        }
-        else
-        {
-            rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
-            exit(EXIT_FAILURE);
-            return;
-        }
-    }
-
-    functions.RemoveInsta(cbase_chk);
+    return false;
 }
 
 bool IsMarkedForDeletion(uint32_t arg0)
@@ -1785,7 +1814,7 @@ uint32_t IsEntityValid(uint32_t entity)
     pOneArgProt pDynamicOneArgFunc;
     if(entity == 0) return entity;
 
-    uint32_t object = functions.GetCBaseEntity(*(uint32_t*)(entity+offsets.refhandle_offset));
+    uint32_t object = GetCBaseEntity(*(uint32_t*)(entity+offsets.refhandle_offset));
 
     if(object)
     {
@@ -2098,14 +2127,4 @@ EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn
     kv->value = valueIn;
 
     return kv;
-}
-
-bool is_denormalized(float value)
-{
-    return fpclassify(value) == FP_SUBNORMAL;
-}
-
-bool is_negative_zero(float value)
-{
-    return value == 0.0 && signbit(value);
 }

@@ -1,39 +1,25 @@
+#ifdef SE_BMS
+
 #include "extension.h"
 #include "util.h"
 #include "core.h"
 #include "hooks_specific.h"
 
-void ApplyPatchesSpecificBlackMesa()
+void ApplyPatchesSpecific()
 {
     uint32_t offset = 0;
 }
 
-void HookFunctionsSpecificBlackMesa()
+void HookFunctionsSpecific()
 {
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0070F600), (void*)NativeHooks::CNihiBallzDestructor);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0092E1D0), (void*)NativeHooks::InputApplySettingsHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x007FA870), (void*)NativeHooks::InputSetCSMVolumeHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x004F4E80), (void*)NativeHooks::CalcAbsolutePosition);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00994570), (void*)NativeHooks::EnumElementHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x004F0FC0), (void*)NativeHooks::TakeDamageHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00793A60), (void*)NativeHooks::CPropHevCharger_ShouldApplyEffect);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00793FD0), (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x0069DB20), (void*)NativeHooks::LaunchMortarHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)NativeHooks::DispatchAnimEventsHook);
-}
-
-uint32_t NativeHooks::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(IsEntityValid(arg1))
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004CE5F0);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Failed to service DispatchAnimEvents");
-    return 0;
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.CNihiBallzDestructor, (void*)NativeHooks::CNihiBallzDestructor);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.InputApplySettings, (void*)NativeHooks::InputApplySettingsHook);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.InputSetCSMVolume, (void*)NativeHooks::InputSetCSMVolumeHook);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.EnumElement, (void*)NativeHooks::EnumElementHook);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.TakeDamage, (void*)NativeHooks::TakeDamageHook);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.CPropHevCharger_ShouldApplyEffect, (void*)NativeHooks::CPropHevCharger_ShouldApplyEffect);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.CPropRadiationCharger_ShouldApplyEffect, (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
+    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.LaunchMortar, (void*)NativeHooks::LaunchMortarHook);
 }
 
 uint32_t NativeHooks::LaunchMortarHook(uint32_t arg0)
@@ -42,25 +28,11 @@ uint32_t NativeHooks::LaunchMortarHook(uint32_t arg0)
 
     if(IsEntityValid(arg0))
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0069DB20);
+        pDynamicOneArgFunc = (pOneArgProt)(black_mesa_functions.LaunchMortar);
         return pDynamicOneArgFunc(arg0);
     }
 
     rootconsole->ConsolePrint("Gonarch was invalid!");
-    return 0;
-}
-
-uint32_t NativeHooks::CalcAbsolutePosition(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(IsEntityValid(arg0))
-    {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004F4E80);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    //rootconsole->ConsolePrint("Attempted to use a dead object!");
     return 0;
 }
 
@@ -75,7 +47,7 @@ uint32_t NativeHooks::InputSetCSMVolumeHook(uint32_t arg0, uint32_t arg1)
 
         if(base_offset && fourth_offset)
         {
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x007FA870);
+            pDynamicTwoArgFunc = (pTwoArgProt)(black_mesa_functions.InputSetCSMVolume);
             return pDynamicTwoArgFunc(arg0, arg1);
         }
     }
@@ -95,7 +67,7 @@ uint32_t NativeHooks::InputApplySettingsHook(uint32_t arg0, uint32_t arg1)
         *(uint32_t*)(arg0+0x35C) = 0;
     }
 
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0092E1D0);
+    pDynamicTwoArgFunc = (pTwoArgProt)(black_mesa_functions.InputApplySettings);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
@@ -117,7 +89,7 @@ uint32_t NativeHooks::CNihiBallzDestructor(uint32_t arg0)
         *(uint32_t*)(arg0+0x730) = 0;
     }
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0070F600);
+    pDynamicOneArgFunc = (pOneArgProt)(black_mesa_functions.CNihiBallzDestructor);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -127,7 +99,7 @@ uint32_t NativeHooks::EnumElementHook(uint32_t arg0, uint32_t arg1)
 
     if(IsEntityValid(arg1))
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00994570);
+        pDynamicTwoArgFunc = (pTwoArgProt)(black_mesa_functions.EnumElement);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
@@ -142,11 +114,11 @@ uint32_t NativeHooks::TakeDamageHook(uint32_t arg0, uint32_t arg1)
     if(arg1)
     {
         uint32_t chkRef = *(uint32_t*)(arg1+0x28);
-        uint32_t object = functions.GetCBaseEntity(chkRef);
+        uint32_t object = GetCBaseEntity(chkRef);
 
         if(IsEntityValid(object))
         {
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004F0FC0);
+            pDynamicTwoArgFunc = (pTwoArgProt)(black_mesa_functions.TakeDamage);
             return pDynamicTwoArgFunc(arg0, arg1);
         }
     }
@@ -160,7 +132,7 @@ uint32_t NativeHooks::CPropHevCharger_ShouldApplyEffect(uint32_t arg0, uint32_t 
     pTwoArgProt pDynamicTwoArgFunc;
     if(arg1 == 0) return 0;
     
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00793A60);
+    pDynamicTwoArgFunc = (pTwoArgProt)(black_mesa_functions.CPropHevCharger_ShouldApplyEffect);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
@@ -169,6 +141,9 @@ uint32_t NativeHooks::CPropRadiationCharger_ShouldApplyEffect(uint32_t arg0, uin
     pTwoArgProt pDynamicTwoArgFunc;
     if(arg1 == 0) return 0;
     
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00793FD0);
+    pDynamicTwoArgFunc = (pTwoArgProt)(black_mesa_functions.CPropRadiationCharger_ShouldApplyEffect);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
+
+// SE_BMS
+#endif

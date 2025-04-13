@@ -1,17 +1,28 @@
+#ifdef SE_SDK2013
+
 #include "extension.h"
 #include "util.h"
 #include "core.h"
 #include "ext_main.h"
 
+synergy_game_fields synergy_fields;
+synergy_game_offsets synergy_offsets;
+synergy_game_functions synergy_functions;
+
 uint32_t synergy_srv;
 uint32_t synergy_srv_size;
 
-ValueList leakedResourcesSaveRestoreSystem;
-ValueList leakedResourcesEdtSystem;
-
 bool sdktools_passed;
 
-void InitCoreSynergy()
+int save_frames;
+int savegame_delayed;
+bool savegame;
+bool savegame_autosave;
+bool savegame_internal;
+
+ValueList save_player_vehicles_list;
+
+void InitCore()
 {
     our_libraries[0] = (uint32_t)malloc(1024);
     snprintf((char*)our_libraries[0], 1024, "%s", "/synergy/bin/server_srv.so");
@@ -53,7 +64,7 @@ bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size)
     return false;
 }
 
-void PopulateHookExclusionListsSynergy()
+void PopulateHookExclusionLists()
 {
     hook_exclude_list_base[0] = server_srv;
     hook_exclude_list_offset[0] = 0x008A0D7F;
@@ -62,7 +73,7 @@ void PopulateHookExclusionListsSynergy()
     hook_exclude_list_offset[1] = 0x005D025B;
 }
 
-uint32_t GetCBaseEntitySynergy(uint32_t EHandle)
+uint32_t GetCBaseEntity(uint32_t EHandle)
 {
     uint32_t EntityList = fields.CGlobalEntityList;
     uint32_t refHandle = (EHandle & 0xFFF) << 4;
@@ -78,105 +89,7 @@ uint32_t GetCBaseEntitySynergy(uint32_t EHandle)
     return 0;
 }
 
-void SaveLinkedList(ValueList leakList)
-{
-    char path[512];
-    char* root_dir = getenv("PWD");
-    snprintf(path, sizeof(path), "%s/leaked_resources.txt", root_dir);
-
-    FILE* list_file = fopen(path, "a");
-
-    if(!list_file && !leakList && !*leakList)
-    {
-        rootconsole->ConsolePrint("Error saving leaked resources!");
-        return;
-    }
-
-    char listName[256];
-    snprintf(listName, 256, "Unknown List");
-
-    if(leakList == leakedResourcesSaveRestoreSystem)
-        snprintf(listName, 256, "leakedResourcesSaveRestoreSystem");
-    else if(leakList == leakedResourcesEdtSystem)
-        snprintf(listName, 256, "leakedResourcesEdtSystem");
-
-    rootconsole->ConsolePrint("Saving leaked resources list [%s]", listName);
-
-    fprintf(list_file, "%s\n", listName); 
-
-    Value* current = *leakList;
-
-    while(current)
-    {        
-        fprintf(list_file, "%X\n", (uint32_t)current->value); 
-        current = current->nextVal;
-    }
-
-    fclose(list_file);
-}
-
-void RestoreLinkedLists()
-{
-    leakedResourcesSaveRestoreSystem = AllocateValuesList();
-    leakedResourcesVpkSystem = AllocateValuesList();
-    leakedResourcesEdtSystem = AllocateValuesList();
-
-    ValueList currentRestoreList = NULL;
-
-    char path[512];
-    char* root_dir = getenv("PWD");
-    snprintf(path, sizeof(path), "%s/leaked_resources.txt", root_dir);
-    FILE* list_file = fopen(path, "r");    
-
-    if(!list_file)
-    {
-        rootconsole->ConsolePrint("Error restoring leaked resources!");
-        return;
-    }
-
-    char* file_line = (char*) malloc(1024);
-    fgets(file_line, 1024, list_file);
-
-    int ppid_file = strtol(file_line, NULL, 10);
-
-    if(ppid_file != getppid())
-    {
-        rootconsole->ConsolePrint("Leaked resources were not restored due to parent process not matching!");
-        fclose(list_file);
-        return;
-    }
-
-    while(fgets(file_line, 1024, list_file))
-    {
-        sscanf(file_line, "%[^\n]s", file_line);
-        if(strcmp(file_line, "\n") == 0) 
-            continue;
-
-        if(strncmp(file_line, "leakedResourcesSaveRestoreSystem", 32) == 0)
-        {
-            currentRestoreList = leakedResourcesSaveRestoreSystem;
-            continue;
-        }
-        else if(strncmp(file_line, "leakedResourcesEdtSystem", 24) == 0)
-        {
-            currentRestoreList = leakedResourcesEdtSystem;
-            continue;
-        }
-
-        if(!currentRestoreList)
-            continue;
-
-        uint32_t parsedRef = strtoul(file_line, NULL, 16);
-        Value* leak = CreateNewValue((void*)parsedRef);
-        rootconsole->ConsolePrint("Restored leaked reference: [%X]", parsedRef);
-        InsertToValuesList(currentRestoreList, leak, NULL, false, true);
-    }
-
-    free(file_line);
-    fclose(list_file);
-}
-
-int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc)
+int ReleaseLeakedMemory(ValueList leakList, bool destroy)
 {
     if(!leakList)
         return 0;
@@ -184,11 +97,6 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, 
     Value* leak = *leakList;
     char listName[256];
     snprintf(listName, 256, "Unknown List");
-
-    if(leakList == leakedResourcesSaveRestoreSystem)
-        snprintf(listName, 256, "Save/Restore Hook");
-    else if(leakList == leakedResourcesEdtSystem)
-        snprintf(listName, 256, "EDT Hook");
 
     if(!leak)
     {
@@ -203,42 +111,22 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, 
         return 0;
     }
 
-    if(destroy)
-    {
-        //Save references to be freed if extension is reloaded
-        SaveLinkedList(leakList);
-    }
-
-    if((current_cap < allowed_cap) && !destroy)
-        return 0;
-
     int total_items = ValueListItems(leakList, NULL);
-    int free_total_items = (float)free_perc / 100.0 * total_items;
-    int has_freed_items = 0;
 
     while(leak)
     {
         Value* detachedValue = leak->nextVal;
 
-        if(!destroy)
-        {
-            //rootconsole->ConsolePrint("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
-            free(leak->value);
-            has_freed_items++;
-        }
-
+        //rootconsole->ConsolePrint("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
+        free(leak->value);
         free(leak);
+
         leak = detachedValue;
-        
-        if((has_freed_items >= free_total_items) && !destroy)
-        {
-            //Re-chain the list to point to the first valid value!
-            *leakList = leak;
-            break;
-        }
     }
 
-    rootconsole->ConsolePrint("FREED [%d] memory allocations", has_freed_items);
+    *leakList = NULL;
+
+    rootconsole->ConsolePrint("FREED [%d] memory allocations", total_items);
 
     if(destroy)
     {
@@ -246,32 +134,215 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, 
         leakList = NULL;
     }
 
-    return has_freed_items;
+    return total_items;
 }
 
-void DestroyLinkedLists()
+void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
 {
-    ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, true, 0, 0, 100);
-    ReleaseLeakedMemory(leakedResourcesVpkSystem, true, 0, 0, 100);
-    ReleaseLeakedMemory(leakedResourcesEdtSystem, true, 0, 0, 100);
+    pThreeArgProt pDynamicThreeArgFunc;
 
-    rootconsole->ConsolePrint("---  Linked lists successfully destroyed  ---");
-}
-
-void SaveProcessId()
-{
-    char path[512];
-    char* root_dir = getenv("PWD");
-    snprintf(path, sizeof(path), "%s/leaked_resources.txt", root_dir);
-
-    FILE* list_file = fopen(path, "w");
-
-    if(!list_file)
+    if(AttemptToRemoveEntity(object, validate))
     {
-        rootconsole->ConsolePrint("Error saving leaked resources!");
-        return;
+        char* classname = (char*)(*(uint32_t*)(object+offsets.classname_offset));
+
+        if(classname && strcmp(classname, "player") == 0)
+        {
+            if(isTicking)
+            {
+                rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
+    
+                Vector emptyVector;
+    
+                //LeaveVehicle
+                pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
+                pDynamicThreeArgFunc(object, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
+    
+                functions.SpawnPlayer(object);
+    
+                emptyVector.x = 0;
+                emptyVector.y = 0;
+                emptyVector.z = 0;
+    
+                //LeaveVehicle
+                pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
+                pDynamicThreeArgFunc(object, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
+    
+                functions.SpawnPlayer(object);
+                return;
+            }
+        }
+    
+        if(savegame_autosave || savegame_internal)
+        {
+            rootconsole->ConsolePrint("WARNING: Removing [%s] while a save file is being made!", classname);
+            functions.RemoveInsta(object);
+            return;
+        }
+
+        if(slow)    functions.RemoveNormal(object);
+        else        functions.RemoveInsta(object);
+    }
+}
+
+void FixCars()
+{
+    uint32_t mainEnt = 0;
+
+    while((mainEnt = functions.FindEntityByClassname(fields.CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+    {
+        if(IsEntityValid(mainEnt))
+        {
+            char* clsname = (char*) ( *(uint32_t*)(mainEnt+offsets.classname_offset) );
+        
+            if(strcmp(clsname, "prop_vehicle_jeep") != 0 && strcmp(clsname, "prop_vehicle_mp") != 0 && strcmp(clsname, "prop_vehicle_airboat") != 0)
+                continue;
+    
+            char* model = (char*)(*(uint32_t*)(mainEnt+synergy_offsets.vehicle_model_offset));
+            char* script = (char*)(*(uint32_t*)(mainEnt+synergy_offsets.vehicle_script_offset));
+
+            rootconsole->ConsolePrint("%p", model);
+    
+            bool fixed_model = FixSlashes(model);
+            bool fixed_script = FixSlashes(script);
+    
+            if(fixed_model)
+            {
+                rootconsole->ConsolePrint("FIXED_MODEL_NAME: [%s]", model);
+            }
+    
+            if(fixed_script)
+            {
+                rootconsole->ConsolePrint("FIXED_SCRIPT_NAME: [%s]", script);
+            }
+
+            if(strcmp(clsname, "prop_vehicle_airboat") == 0)
+            {
+                if(strcmp(model, "models/airboat.mdl") != 0)
+                {
+                    rootconsole->ConsolePrint("Removed incorrectly spawned airboat!");
+                    HandleSpecificEntityRemoval(mainEnt, true, true);
+                }
+            }
+        }
+    }
+}
+
+uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(player) && IsEntityValid(player_vehicle))
+    {
+        char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
+
+        if
+        (
+        (vehicle_classname && strcmp(vehicle_classname, "prop_vehicle_airboat")) == 0
+            ||
+        (vehicle_classname && strcmp(vehicle_classname, "prop_vehicle_mp")) == 0
+            ||
+        (vehicle_classname && strncmp(vehicle_classname, "prop_vehicle_jeep", 17)) == 0
+        )
+        {
+            uint32_t iserver_vehicle = *(uint32_t*)(player_vehicle+synergy_offsets.iserver_vehicle_offset);
+            uint32_t base_vehicle = *(uint32_t*)(iserver_vehicle+synergy_offsets.base_vehicle_offset);
+
+            //GetPassengerCount
+            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(base_vehicle))+synergy_offsets.getpassengercount_offset));
+            uint32_t passengers = pDynamicOneArgFunc(base_vehicle);
+
+            for(uint32_t i = 0; i < passengers; i++)
+            {
+                pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(*(uint32_t*)(iserver_vehicle)));
+                uint32_t passenger = pDynamicTwoArgFunc(iserver_vehicle, i);
+
+                if(IsEntityValid(passenger))
+                {
+                    if(passenger == player)
+                        return i;
+                }
+            }
+        }
+        else
+            return -1;
     }
 
-    fprintf(list_file, "%d\n", getppid()); 
-    fclose(list_file);
+    rootconsole->ConsolePrint("Failed to get passenger index!");
+    return 0;
 }
+
+void MakePlayersLeaveVehicles()
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    uint32_t player = 0;
+
+    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    {
+        if(IsEntityValid(player))
+        {
+            uint32_t player_vehicle = GetCBaseEntity(*(uint32_t*)(player+synergy_offsets.player_vehicle_offset));
+
+            if(IsEntityValid(player_vehicle))
+            {
+                char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
+                uint32_t passenger = GetPassengerIndex(player, player_vehicle);
+
+                if(passenger != -1u)
+                {
+                    Value* player_value = CreateNewValue((void*)*(uint32_t*)(player+offsets.refhandle_offset));
+                    Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(player_vehicle+offsets.refhandle_offset));
+                    Value* passenger_value = CreateNewValue((void*)passenger);
+
+                    InsertToValuesList(save_player_vehicles_list, player_value, NULL, true, false);
+                    InsertToValuesList(save_player_vehicles_list, vehicle_value, NULL, true, false);
+                    InsertToValuesList(save_player_vehicles_list, passenger_value, NULL, true, false);
+                }
+
+                Vector emptyVector;
+
+                //LeaveVehicle
+                pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+synergy_offsets.leavevehicle_offset) );
+                pDynamicThreeArgFunc(player, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
+            }
+        }
+    }
+}
+
+void EnterVehicles(ValueList vehi_list)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    Value* first_player = *vehi_list;
+
+    while(first_player && first_player->nextVal && first_player->nextVal->nextVal)
+    {
+        uint32_t player = GetCBaseEntity((uint32_t)first_player->value);
+        uint32_t vehicle = GetCBaseEntity((uint32_t)first_player->nextVal->value);
+        uint32_t passenger = (uint32_t)first_player->nextVal->nextVal->value;
+
+        if(IsEntityValid(player) && IsEntityValid(vehicle))
+        {
+            rootconsole->ConsolePrint("Vehicle Entered! passenger [%d]", passenger);
+
+            //EnterVehicle
+            pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+synergy_offsets.entervehicle_offset) );
+            pDynamicThreeArgFunc(player, *(uint32_t*)(vehicle+synergy_offsets.iserver_vehicle_offset), passenger);
+        }
+
+        Value* nextPlayer = first_player->nextVal->nextVal->nextVal;
+
+        free(first_player->nextVal->nextVal);
+        free(first_player->nextVal);
+        free(first_player);
+
+        first_player = nextPlayer;
+    }
+
+    *vehi_list = NULL;
+}
+
+// SE_SDK2013
+#endif

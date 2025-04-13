@@ -1,22 +1,17 @@
 #include "extension.h"
 
-extern bool InitExtensionBlackMesa();
-extern bool InitExtensionSynergy();
+extern bool InitExtension();
+extern void DeinitExtension();
 
-extern void DeinitExtensionBlackMesa();
-extern void DeinitExtensionSynergy();
+ServerUtils g_ServerUtils;		/**< Global singleton for extension's main interface */
+SMEXT_LINK(&g_ServerUtils);
 
-SynergyUtils g_SynUtils;		/**< Global singleton for extension's main interface */
-SMEXT_LINK(&g_SynUtils);
-
-void SynergyUtils::SDK_OnAllLoaded()
+void ServerUtils::SDK_OnAllLoaded()
 {
-    InitExtensionBlackMesa();
-    InitExtensionSynergy();
+    InitExtension();
 }
 
-void SynergyUtils::SDK_OnUnload()
+void ServerUtils::SDK_OnUnload()
 {
-    DeinitExtensionBlackMesa();
-    DeinitExtensionSynergy();
+    DeinitExtension();
 }

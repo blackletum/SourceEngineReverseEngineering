@@ -1,33 +1,21 @@
+#ifdef SE_SDK2013
+
 #include "extension.h"
 #include "util.h"
 #include "core.h"
 #include "ext_main.h"
 #include "hooks_specific.h"
 
-int save_frames;
-int savegame_delayed;
-bool savegame;
-bool savegame_autosave;
-bool savegame_internal;
-uint32_t global_restore_player;
-
-ValueList restore_vehicle_list;
-ValueList dangling_restore_vehicles;
-ValueList save_player_vehicles_list;
-
-void DeinitExtensionSynergy()
+void DeinitExtension()
 {
-    if(game == SYNERGY)
-    {
-        AllowWriteToMappedMemory();
-        DeinitUtil();
-        RestoreMemoryProtections();
+    AllowWriteToMappedMemory();
+    DeinitUtil();
+    RestoreMemoryProtections();
 
-        rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded  ----------------------");
-    }
+    rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded  ----------------------");
 }
 
-bool InitExtensionSynergy()
+bool InitExtension()
 {
     if(loaded_extension)
     {
@@ -35,7 +23,7 @@ bool InitExtensionSynergy()
         return false;
     }
 
-    InitCoreSynergy();
+    InitCore();
     AllowWriteToMappedMemory();
 
     char* root_dir = getenv("PWD");
@@ -70,8 +58,6 @@ bool InitExtensionSynergy()
         return false;
     }
 
-    game = SYNERGY;
-
     rootconsole->ConsolePrint("server_srv_lib [%X] size [%X]", server_srv_lib->library_base_address, server_srv_lib->library_size);
     rootconsole->ConsolePrint("synergy_srv_lib [%X] size [%X]", synergy_srv_lib->library_base_address, synergy_srv_lib->library_size);
     rootconsole->ConsolePrint("engine_srv_lib [%X] size [%X]", engine_srv_lib->library_base_address, engine_srv_lib->library_size);
@@ -95,24 +81,24 @@ bool InitExtensionSynergy()
 
     sdktools_passed = IsAllowedToPatchSdkTools(sdktools, sdktools_size);
 
-    RestoreLinkedLists();
-    SaveProcessId();
-
     save_frames = 0;
     savegame_delayed = 0;
     savegame = false;
     savegame_internal = false;
     savegame_autosave = false;
-    global_restore_player = 0;
 
-    restore_vehicle_list = AllocateValuesList();
-    dangling_restore_vehicles = AllocateValuesList();
     save_player_vehicles_list = AllocateValuesList();
 
-    fields.CGlobalEntityList = server_srv + 0x00EAB5BC;
-    fields.sv = engine_srv + 0x00394538;
-    fields.RemoveImmediateSemaphore = server_srv + 0x00F3BCB0;
-    fields.sv_cheats_cvar = engine_srv + 0x00394450;
+    fields.sv = engine_srv + 0x00402E58;
+    fields.sv_cheats_cvar = engine_srv + 0x00402D70;
+
+    synergy_fields.m_sbStaticPoseParamsLoaded = server_srv + 0x00F70AE0;
+    
+    fields.CGlobalEntityList = server_srv + 0x00EAB6DC;
+    fields.RemoveImmediateSemaphore = server_srv + 0x00F3BDD0;
+    fields.g_EventQueue = server_srv + 0x00EA2690;
+    fields.modelinfo = server_srv + 0x00EC7580;
+
     fields.deferMindist = vphysics_srv + 0x001B3900;
 
     offsets.classname_offset = 0x74;
@@ -133,43 +119,77 @@ bool InitExtensionSynergy()
     offsets.isclientactive_offset = 0x6C;
     offsets.maxclients_offset = 0x14C;
     offsets.current_map_offset = 0x11;
+    offsets.getposition_vphysics_offset = 0xC0;
+    offsets.setposition_vphysics_offset = 0xB8;
 
-    functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
-    functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x00C2F140);
-    functions.RemoveNormalDirect = (pOneArgProt)(server_srv + 0x008A0AC0);
-    functions.RemoveNormal = (pOneArgProt)(server_srv + 0x008A0BD0);
-    functions.RemoveInsta = (pOneArgProt)(server_srv + 0x008A0DF0);
-    functions.CreateEntityByName = (pTwoArgProt)(server_srv + 0x007005E0);
-    functions.PhysSimEnt = (pOneArgProt)(server_srv + 0x0074E3D0);
-    functions.AcceptInput = (pSixArgProt)(server_srv + 0x005B4850);
-    functions.UpdateOnRemoveBase = (pOneArgProt)(server_srv + 0x005AF050);
-    functions.VphysicsSetObject = (pOneArgProt)(server_srv + 0x005D01E0);
-    functions.ClearAllEntities = (pOneArgProt)(server_srv + 0x0064AEE0);
-    functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00615830);
-    functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C2A0);
-    functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C400);
-    functions.CollisionRulesChanged = (pOneArgProt)(server_srv + 0x005D0240);
-    functions.FindEntityByClassname = (pThreeArgProt)(server_srv + 0x0064B210);
-    functions.CleanupDeleteList = (pOneArgProt)(server_srv + 0x0064AC50);
+    synergy_offsets.vehicle_model_offset = 556;
+    synergy_offsets.vehicle_script_offset = 1544;
+    synergy_offsets.iserver_vehicle_offset = 0x674;
+    synergy_offsets.base_vehicle_offset = 0x30;
+    synergy_offsets.getpassengercount_offset = 0x4C;
+    synergy_offsets.player_vehicle_offset = 0x0D38;
+    synergy_offsets.leavevehicle_offset = 0x648;
+    synergy_offsets.entervehicle_offset = 0x644;
+    synergy_offsets.dropship_container_offset = 0x1030;
+
+    functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x002D0EB0);
+    functions.ClientCommand = (pFourArgProt)(engine_srv + 0x0030E300);
+    functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x0030D720);
+    functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x0030D5D0);
+    functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x002E5410);
+
+    functions.ServiceEvents = (pOneArgProt)(server_srv + 0x00607B40);
+    functions.InvokePerFrameMethodFastCall = (pTwoArgProtFastCall)(server_srv + 0x006E6400);
+    functions.InvokeMethodReverseOrderFastCall = (pTwoArgProtFastCall)(server_srv + 0x006E6130);
+    functions.Physics_RunThinkFunctions = (pOneArgProt)(server_srv + 0x0074E750);
+    functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x00C2F260);
+    functions.RemoveNormalDirect = (pOneArgProt)(server_srv + 0x008A0B70);
+    functions.RemoveNormal = (pOneArgProt)(server_srv + 0x008A0C80);
+    functions.RemoveInsta = (pOneArgProt)(server_srv + 0x008A0EA0);
+    functions.CreateEntityByName = (pTwoArgProt)(server_srv + 0x00700690);
+    functions.PhysSimEnt = (pOneArgProt)(server_srv + 0x0074E480);
+    functions.AcceptInput = (pSixArgProt)(server_srv + 0x005B48F0);
+    functions.UpdateOnRemoveBase = (pOneArgProt)(server_srv + 0x005AF0F0);
+    functions.VphysicsSetObject = (pOneArgProt)(server_srv + 0x005D0280);
+    functions.ClearAllEntities = (pOneArgProt)(server_srv + 0x0064AF80);
+    functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x006158D0);
+    functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C350);
+    functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C4B0);
+    functions.CollisionRulesChanged = (pOneArgProt)(server_srv + 0x005D02E0);
+    functions.FindEntityByClassname = (pThreeArgProt)(server_srv + 0x0064B2B0);
+    functions.CleanupDeleteList = (pOneArgProt)(server_srv + 0x0064ACF0);
+    functions.SetOwnerEntity = (pTwoArgProt)(server_srv + 0x005B3EE0);
+    functions.VPhysicsUpdate = (pTwoArgProt)(server_srv + 0x005CF5F0);
+    functions.CalcAbsolutePosition = (pOneArgProt)(server_srv + 0x005B33F0);
+    functions.DispatchAnimEvents = (pTwoArgProt)(server_srv + 0x0056DC50);
+    functions.MapEntity_ParseAllEntities = (pThreeArgProt)(server_srv + 0x00700EF0);
+    functions.DispatchSpawn = (pOneArgProt)(server_srv + 0x008A5F80);
+
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
-    functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x0027BC50);
-    functions.SendNetMsg = (pThreeArgProt)(engine_srv + 0x002676F0);
-    functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0004E780);
-    functions.ClientCommand = (pFourArgProt)(engine_srv + 0x002A4B40);
-    functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x002A3F60);
-    functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x002A3E10);
-    functions.IsFakeClient = (pOneArgProt)(server_srv + 0x007A8200);
 
-    PopulateHookExclusionListsSynergy();
+    functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0004E780);
+
+    synergy_functions.CombineDropshipSpawn = (pOneArgProt)(server_srv + 0x00AAE650);
+    synergy_functions.SaveGameState = (pFourArgProt)(server_srv + 0x00BE5960);
+    synergy_functions.RestorePlayer = (pTwoArgProt)(server_srv + 0x00BDC770);
+    synergy_functions.Autosave_Silent = (pOneArgProtFastCall)(server_srv + 0x00BEC650);
+    synergy_functions.LookupPoseParameterDropship = (pThreeArgProt)(server_srv + 0x0056F3F0);
+    synergy_functions.PopulatePoseParametersDropship = (pOneArgProt)(server_srv + 0x00AAA830);
+    synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint = (pTwoArgProt)(server_srv + 0x00C5F830);
+    synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence = (pTwoArgProt)(server_srv + 0x00C6E560);
+    synergy_functions.CAI_PassengerBehavior_GetEntryTarget = (pThreeArgProt)(server_srv + 0x00C62C70);
+    synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions = (pOneArgProt)(server_srv + 0x00C66FB0);
+
+    PopulateHookExclusionLists();
 
     InitUtil();
 
-    ApplyPatchesSynergy();
-    ApplyPatchesSpecificSynergy();
+    ApplyPatches();
+    ApplyPatchesSpecific();
 
-    HookFunctionsSynergy();
-    HookFunctionsSpecificSynergy();
+    HookFunctions();
+    HookFunctionsSpecific();
 
     RestoreMemoryProtections();
 
@@ -180,15 +200,12 @@ bool InitExtensionSynergy()
     return true;
 }
 
-void ApplyPatchesSynergy()
+void ApplyPatches()
 {
     uint32_t offset = 0;
 
-    uint32_t phys_freeze_fix = server_srv + 0x0077B6A9;
-    *(uint8_t*)(phys_freeze_fix) = 0xEB;
-
     uint32_t hook_dedicated_vpk_malloc = dedicated_srv + 0x000C81D4;
-    offset = (uint32_t)HooksSynergy::DirectMallocHookDedicatedSrv - hook_dedicated_vpk_malloc - 5;
+    offset = (uint32_t)HooksUtil::VpkCacheBufferAllocHook - hook_dedicated_vpk_malloc - 5;
     *(uint32_t*)(hook_dedicated_vpk_malloc+1) = offset;
 
     uint32_t patch_stack_vpk_cache_allocation = dedicated_srv + 0x000C81CD;
@@ -210,235 +227,126 @@ void ApplyPatchesSynergy()
         memset((void*)(sdktools + 0x00016907), 0x90, 2);
     }
 
-    uint32_t hook_game_frame = server_srv + 0x006B1E64;
+    uint32_t phys_freeze_fix = server_srv + 0x0077B759;
+    *(uint8_t*)(phys_freeze_fix) = 0xEB;
+
+    uint32_t hook_game_frame = server_srv + 0x006B1F04;
     offset = (uint32_t)HooksSynergy::SimulateEntitiesHook - hook_game_frame - 5;
     *(uint32_t*)(hook_game_frame+1) = offset;
 
-    uint32_t hook_reverse_order = server_srv + 0x006B1E70;
+    uint32_t hook_reverse_order = server_srv + 0x006B1F10;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_reverse_order - 5;
     *(uint32_t*)(hook_reverse_order+1) = offset;
 
-    uint32_t hook_post_systems = server_srv + 0x006B1E7C;
+    uint32_t hook_post_systems = server_srv + 0x006B1F1C;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_post_systems - 5;
     *(uint32_t*)(hook_post_systems+1) = offset;
 
-    uint32_t hook_service_event_queue = server_srv + 0x006B1E8A;
+    uint32_t hook_service_event_queue = server_srv + 0x006B1F2A;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_service_event_queue - 5;
     *(uint32_t*)(hook_service_event_queue+1) = offset;
 
-    uint32_t nearplayer_bypass = server_srv + 0x00C2AE3C;
+    uint32_t nearplayer_bypass = server_srv + 0x00C2AF5C;
     *(uint8_t*)(nearplayer_bypass) = 0xE9;
     *(uint32_t*)(nearplayer_bypass+1) = 0x1A9;
 
-    uint32_t weapon_pitch_dropship_patch = server_srv + 0x00AAAB44;
+    uint32_t weapon_pitch_dropship_patch = server_srv + 0x00AAAA94;
     offset = (uint32_t)HooksSynergy::LookupPoseParameterDropshipHook - weapon_pitch_dropship_patch - 5;
     *(uint32_t*)(weapon_pitch_dropship_patch+1) = offset;
 
-    uint32_t weapon_yaw_dropship_patch = server_srv + 0x00AAABB2;
+    uint32_t weapon_yaw_dropship_patch = server_srv + 0x00AAAB02;
     offset = (uint32_t)HooksSynergy::LookupPoseParameterDropshipHook - weapon_yaw_dropship_patch - 5;
     *(uint32_t*)(weapon_yaw_dropship_patch+1) = offset;
 
-    uint32_t helicopter_sphere_fix = server_srv + 0x00A44B59;
+    uint32_t helicopter_sphere_fix = server_srv + 0x00A44AA9;
     *(uint8_t*)(helicopter_sphere_fix) = 0xE9;
     *(uint32_t*)(helicopter_sphere_fix+1) = 0xA3;
 
     //spawning crash
-    uint32_t patch_player_spawn_crash = server_srv + 0x00C2F28C;
+    uint32_t patch_player_spawn_crash = server_srv + 0x00C2F3AC;
     *(uint8_t*)(patch_player_spawn_crash) = 0xEB;
 
     //spawning crash
-    uint32_t patch_player_restore = server_srv + 0x00BDD0CC;
+    uint32_t patch_player_restore = server_srv + 0x00BDD1EC;
     memset((void*)patch_player_restore, 0x90, 0x26);
 
     //player vehicle restoring patch
-    uint32_t removebad_restorecode = server_srv + 0x00BDCEED;
+    uint32_t removebad_restorecode = server_srv + 0x00BDD00D;
     memset((void*)removebad_restorecode, 0x90, 2);
 
-    //player vehicle restoring patch
-    uint32_t vehicle_restore_hook = server_srv + 0x00BDCED7;
-    offset = (uint32_t)HooksSynergy::VehicleInitializeRestore - vehicle_restore_hook - 5;
-    *(uint32_t*)(vehicle_restore_hook+1) = offset;
-
     //CMessageEntity
-    uint32_t remove_extra_call = server_srv + 0x0070715B;
+    uint32_t remove_extra_call = server_srv + 0x0070720B;
     offset = (uint32_t)HooksUtil::EmptyCall - remove_extra_call - 5;
     *(uint32_t*)(remove_extra_call+1) = offset;
 }
 
-void FixCarSlashes()
+void HookFunctions()
 {
-    uint32_t mainEnt = 0;
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.Autosave_Silent, (void*)HooksSynergy::AutosaveHook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.RestorePlayer, (void*)HooksSynergy::RestorePlayerHook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
 
-    while((mainEnt = functions.FindEntityByClassname(fields.CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
-    {
-        if(IsEntityValid(mainEnt))
-        {
-            char* clsname = (char*) ( *(uint32_t*)(mainEnt+offsets.classname_offset) );
-        
-            if(strcmp(clsname, "prop_vehicle_jeep") != 0 && strcmp(clsname, "prop_vehicle_mp") != 0 && strcmp(clsname, "prop_vehicle_airboat") != 0)
-                continue;
-    
-            uint32_t model = *(uint32_t*)(mainEnt+556);
-            uint32_t script = *(uint32_t*)(mainEnt+1544);
-    
-            bool fixed_model = FixSlashes((char*)model);
-            bool fixed_script = FixSlashes((char*)script);
-    
-            if(fixed_model)
-            {
-                rootconsole->ConsolePrint("FIXED_MODEL_NAME: [%s]", model);
-            }
-    
-            if(fixed_script)
-            {
-                rootconsole->ConsolePrint("FIXED_SCRIPT_NAME: [%s]", script);
-            }
-        }
-    }
+    HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormalDirect, (void*)HooksSynergy::UTIL_RemoveHookFailsafe);
+    HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormal, (void*)HooksSynergy::UTIL_RemoveBaseHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.RemoveInsta, (void*)HooksSynergy::HookInstaKill);
+    HookFunction(server_srv, server_srv_size, (void*)functions.ClearAllEntities, (void*)HooksSynergy::GlobalEntityListClear);
+    HookFunction(server_srv, server_srv_size, (void*)functions.SpawnPlayer, (void*)HooksSynergy::PlayerSpawnHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.MapEntity_ParseAllEntities, (void*)HooksSynergy::MapEntity_ParseAllEntitiesHook);
+
+    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 }
 
-uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(IsEntityValid(player) && IsEntityValid(player_vehicle))
-    {
-        char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
-
-        if((vehicle_classname && strcmp(vehicle_classname, "prop_vehicle_airboat")) == 0
-            ||
-        (vehicle_classname && strcmp(vehicle_classname, "prop_vehicle_mp")) == 0
-            ||
-        (vehicle_classname && strncmp(vehicle_classname, "prop_vehicle_jeep", 17)) == 0)
-        {
-            uint32_t iserver_vehicle = *(uint32_t*)(player_vehicle+0x674);
-            uint32_t base_vehicle = *(uint32_t*)(iserver_vehicle+0x30);
-
-            //GetPassengerCount
-            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(base_vehicle))+0x4C));
-            uint32_t passengers = pDynamicOneArgFunc(base_vehicle);
-
-            for(uint32_t i = 0; i < passengers; i++)
-            {
-                pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(*(uint32_t*)(iserver_vehicle)));
-                uint32_t passenger = pDynamicTwoArgFunc(iserver_vehicle, i);
-
-                if(IsEntityValid(passenger))
-                {
-                    if(passenger == player)
-                        return i;
-                }
-            }
-        }
-        else
-            return -1;
-    }
-
-    rootconsole->ConsolePrint("Failed to get passenger index!");
-    return 0;
-}
-
-void MakePlayersLeaveVehicles()
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-    uint32_t player = 0;
-
-    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
-    {
-        if(IsEntityValid(player))
-        {
-            uint32_t player_vehicle = functions.GetCBaseEntity(*(uint32_t*)(player+0x0D38));
-
-            if(IsEntityValid(player_vehicle))
-            {
-                char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
-                uint32_t passenger = GetPassengerIndex(player, player_vehicle);
-
-                if(passenger != -1u)
-                {
-                    Value* player_value = CreateNewValue((void*)*(uint32_t*)(player+offsets.refhandle_offset));
-                    Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(player_vehicle+offsets.refhandle_offset));
-                    Value* passenger_value = CreateNewValue((void*)passenger);
-
-                    InsertToValuesList(save_player_vehicles_list, player_value, NULL, true, false);
-                    InsertToValuesList(save_player_vehicles_list, vehicle_value, NULL, true, false);
-                    InsertToValuesList(save_player_vehicles_list, passenger_value, NULL, true, false);
-                }
-
-                Vector emptyVector;
-
-                //LeaveVehicle
-                pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+0x648) );
-                pDynamicThreeArgFunc(player, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
-            }
-        }
-    }
-}
-
-void RemoveDanglingRestoredVehicles()
-{
-    Value* first_vehicle = *dangling_restore_vehicles;
-
-    while(first_vehicle)
-    {
-        Value* next_vehicle = first_vehicle->nextVal;
-
-        rootconsole->ConsolePrint("Removed dangling vehicle!");
-        RemoveEntityNormal(functions.GetCBaseEntity((uint32_t)first_vehicle->value), true);
-
-        free(first_vehicle);
-        first_vehicle = next_vehicle;
-    }
-
-    *dangling_restore_vehicles = NULL;
-}
-
-void EnterVehicles(ValueList vehi_list)
+uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
-    Value* first_player = *vehi_list;
 
-    while(first_player && first_player->nextVal && first_player->nextVal->nextVal)
+    char model_one[512] = "models/airboat.mdl";
+    char model_two[512] = "models\\airboat.mdl";
+
+    char script_one[512] = "scripts/vehicles/airboat.txt";
+    char script_two[512] = "scripts\\vehicles\\airboat.txt";
+
+    rootconsole->ConsolePrint("\nMapEntity_ParseAllEntities\n");
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(functions.MapEntity_ParseAllEntities);
+    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
+
+    uint32_t airboat_one = functions.CreateEntityByName((uint32_t)"prop_vehicle_airboat", (uint32_t)-1);
+    uint32_t airboat_two = functions.CreateEntityByName((uint32_t)"prop_vehicle_airboat", (uint32_t)-1);
+
+    if(airboat_one)
     {
-        uint32_t player = functions.GetCBaseEntity((uint32_t)first_player->value);
-        uint32_t vehicle = functions.GetCBaseEntity((uint32_t)first_player->nextVal->value);
-        uint32_t passenger = (uint32_t)first_player->nextVal->nextVal->value;
+        *(uint32_t*)(airboat_one+synergy_offsets.vehicle_model_offset) = (uint32_t)model_one;
+        *(uint32_t*)(airboat_one+synergy_offsets.vehicle_script_offset) = (uint32_t)script_one;
 
-        if(IsEntityValid(player) && IsEntityValid(vehicle))
-        {
-            rootconsole->ConsolePrint("Vehicle Entered! passenger [%d]", passenger);
-
-            //EnterVehicle
-            pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+0x644) );
-            pDynamicThreeArgFunc(player, *(uint32_t*)(vehicle+0x674), passenger);
-        }
-
-        Value* nextPlayer = first_player->nextVal->nextVal->nextVal;
-
-        free(first_player->nextVal->nextVal);
-        free(first_player->nextVal);
-        free(first_player);
-
-        first_player = nextPlayer;
+        functions.DispatchSpawn(airboat_one);
+        HandleSpecificEntityRemoval(airboat_one, true, true);
     }
 
-    *vehi_list = NULL;
+    if(airboat_two)
+    {
+        *(uint32_t*)(airboat_two+synergy_offsets.vehicle_model_offset) = (uint32_t)model_two;
+        *(uint32_t*)(airboat_two+synergy_offsets.vehicle_script_offset) = (uint32_t)script_two;
+
+        functions.DispatchSpawn(airboat_two);
+        HandleSpecificEntityRemoval(airboat_two, true, true);
+    }
+    
+    return returnVal;
 }
 
 uint32_t HooksSynergy::CombineDropshipSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAE700);
+    pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.CombineDropshipSpawn);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
-    *(uint8_t*)(server_srv + 0x00F6E734) = 0;
+    *(uint8_t*)(synergy_fields.m_sbStaticPoseParamsLoaded) = 0;
 
     //PopulatePoseParameters - Dropship
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA8E0);
+    pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.PopulatePoseParametersDropship);
     pDynamicOneArgFunc(arg0);
 
     return returnVal;
@@ -450,9 +358,9 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     
-    uint32_t dropship_container_refhandle = *(uint32_t*)(arg0+0x1030);
-    uint32_t container_object = functions.GetCBaseEntity(dropship_container_refhandle);
-    uint32_t modelinfo = *(uint32_t*)(server_srv + 0x00EC7460);
+    uint32_t dropship_container_refhandle = *(uint32_t*)(arg0+synergy_offsets.dropship_container_offset);
+    uint32_t container_object = GetCBaseEntity(dropship_container_refhandle);
+    uint32_t modelinfo = *(uint32_t*)(fields.modelinfo);
 
     if(container_object)
     {
@@ -462,7 +370,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
         {
             rootconsole->ConsolePrint("Dropship gun patched! x1");
     
-            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0056F370);
+            pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LookupPoseParameterDropship);
             return pDynamicThreeArgFunc(container_object, studio_hdr, arg2);
         }
 
@@ -476,7 +384,8 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
         {
             rootconsole->ConsolePrint("Locked studio for dropship!");
 
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0056AF30);
+            //CBaseAnimating::LockStudioHdr
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0056AFB0);
             pDynamicOneArgFunc(container_object);
         }
 
@@ -488,68 +397,20 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
         {
             rootconsole->ConsolePrint("Dropship gun patched! x2");
     
-            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0056F370);
+            pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LookupPoseParameterDropship);
             return pDynamicThreeArgFunc(container_object, studio_hdr, arg2);
         }
     }
 
     rootconsole->ConsolePrint("Failed to patch dropship gun!");
 
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0056F370);
-    return pDynamicThreeArgFunc(arg0, arg1, arg2);
-}
-
-uint32_t HooksSynergy::VehicleInitializeRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    uint32_t vehi_cbase = arg0-0x4CC;
-    uint32_t vehi_refhandle = *(uint32_t*)(vehi_cbase+offsets.refhandle_offset);
-
-    if(global_restore_player)
-    {
-        uint32_t passenger = GetPassengerIndex(functions.GetCBaseEntity(global_restore_player), vehi_cbase);
-
-        if(passenger != -1u)
-        {
-            Value* player_value = CreateNewValue((void*)global_restore_player);
-            Value* vehicle_value = CreateNewValue((void*)vehi_refhandle);
-            Value* passenger_value = CreateNewValue((void*)passenger);
-
-            InsertToValuesList(restore_vehicle_list, player_value, NULL, true, false);
-            InsertToValuesList(restore_vehicle_list, vehicle_value, NULL, true, false);
-            InsertToValuesList(restore_vehicle_list, passenger_value, NULL, true, false);
-        }
-
-        global_restore_player = 0;
-    }
-    else
-    {
-        uint32_t vehicle_refhandle = *(uint32_t*)(vehi_cbase+offsets.refhandle_offset);
-
-        Value* dangling_vehicle = CreateNewValue((void*)vehicle_refhandle);
-        InsertToValuesList(dangling_restore_vehicles, dangling_vehicle, NULL, false, false);
-    }
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0068DC60);
+    pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LookupPoseParameterDropship);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    global_restore_player = *(uint32_t*)(arg1+offsets.refhandle_offset);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00BDC650);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    Vector emptyVector;
-
-    //LeaveVehicle
-    pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(arg1))+0x648) );
-    pDynamicThreeArgFunc(arg1, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
 
     if(!firstplayer_hasjoined)
     {
@@ -558,72 +419,8 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 
     firstplayer_hasjoined = true;
 
-    return returnVal;
-}
-
-uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
-{
-    uint32_t ebp = 0;
-    asm volatile ("movl %%ebp, %0" : "=r" (ebp));
-
-    uint32_t arg0_return = *(uint32_t*)(ebp-4);
-    uint32_t packed_store_ref = arg0_return-0x228;
-
-    uint32_t vpk_buffer = *(uint32_t*)(arg0+0x10);
-
-    if(vpk_buffer == 0)
-    {
-        current_vpk_buffer_ref = arg0;
-        return global_vpk_cache_buffer;
-    }
-
-    bool saved_reference = false;
-
-    Value* a_leak = *leakedResourcesVpkSystem;
-
-    while(a_leak)
-    {
-        VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(a_leak->value);
-        uint32_t packed_object = the_leak->packed_ref;
-
-        if(packed_object == packed_store_ref)
-        {
-            saved_reference = true;
-
-            ValueList vpk_leak_list = the_leak->leaked_refs;
-
-            Value* new_vpk_leak = CreateNewValue((void*)(vpk_buffer));
-            bool added = InsertToValuesList(vpk_leak_list, new_vpk_leak, NULL, false, true);
-
-            if(added)
-            {
-                rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, vpk_buffer);
-            }
-
-            break;
-        }
-
-        a_leak = a_leak->nextVal;
-    }
-
-    if(!saved_reference)
-    {
-        VpkMemoryLeak* omg_leaks = (VpkMemoryLeak*)(malloc(sizeof(VpkMemoryLeak)));
-        ValueList empty_list = AllocateValuesList();
-
-        Value* original_vpk_buffer = CreateNewValue((void*)vpk_buffer);
-        InsertToValuesList(empty_list, original_vpk_buffer, NULL, false, false);
-
-        omg_leaks->packed_ref = packed_store_ref;
-        omg_leaks->leaked_refs = empty_list;
-
-        Value* leaked_resource = CreateNewValue((void*)omg_leaks);
-        InsertToValuesList(leakedResourcesVpkSystem, leaked_resource, NULL, false, false);
-
-        rootconsole->ConsolePrint("[VPK Hook First] " HOOK_MSG, vpk_buffer);
-    }
-
-    return vpk_buffer;
+    pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.RestorePlayer);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
@@ -647,23 +444,41 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074E6A0);
+    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(simulating);
 
     functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
+    pDynamicOneArgFunc(fields.g_EventQueue);
+
+    RemoveBadEnts(); // remove entities that have bad vectors
+    UpdatePlayerCollisions(); // player needs to be first because the player collides with the objects the most
+    UpdateOtherCollisions(); // pre calculate non priority objects
+    UpdateCollisions(); // calculate normal collisions
+
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
+    pDynamicFastCallTwoArgFunc(0x2D, 0);
+
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
+    pDynamicFastCallTwoArgFunc(0x41, 0);
+
+    functions.CleanupDeleteList(0);
+
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
+    EnterVehicles(save_player_vehicles_list);
 
     if(savegame || savegame_delayed == 150)
     {
         rootconsole->ConsolePrint("Autosave created!");
 
-        FixCarSlashes();
+        FixCars();
         functions.CleanupDeleteList(0);
 
         savegame_autosave = true;
 
-        //Autosave_Silent
-        pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(server_srv + 0x00BEC530);
+        pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(synergy_functions.Autosave_Silent);
         pDynamicFastCallOneArgFunc(0);
 
         savegame_autosave = false;
@@ -673,35 +488,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    functions.CleanupDeleteList(0);
-
-    UpdateCollisions();
-    UpdateOtherCollisions();
-    UpdatePlayerCollisions();
-    RemoveBadEnts();
-
-    //ReverseOrder
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6080);
-    pDynamicFastCallTwoArgFunc(0x2D, 0);
-
-    //PostSystems
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(server_srv + 0x006E6350);
-    pDynamicFastCallTwoArgFunc(0x41, 0);
-
-    functions.CleanupDeleteList(0);
-
-    //ServiceEvents
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00607AA0);
-    pDynamicOneArgFunc(server_srv + 0x00EA2570);
-
-    functions.CleanupDeleteList(0);
-
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
-    RemoveDanglingRestoredVehicles();
-    EnterVehicles(restore_vehicle_list);
-    EnterVehicles(save_player_vehicles_list);
-
     return 0;
 }
 
@@ -709,6 +495,27 @@ uint32_t HooksSynergy::AutosaveHook(uint32_t arg0)
 {
     savegame = true;
     return 0;
+}
+
+uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    save_frames = 0;
+
+    MakePlayersLeaveVehicles();
+    FixCars();
+
+    rootconsole->ConsolePrint("Saving game!");
+
+    savegame_internal = true;
+
+    pDynamicFourArgFunc = (pFourArgProt)(synergy_functions.SaveGameState);
+    uint32_t returnVal = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+
+    savegame_internal = false;
+
+    return returnVal;
 }
 
 uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -727,33 +534,60 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
-uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+uint32_t HooksSynergy::UTIL_RemoveHookFailsafe(uint32_t arg0)
 {
-    pFourArgProt pDynamicFourArgFunc;
+    // THIS IS UTIL_Remove(IServerNetworable*)
+    // THIS HOOK IS FOR UNUSUAL CALLS TO UTIL_Remove probably from sourcemod!
 
-    save_frames = 0;
+    if(arg0 == 0) return 0;
+    uint32_t cbase = arg0-offsets.iserver_offset;
 
-    MakePlayersLeaveVehicles();
-    FixCarSlashes();
-
-    rootconsole->ConsolePrint("Saving game!");
-
-    savegame_internal = true;
-
-    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00BE5840);
-    uint32_t returnVal = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-
-    savegame_internal = false;
-
-    return returnVal;
+    HandleSpecificEntityRemoval(cbase, true, true);
+    return 0;
 }
 
-void HookFunctionsSynergy()
+uint32_t HooksSynergy::UTIL_RemoveBaseHook(uint32_t arg0)
 {
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BEC530), (void*)HooksSynergy::AutosaveHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BDC650), (void*)HooksSynergy::RestorePlayerHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00BE5840), (void*)HooksSynergy::SaveGameStateHook);
-    HookFunction(server_srv, server_srv_size, (void*)(server_srv + 0x00AAE700), (void*)HooksSynergy::CombineDropshipSpawnHook);
-
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
+    HandleSpecificEntityRemoval(arg0, true, true);
+    return 0;
 }
+
+uint32_t HooksSynergy::HookInstaKill(uint32_t arg0)
+{
+    HandleSpecificEntityRemoval(arg0, true, false);
+    return 0;
+}
+
+uint32_t HooksSynergy::GlobalEntityListClear(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    //LogVpkMemoryLeaks();
+
+    DeleteAllValuesInList(players_connect_commands_list, false, NULL);
+    DeleteAllValuesInList(save_player_vehicles_list, false, NULL);
+
+    isTicking = false;
+    firstplayer_hasjoined = false;
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.ClearAllEntities);
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t HooksSynergy::PlayerSpawnHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(!firstplayer_hasjoined)
+    {
+        savegame_delayed = 0;
+    }
+
+    firstplayer_hasjoined = true;
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.SpawnPlayer);
+    return pDynamicOneArgFunc(arg0);
+}
+
+// SE_SDK2013
+#endif
