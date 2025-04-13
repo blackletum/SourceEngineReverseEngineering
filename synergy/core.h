@@ -5,7 +5,7 @@
 
 typedef struct _synergy_game_fields {
     //Synergy fields
-    uint32_t m_sbStaticPoseParamsLoaded;
+    uint32_t m_sbStaticPoseParamsLoadedDropship;
 } synergy_game_fields;
 
 typedef struct _synergy_game_offsets {

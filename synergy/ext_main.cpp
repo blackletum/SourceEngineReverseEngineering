@@ -92,7 +92,7 @@ bool InitExtension()
     fields.sv = engine_srv + 0x00402E58;
     fields.sv_cheats_cvar = engine_srv + 0x00402D70;
 
-    synergy_fields.m_sbStaticPoseParamsLoaded = server_srv + 0x00F70AE0;
+    synergy_fields.m_sbStaticPoseParamsLoadedDropship = server_srv + 0x00F6E854;
     
     fields.CGlobalEntityList = server_srv + 0x00EAB6DC;
     fields.RemoveImmediateSemaphore = server_srv + 0x00F3BDD0;
@@ -343,7 +343,7 @@ uint32_t HooksSynergy::CombineDropshipSpawnHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.CombineDropshipSpawn);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
-    *(uint8_t*)(synergy_fields.m_sbStaticPoseParamsLoaded) = 0;
+    *(uint8_t*)(synergy_fields.m_sbStaticPoseParamsLoadedDropship) = 0;
 
     //PopulatePoseParameters - Dropship
     pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.PopulatePoseParametersDropship);
