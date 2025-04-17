@@ -270,14 +270,14 @@ uint32_t HooksBlackMesa::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_
     {
         ragdoll_breaking_gib_counter++;
 
-        if(ragdoll_breaking_gib_counter == 6)
+        if(ragdoll_breaking_gib_counter == 4)
         {
             last_ragdoll_gib = new_object;
         }
-        else if(ragdoll_breaking_gib_counter >= 6)
+        else if(ragdoll_breaking_gib_counter >= 4)
         {
             rootconsole->ConsolePrint("Ignored gib from ragdoll breaker!");
-            HandleSpecificEntityRemoval(new_object, true, false);
+            HandleSpecificEntityRemoval(new_object, true, true);
     
             if(IsEntityValid(last_ragdoll_gib))
             {
@@ -321,10 +321,10 @@ uint32_t HooksBlackMesa::ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint3
 
 uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
 {
-    pZeroArgProt pDynamicZeroArgProt;
+    pZeroArgProt pDynamicZeroArgFunc;
 
-    pDynamicZeroArgProt = (pZeroArgProt)(black_mesa_functions.UTIL_GetLocalPlayer);
-    uint32_t returnVal = pDynamicZeroArgProt();
+    pDynamicZeroArgFunc = (pZeroArgProt)(black_mesa_functions.UTIL_GetLocalPlayer);
+    uint32_t returnVal = pDynamicZeroArgFunc();
 
     if(!returnVal)
         return functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
@@ -352,7 +352,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     isTicking = true;
 
     SetServerSleepStatus();
-    SpawnPlayers();
 
     functions.CleanupDeleteList(0);
 

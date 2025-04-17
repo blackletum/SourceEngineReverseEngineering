@@ -111,6 +111,7 @@ void CheckForLocation()
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
 {
     pThreeArgProt pDynamicThreeArgFunc;
+    pFourArgProt pDynamicFourArgFunc;
 
     if(AttemptToRemoveEntity(object, validate))
     {
@@ -118,15 +119,10 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
         
         if(classname && strcmp(classname, "player") == 0)
         {
-            if(isTicking)
+            if(isTicking && slow)
             {
                 rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
-
-                ZeroVector(object+offsets.abs_origin_offset);
-                ZeroVector(object+offsets.origin_offset);
-
-                functions.SpawnPlayer(object);
-
+                ResetEntityPosition(object);
                 return;
             }
         }

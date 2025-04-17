@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define CLIENT_FAKE_CHEATS_FRAME_LIMIT 50
+#define CLIENT_CHEATS_FRAME_LIMIT 50
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 
 typedef uint32_t (*pZeroArgProt)();
@@ -238,7 +238,6 @@ uint32_t IsEntityValid(uint32_t entity);
 void LogVpkMemoryLeaks();
 void FixPlayerCollisionGroup();
 void HookFunctionsUtil();
-void SpawnPlayers();
 void CorrectPhysics();
 void ReplicateCheatsOnClient();
 void CorrectCheats();
@@ -249,6 +248,7 @@ void NotifyCheatsFaking();
 int GetEarliestClients();
 bool AttemptToRemoveEntity(uint32_t entity_object, bool validate);
 void CorrectVphysicsEntity(uint32_t ent);
+void ResetEntityPosition(uint32_t object);
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

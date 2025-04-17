@@ -332,6 +332,12 @@ uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t ar
         functions.DispatchSpawn(airboat_two);
         HandleSpecificEntityRemoval(airboat_two, true, true);
     }
+
+    //Zero memory
+    memset(model_one, 0, sizeof(model_one));
+    memset(model_two, 0, sizeof(model_two));
+    memset(script_one, 0, sizeof(script_one));
+    memset(script_two, 0, sizeof(script_two));
     
     return returnVal;
 }
@@ -440,7 +446,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
     SetServerSleepStatus();
-    SpawnPlayers();
 
     functions.CleanupDeleteList(0);
 

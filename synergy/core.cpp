@@ -139,6 +139,7 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
 
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
 {
+    Vector emptyVector;
     pThreeArgProt pDynamicThreeArgFunc;
 
     if(AttemptToRemoveEntity(object, validate))
@@ -147,17 +148,15 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
 
         if(classname && strcmp(classname, "player") == 0)
         {
-            if(isTicking)
+            if(isTicking && slow)
             {
                 rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
-    
-                Vector emptyVector;
     
                 //LeaveVehicle
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
                 pDynamicThreeArgFunc(object, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
     
-                functions.SpawnPlayer(object);
+                ResetEntityPosition(object);
     
                 emptyVector.x = 0;
                 emptyVector.y = 0;
@@ -166,8 +165,8 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
                 //LeaveVehicle
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
                 pDynamicThreeArgFunc(object, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
-    
-                functions.SpawnPlayer(object);
+
+                ResetEntityPosition(object);
                 return;
             }
         }
@@ -199,8 +198,6 @@ void FixCars()
     
             char* model = (char*)(*(uint32_t*)(mainEnt+synergy_offsets.vehicle_model_offset));
             char* script = (char*)(*(uint32_t*)(mainEnt+synergy_offsets.vehicle_script_offset));
-
-            rootconsole->ConsolePrint("%p", model);
     
             bool fixed_model = FixSlashes(model);
             bool fixed_script = FixSlashes(script);

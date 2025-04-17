@@ -48,7 +48,6 @@ uint32_t global_vpk_cache_buffer;
 uint32_t current_vpk_buffer_ref;
 
 ValueList leakedResourcesVpkSystem;
-ValueList player_spawn_list;
 ValueList players_connect_commands_list;
 
 void DeinitUtil()
@@ -74,7 +73,6 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
-    player_spawn_list = AllocateValuesList();
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
 
@@ -101,6 +99,27 @@ void HookFunctionsUtil()
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.PackedStoreDestructor), (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.CanSatisfyVpkCacheInternal), (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
+}
+
+void ResetEntityPosition(uint32_t object)
+{
+    Vector empty_vector;
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(IsEntityValid(object))
+    {
+        uint32_t vphysics_object = *(uint32_t*)(object+offsets.vphysics_object_offset);
+    
+        if(vphysics_object)
+        {
+            //SetPosition
+            pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
+            pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
+        }
+    
+        ZeroVector(object+offsets.origin_offset);
+        ZeroVector(object+offsets.abs_origin_offset);
+    }
 }
 
 int GetEarliestClients()
@@ -308,7 +327,7 @@ void ReplicateCheatsOnClient()
 
     if(!faking_cheats)
     {
-        CorrectCheats();
+        if(correct_cheats_frames <= 10) CorrectCheats();
         if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
 
         incorrect_cheats_frames = 0;
@@ -316,7 +335,7 @@ void ReplicateCheatsOnClient()
     }
     else
     {
-        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
+        if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT && incorrect_cheats_frames <= CLIENT_CHEATS_FRAME_LIMIT+10)
         {
             rootconsole->ConsolePrint("Over the limit!");
             CorrectCheats();
@@ -325,33 +344,6 @@ void ReplicateCheatsOnClient()
         correct_cheats_frames = 0;
         incorrect_cheats_frames++;
     }
-}
-
-void SpawnPlayers()
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-    Value* first_player = *player_spawn_list;
-
-    while(first_player)
-    {
-        uint32_t player = GetCBaseEntity((uint32_t)first_player->value);
-
-        if(IsEntityValid(player))
-        {
-            functions.CleanupDeleteList(0);
-
-            functions.SpawnPlayer(player);
-
-            functions.CleanupDeleteList(0);
-        }
-
-        Value* next_player = first_player->nextVal;
-
-        free(first_player);
-        first_player = next_player;
-    }
-
-    *player_spawn_list = NULL;
 }
 
 void CorrectVphysicsEntity(uint32_t ent)
@@ -470,7 +462,7 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
         if(!faking_cheats) return 0;
         
-        if(incorrect_cheats_frames >= CLIENT_FAKE_CHEATS_FRAME_LIMIT)
+        if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT)
         {
             rootconsole->ConsolePrint("Blocked!");
             return 0;
