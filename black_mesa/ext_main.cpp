@@ -349,11 +349,11 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 {
     pTwoArgProtRegParm pDynamicRegPermTwoArgFunc;
     pOneArgProt pDynamicOneArgFunc;
+
     isTicking = true;
 
     SetServerSleepStatus();
-
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(arg0);
@@ -363,10 +363,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    RemoveBadEnts(); // remove entities that have bad vectors
-    UpdatePlayerCollisions(); // player needs to be first because the player collides with the objects the most
-    UpdateOtherCollisions(); // pre calculate non priority objects
-    UpdateCollisions(); // calculate normal collisions
+    functions.CleanupDeleteList(0);
 
     pDynamicRegPermTwoArgFunc = (pTwoArgProtRegParm)(functions.InvokeMethodReverseOrderRegParm);
     pDynamicRegPermTwoArgFunc(0x2D, 0);
@@ -379,6 +376,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     CorrectPhysics();
     ReplicateCheatsOnClient();
     DisablePlayerWorldSpawnCollision();
+    UpdateAllCollisions();
 
     return 0;
 }

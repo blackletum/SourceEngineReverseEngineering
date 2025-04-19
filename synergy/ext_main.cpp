@@ -431,7 +431,10 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 
 uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 {
-    isTicking = true;
+    pOneArgProt pDynamicOneArgFunc;
+
+    pOneArgProtFastCall pDynamicFastCallOneArgFunc;
+    pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
     save_frames++;
     savegame_delayed++;
@@ -439,15 +442,10 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     if(save_frames > 10000) save_frames = 10000;
     if(savegame_delayed > 10000) savegame_delayed = 10000;
 
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pOneArgProtFastCall pDynamicFastCallOneArgFunc;
-    pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
+    isTicking = true;
 
     SetServerSleepStatus();
-
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(simulating);
@@ -457,10 +455,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    RemoveBadEnts(); // remove entities that have bad vectors
-    UpdatePlayerCollisions(); // player needs to be first because the player collides with the objects the most
-    UpdateOtherCollisions(); // pre calculate non priority objects
-    UpdateCollisions(); // calculate normal collisions
+    functions.CleanupDeleteList(0);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
@@ -469,10 +464,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
     functions.CleanupDeleteList(0);
-
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
-    EnterVehicles(save_player_vehicles_list);
 
     if(savegame || savegame_delayed == 150)
     {
@@ -492,6 +483,11 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
         savegame = false;
     }
+
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
+    EnterVehicles(save_player_vehicles_list);
+    UpdateAllCollisions();
 
     return 0;
 }

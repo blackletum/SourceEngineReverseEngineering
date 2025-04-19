@@ -16,6 +16,7 @@ bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
 bool allow_collision_recheck;
 
+int collision_update_frames;
 int connected_clients;
 int incorrect_cheats_frames;
 int correct_cheats_frames;
@@ -25,7 +26,6 @@ uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 uint32_t our_libraries[512] = {};
 uint32_t loaded_libraries[512] = {};
-uint32_t collisions_entity_list[512] = {};
 
 uint32_t engine_srv;
 uint32_t dedicated_srv;
@@ -49,6 +49,7 @@ uint32_t current_vpk_buffer_ref;
 
 ValueList leakedResourcesVpkSystem;
 ValueList players_connect_commands_list;
+ValueList collisions_entity_list;
 
 void DeinitUtil()
 {
@@ -73,8 +74,10 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
+    collision_update_frames = 0;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
+    collisions_entity_list = AllocateValuesList();
 
     HookFunctionsUtil();
 }
@@ -679,17 +682,15 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 
     char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
-    if(GetCBaseEntity(*(uint32_t*)(arg0+offsets.refhandle_offset)) == 0)
+    if(VerifyEntity(arg0, true) == false)
     {
-        if(classname && strcmp(classname, "player") == 0)
-        {
-            rootconsole->ConsolePrint("\n\nAllowed player entity without validation [%p]\n\n", ((uint32_t)__builtin_return_address(0) - server_srv));
-        }
-        else
-        {
-            rootconsole->ConsolePrint("CORRUPTED ENTITY! [%p]", ((uint32_t)__builtin_return_address(0) - server_srv));
-            exit(EXIT_FAILURE);
-        }
+        uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv;
+        uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv;
+        uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv;
+        uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
+    
+        rootconsole->ConsolePrint("UpdateOnRemove: Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
+        exit(EXIT_FAILURE);
     }
 
     uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
@@ -808,7 +809,9 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    uint32_t ent = 0;
+    return 0;
+
+    /*uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
@@ -824,7 +827,7 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         }
     }
 
-    return 0;
+    return 0;*/
 }
 
 void LogVpkMemoryLeaks()
@@ -1524,7 +1527,7 @@ bool IsEntityPositionReasonable(uint32_t v)
 }
 
 void InsertEntityToCollisionsList(uint32_t ent)
-{
+{   
     if(IsEntityValid(ent))
     {
         char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
@@ -1532,22 +1535,8 @@ void InsertEntityToCollisionsList(uint32_t ent)
 
         if(classname && strcmp(classname, "player") == 0) return;
 
-        for(int i = 0; i < 512; i++)
-        {
-            if(collisions_entity_list[i] != 0)
-            {
-                if(refHandle == collisions_entity_list[i]) return;
-            }
-        }
-
-        for(int i = 0; i < 512; i++)
-        {
-            if(collisions_entity_list[i] == 0)
-            {
-                collisions_entity_list[i] = refHandle;
-                break;
-            }
-        }
+        Value* entity = CreateNewValue((void*)refHandle);
+        InsertToValuesList(collisions_entity_list, entity, NULL, false, true);
     }
 }
 
@@ -1594,28 +1583,57 @@ void UpdateOtherCollisions()
     functions.CleanupDeleteList(0);
 }
 
+void UpdateAllCollisions()
+{
+    functions.CleanupDeleteList(0);
+
+    collision_update_frames++;
+
+    if(collision_update_frames == 80)
+    {
+        uint32_t entity = 0;
+
+        while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
+        {
+            if(IsEntityValid(entity))
+            {
+                allow_collision_recheck = true;
+                functions.CollisionRulesChanged(entity);
+                allow_collision_recheck = false;
+            }
+        }
+
+        collision_update_frames = 0;
+    }
+
+    functions.CleanupDeleteList(0);
+}
+
 void UpdateCollisions()
 {
     functions.CleanupDeleteList(0);
 
-    for(int i = 0; i < 512; i++)
+    Value* first_entity = *collisions_entity_list;
+
+    while(first_entity)
     {
-        if(collisions_entity_list[i] != 0)
+        Value* nextEntity = first_entity->nextVal;
+        uint32_t object = GetCBaseEntity((uint32_t)first_entity->value);
+
+        if(IsEntityValid(object))
         {
-            uint32_t object = GetCBaseEntity(collisions_entity_list[i]);
+            //rootconsole->ConsolePrint("Updated collisions!");
 
-            if(IsEntityValid(object))
-            {
-                //rootconsole->ConsolePrint("Updated collisions!");
-
-                allow_collision_recheck = true;
-                functions.CollisionRulesChanged(object);
-                allow_collision_recheck = false;
-            }
-
-            collisions_entity_list[i] = 0;
+            allow_collision_recheck = true;
+            functions.CollisionRulesChanged(object);
+            allow_collision_recheck = false;
         }
+
+        free(first_entity);
+        first_entity = nextEntity;
     }
+
+    *collisions_entity_list = NULL;
 
     functions.CleanupDeleteList(0);
 }
@@ -1764,7 +1782,7 @@ void RemoveBadEnts()
     functions.CleanupDeleteList(0);
 }
 
-bool AttemptToRemoveEntity(uint32_t entity_object, bool validate)
+bool VerifyEntity(uint32_t entity_object, bool validate)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
@@ -1789,11 +1807,8 @@ bool AttemptToRemoveEntity(uint32_t entity_object, bool validate)
         }
     }
 
-    if(object_verify) return true;
-
-    rootconsole->ConsolePrint("Failed to verify entity object!");
-    exit(EXIT_FAILURE);
-    return false;
+    if(object_verify)   return true;
+    else                return false;
 }
 
 bool IsMarkedForDeletion(uint32_t arg0)

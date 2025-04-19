@@ -67,10 +67,7 @@ bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size)
 void PopulateHookExclusionLists()
 {
     hook_exclude_list_base[0] = server_srv;
-    hook_exclude_list_offset[0] = 0x008A0D7F;
-
-    hook_exclude_list_base[1] = server_srv;
-    hook_exclude_list_offset[1] = 0x005D025B;
+    hook_exclude_list_offset[0] = 0x008A0E2F;
 }
 
 uint32_t GetCBaseEntity(uint32_t EHandle)
@@ -142,7 +139,9 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
     Vector emptyVector;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(AttemptToRemoveEntity(object, validate))
+    if(object == 0) return;
+
+    if(VerifyEntity(object, validate))
     {
         char* classname = (char*)(*(uint32_t*)(object+offsets.classname_offset));
 
@@ -180,7 +179,17 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
 
         if(slow)    functions.RemoveNormal(object);
         else        functions.RemoveInsta(object);
+
+        return;
     }
+
+    uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv;
+    uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv;
+    uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv;
+    uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
+
+    rootconsole->ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
+    exit(EXIT_FAILURE);
 }
 
 void FixCars()

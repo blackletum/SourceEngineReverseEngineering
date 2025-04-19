@@ -113,7 +113,9 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
     pThreeArgProt pDynamicThreeArgFunc;
     pFourArgProt pDynamicFourArgFunc;
 
-    if(AttemptToRemoveEntity(object, validate))
+    if(object == 0) return;
+
+    if(VerifyEntity(object, validate))
     {
         char* classname = (char*)(*(uint32_t*)(object+offsets.classname_offset));
         
@@ -129,7 +131,17 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
 
         if(slow)    functions.RemoveNormal(object);
         else        functions.RemoveInsta(object);
+
+        return;
     }
+
+    uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv;
+    uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv;
+    uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv;
+    uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
+
+    rootconsole->ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
+    exit(EXIT_FAILURE);
 }
 
 // SE_BMS

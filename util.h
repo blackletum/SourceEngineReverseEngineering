@@ -186,7 +186,6 @@ extern uint32_t hook_exclude_list_base[512];
 extern uint32_t memory_prots_save_list[512];
 extern uint32_t our_libraries[512];
 extern uint32_t loaded_libraries[512];
-extern uint32_t collisions_entity_list[512];
 
 extern uint32_t engine_srv;
 extern uint32_t dedicated_srv;
@@ -202,6 +201,7 @@ extern uint32_t server_size;
 extern uint32_t server_srv_size;
 extern uint32_t sdktools_size;
 
+extern int collision_update_frames;
 extern bool isTicking;
 extern bool server_sleeping;
 extern uint32_t global_vpk_cache_buffer;
@@ -231,6 +231,7 @@ bool IsVectorInf(uint32_t base);
 void UpdateCollisions();
 void UpdateOtherCollisions();
 void UpdatePlayerCollisions();
+void UpdateAllCollisions();
 void RemoveBadEnts();
 bool IsMarkedForDeletion(uint32_t arg0);
 bool IsEntityPositionReasonable(uint32_t v);
@@ -246,7 +247,7 @@ void SendClientConnectCommands(bool increment_frames);
 void SendClientCommands(uint32_t player_edict);
 void NotifyCheatsFaking();
 int GetEarliestClients();
-bool AttemptToRemoveEntity(uint32_t entity_object, bool validate);
+bool VerifyEntity(uint32_t entity_object, bool validate);
 void CorrectVphysicsEntity(uint32_t ent);
 void ResetEntityPosition(uint32_t object);
 
