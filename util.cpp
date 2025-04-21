@@ -809,9 +809,7 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    return 0;
-
-    /*uint32_t ent = 0;
+    uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
@@ -819,15 +817,16 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         {
             uint32_t vphysics_object = *(uint32_t*)(ent+offsets.vphysics_object_offset);
 
-            if(vphysics_object && vphysics_object == arg0)
+            if(vphysics_object && (vphysics_object == arg0))
             {
                 //rootconsole->ConsolePrint("Found vphysics object to recheck!");
                 InsertEntityToCollisionsList(ent);
+                break;
             }
         }
     }
 
-    return 0;*/
+    return 0;
 }
 
 void LogVpkMemoryLeaks()
@@ -1609,7 +1608,7 @@ void UpdateAllCollisions()
     functions.CleanupDeleteList(0);
 }
 
-void UpdateCollisions()
+void UpdateCollisions(bool flush)
 {
     functions.CleanupDeleteList(0);
 
@@ -1622,18 +1621,20 @@ void UpdateCollisions()
 
         if(IsEntityValid(object))
         {
-            //rootconsole->ConsolePrint("Updated collisions!");
+            //if(flush) rootconsole->ConsolePrint("FLUSH Updated collisions!");
+            //else
+            //rootconsole->ConsolePrint("NON-FLUSH Updated collisions!");
 
             allow_collision_recheck = true;
             functions.CollisionRulesChanged(object);
             allow_collision_recheck = false;
         }
 
-        free(first_entity);
+        if(flush) free(first_entity);
         first_entity = nextEntity;
     }
 
-    *collisions_entity_list = NULL;
+    if(flush) *collisions_entity_list = NULL;
 
     functions.CleanupDeleteList(0);
 }

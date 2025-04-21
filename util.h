@@ -228,7 +228,7 @@ void RestoreMemoryProtections();
 void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);
 bool IsVectorInf(uint32_t base);
-void UpdateCollisions();
+void UpdateCollisions(bool flush);
 void UpdateOtherCollisions();
 void UpdatePlayerCollisions();
 void UpdateAllCollisions();
