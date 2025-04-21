@@ -1535,7 +1535,7 @@ void InsertEntityToCollisionsList(uint32_t ent)
         if(classname && strcmp(classname, "player") == 0) return;
 
         Value* entity = CreateNewValue((void*)refHandle);
-        InsertToValuesList(collisions_entity_list, entity, NULL, false, true);
+        InsertToValuesList(collisions_entity_list, entity, NULL, true, true);
     }
 }
 

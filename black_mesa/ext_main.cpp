@@ -353,11 +353,11 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     isTicking = true;
 
     SetServerSleepStatus();
-    RemoveBadEnts();
 
-    UpdateCollisions(true);
-    UpdatePlayerCollisions();
     UpdateOtherCollisions();
+    UpdatePlayerCollisions();
+    
+    RemoveBadEnts();
 
     pDynamicRegPermTwoArgFunc = (pTwoArgProtRegParm)(functions.InvokeMethodReverseOrderRegParm);
     pDynamicRegPermTwoArgFunc(0x2D, 0);
@@ -365,19 +365,17 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicRegPermTwoArgFunc = (pTwoArgProtRegParm)(functions.InvokePerFrameMethodRegParm);
     pDynamicRegPermTwoArgFunc(0x41, 0);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(arg0);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    UpdateCollisions(false);
-    UpdatePlayerCollisions();
-    UpdateOtherCollisions();
+    UpdateCollisions(true);
 
     CorrectPhysics();
     ReplicateCheatsOnClient();
