@@ -263,18 +263,6 @@ void SendClientCommands(uint32_t player_edict)
     functions.ClientCommand(0, player_edict, (uint32_t)"reload_particleseffects_client", 0);
 }
 
-void CorrectPhysics()
-{
-    uint8_t deferMindist = *(uint8_t*)(fields.deferMindist);
-
-    if(deferMindist)
-    {
-        rootconsole->ConsolePrint("Warning defer mindist was set! Physics might break!");
-    }
-
-    *(uint8_t*)(fields.deferMindist) = 0;
-}
-
 bool FixSlashes(char* string)
 {
     bool fixed_name = false;
@@ -710,8 +698,18 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
         }
     }
 
+    *(uint8_t*)(fields.deferMindist) = 1;
+
+    allow_collision_recheck = true;
+    functions.CollisionRulesChanged(arg0);
+    allow_collision_recheck = false;
+
     pDynamicOneArgFunc = (pOneArgProt)(functions.UpdateOnRemoveBase);
-    return pDynamicOneArgFunc(arg0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    UpdateAllCollisions(false);
+
+    return returnVal;
 }
 
 uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
@@ -1534,8 +1532,10 @@ void InsertEntityToCollisionsList(uint32_t ent)
 
         if(classname && strcmp(classname, "player") == 0) return;
 
+        *(uint8_t*)(fields.deferMindist) = 1;
+
         Value* entity = CreateNewValue((void*)refHandle);
-        InsertToValuesList(collisions_entity_list, entity, NULL, true, true);
+        InsertToValuesList(collisions_entity_list, entity, NULL, false, true);
     }
 }
 
@@ -1582,9 +1582,9 @@ void UpdateOtherCollisions()
     functions.CleanupDeleteList(0);
 }
 
-void UpdateAllCollisions()
+void UpdateAllCollisions(bool cleanup)
 {
-    functions.CleanupDeleteList(0);
+    if(cleanup) functions.CleanupDeleteList(0);
 
     collision_update_frames++;
 
@@ -1605,12 +1605,12 @@ void UpdateAllCollisions()
         collision_update_frames = 0;
     }
 
-    functions.CleanupDeleteList(0);
+    if(cleanup) functions.CleanupDeleteList(0);
 }
 
-void UpdateCollisions(bool flush)
+void UpdateCollisions(bool cleanup, bool flush)
 {
-    functions.CleanupDeleteList(0);
+    if(cleanup) functions.CleanupDeleteList(0);
 
     Value* first_entity = *collisions_entity_list;
 
@@ -1636,7 +1636,7 @@ void UpdateCollisions(bool flush)
 
     if(flush) *collisions_entity_list = NULL;
 
-    functions.CleanupDeleteList(0);
+    if(cleanup) functions.CleanupDeleteList(0);
 }
 
 void SetServerSleepStatus()

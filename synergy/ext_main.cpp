@@ -445,11 +445,11 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
+    RemoveBadEnts();
 
     UpdateOtherCollisions();
     UpdatePlayerCollisions();
-    
-    RemoveBadEnts();
+    UpdateCollisions(true, true);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
@@ -457,17 +457,19 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
-    UpdateCollisions(true);
+    *(uint8_t*)(fields.deferMindist) = 0;
+
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(simulating);
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
 
     if(savegame || savegame_delayed == 150)
     {
@@ -488,9 +490,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    UpdateCollisions(true);
-
-    CorrectPhysics();
     ReplicateCheatsOnClient();
     EnterVehicles(save_player_vehicles_list);
 
