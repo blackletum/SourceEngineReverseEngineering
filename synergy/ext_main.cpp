@@ -447,16 +447,14 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     SetServerSleepStatus();
     RemoveBadEnts();
 
+    resetsolidflags();
+
     UpdateOtherCollisions();
     UpdatePlayerCollisions();
     UpdateCollisions(true, true);
 
-    UpdateAllCollisions(true);
-
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
-
-    UpdateAllCollisions(true);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);

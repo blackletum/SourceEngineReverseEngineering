@@ -708,6 +708,22 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
     return returnVal;
 }
 
+void resetsolidflags()
+{
+    uint32_t entity = 0;
+
+    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
+    {
+        if(IsEntityValid(entity))
+        {
+            uint32_t collision_property = entity+offsets.collision_property_offset;
+            uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
+
+            functions.SetSolidFlags(collision_property, 0);
+        }
+    }
+}
+
 uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;

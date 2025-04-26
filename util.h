@@ -208,6 +208,7 @@ extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList players_connect_commands_list;
 
+void resetsolidflags();
 void DeinitUtil();
 void InitUtil();
 void* copy_val(void* val, size_t copy_size);
