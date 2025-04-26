@@ -801,9 +801,6 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
 
 uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
 {
-    rootconsole->ConsolePrint("Ignored collision change!");
-    return 0;
-
     pOneArgProt pDynamicOneArgFunc;
     // arg0 = vphysics object dereferenced already
 
@@ -814,6 +811,26 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
+    return 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
     uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)

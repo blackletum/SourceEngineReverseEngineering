@@ -295,7 +295,23 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)functions.MapEntity_ParseAllEntities, (void*)HooksSynergy::MapEntity_ParseAllEntitiesHook);
 
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011F840), (void*)HooksUtil::EmptyCall);
+    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011F840), (void*)HooksSynergy::recheck_ov_element_hook);
+}
+
+uint32_t HooksSynergy::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(isTicking)
+    {
+        rootconsole->ConsolePrint("ignored recheck ov!");
+        return 0;
+    }
+
+    rootconsole->ConsolePrint("rechecked ov [%p]", arg1);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(vphysics_srv + 0x0011F840);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -447,6 +463,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     SetServerSleepStatus();
     RemoveBadEnts();
+    
+    UpdateAllCollisions(true);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
@@ -454,7 +472,11 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
-    *(uint8_t*)(fields.deferMindist) = 0;
+    if(*(uint8_t*)(fields.deferMindist))
+    {
+        rootconsole->ConsolePrint("defered!");
+        *(uint8_t*)(fields.deferMindist) = 0;
+    }
 
     functions.CleanupDeleteList(0);
 
