@@ -696,16 +696,8 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
         }
     }
 
-    allow_collision_recheck = true;
-    functions.CollisionRulesChanged(arg0);
-    allow_collision_recheck = false;
-
     pDynamicOneArgFunc = (pOneArgProt)(functions.UpdateOnRemoveBase);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    UpdateAllCollisions(false);
-
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
 }
 
 void resetsolidflags()
@@ -809,6 +801,9 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
 
 uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
 {
+    rootconsole->ConsolePrint("Ignored collision change!");
+    return 0;
+
     pOneArgProt pDynamicOneArgFunc;
     // arg0 = vphysics object dereferenced already
 
