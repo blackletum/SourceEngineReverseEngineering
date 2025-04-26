@@ -201,7 +201,6 @@ extern uint32_t server_size;
 extern uint32_t server_srv_size;
 extern uint32_t sdktools_size;
 
-extern int collision_update_frames;
 extern bool isTicking;
 extern bool server_sleeping;
 extern uint32_t global_vpk_cache_buffer;

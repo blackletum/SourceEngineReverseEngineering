@@ -16,7 +16,6 @@ bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
 bool allow_collision_recheck;
 
-int collision_update_frames;
 int connected_clients;
 int incorrect_cheats_frames;
 int correct_cheats_frames;
@@ -74,7 +73,6 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
-    collision_update_frames = 0;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
     collisions_entity_list = AllocateValuesList();
@@ -697,8 +695,6 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
             }
         }
     }
-
-    *(uint8_t*)(fields.deferMindist) = 1;
 
     allow_collision_recheck = true;
     functions.CollisionRulesChanged(arg0);
@@ -1532,8 +1528,6 @@ void InsertEntityToCollisionsList(uint32_t ent)
 
         if(classname && strcmp(classname, "player") == 0) return;
 
-        *(uint8_t*)(fields.deferMindist) = 1;
-
         Value* entity = CreateNewValue((void*)refHandle);
         InsertToValuesList(collisions_entity_list, entity, NULL, false, true);
     }
@@ -1586,23 +1580,16 @@ void UpdateAllCollisions(bool cleanup)
 {
     if(cleanup) functions.CleanupDeleteList(0);
 
-    collision_update_frames++;
+    uint32_t entity = 0;
 
-    if(collision_update_frames == 80)
+    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
     {
-        uint32_t entity = 0;
-
-        while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
+        if(IsEntityValid(entity))
         {
-            if(IsEntityValid(entity))
-            {
-                allow_collision_recheck = true;
-                functions.CollisionRulesChanged(entity);
-                allow_collision_recheck = false;
-            }
+            allow_collision_recheck = true;
+            functions.CollisionRulesChanged(entity);
+            allow_collision_recheck = false;
         }
-
-        collision_update_frames = 0;
     }
 
     if(cleanup) functions.CleanupDeleteList(0);
