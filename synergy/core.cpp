@@ -68,6 +68,9 @@ void PopulateHookExclusionLists()
 {
     hook_exclude_list_base[0] = server_srv;
     hook_exclude_list_offset[0] = 0x008A0E2F;
+
+    hook_exclude_list_base[1] = vphysics_srv;
+    hook_exclude_list_offset[1] = 0x0011D336;
 }
 
 uint32_t GetCBaseEntity(uint32_t EHandle)

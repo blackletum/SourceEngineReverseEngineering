@@ -452,7 +452,7 @@ uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
         return 0;
     }
 
-    rootconsole->ConsolePrint("rechecked ov [%p]", arg1);
+    //rootconsole->ConsolePrint("rechecked ov [%p]", arg1);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(functions.recheck_ov_element);
     return pDynamicTwoArgFunc(arg0, arg1);
@@ -1535,18 +1535,6 @@ bool IsEntityPositionReasonable(uint32_t v)
     return false;
 }
 
-void InsertEntityToCollisionsList(uint32_t ent)
-{   
-    if(IsEntityValid(ent))
-    {
-        char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
-        uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
-
-        Value* entity = CreateNewValue((void*)refHandle);
-        InsertToValuesList(ivp_list, entity, NULL, false, true);
-    }
-}
-
 void UpdatePlayerCollisions()
 {
     functions.CleanupDeleteList(0);
@@ -1631,17 +1619,17 @@ void UpdateCollisions(bool cleanup, bool flush)
 {
     if(cleanup) functions.CleanupDeleteList(0);
 
-    Value* first_entity = *ivp_list;
+    Value* first_ivp = *ivp_list;
 
-    while(first_entity)
+    while(first_ivp)
     {
-        Value* nextEntity = first_entity->nextVal;
-        uint32_t ivp_real_object = (uint32_t)first_entity->value;
+        Value* nextIvp = first_ivp->nextVal;
+        uint32_t ivp_real_object = (uint32_t)first_ivp->value;
 
         UpdateCollisionByIVP(ivp_real_object);
 
-        if(flush) free(first_entity);
-        first_entity = nextEntity;
+        if(flush) free(first_ivp);
+        first_ivp = nextIvp;
     }
 
     if(flush) *ivp_list = NULL;

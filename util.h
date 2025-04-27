@@ -259,7 +259,6 @@ int ValueListItems(ValueList list, pthread_mutex_t* lockInput);
 bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput, bool tail, bool duplicate_chk);
 Value* FindStringInList(ValueList list, const char* search_val, pthread_mutex_t* lockInput, bool substring, Value* start_value);
 EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn);
-void InsertEntityToCollisionsList(uint32_t ent);
 void DisablePlayerCollisions();
 void DisablePlayerWorldSpawnCollision();
 bool FixSlashes(char* string);
