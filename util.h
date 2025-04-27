@@ -36,7 +36,6 @@ public:
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t UpdateOnRemove(uint32_t arg0);
 	static uint32_t VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t RecheckCollisionFilterHook(uint32_t arg0);
 	static uint32_t CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
 	static uint32_t SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
@@ -45,6 +44,7 @@ public:
 	static uint32_t DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CalcAbsolutePositionHook(uint32_t arg0);
 	static uint32_t VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t recheck_ov_element_hook(uint32_t arg0, uint32_t arg1);
 };
 
 typedef struct _game_fields {
@@ -88,7 +88,6 @@ typedef struct _game_functions {
 	pTwoArgProt SetSolidFlags;
 	pTwoArgProt DisableEntityCollisions;
 	pTwoArgProt EnableEntityCollisions;
-	pOneArgProt CollisionRulesChanged;
 	pThreeArgProt FindEntityByClassname;
 	pOneArgProt CleanupDeleteList;
 	pTwoArgProt CreateEntityByName;
@@ -101,7 +100,6 @@ typedef struct _game_functions {
 	pSevenArgProt CanSatisfyVpkCacheInternal;
 	pTwoArgProt SV_ReplicateConVarChange;
 	pThreeArgProt SendNetMsg;
-	pOneArgProt RecheckCollisionFilter;
 	pFourArgProt ClientCommand;
 	pTwoArgProt PEntityOfEntIndex;
 	pTwoArgProt GetPlayerUserId;
@@ -118,6 +116,7 @@ typedef struct _game_functions {
 	pFourArgProt CreateNoSpawn;
 	pThreeArgProt MapEntity_ParseAllEntities;
 	pOneArgProt DispatchSpawn;
+	pTwoArgProt recheck_ov_element;
 } game_functions;
 
 typedef struct _Signature {
@@ -208,7 +207,8 @@ extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList players_connect_commands_list;
 
-void resetsolidflags();
+void UpdateCollisionByIVP(uint32_t ivp_real_object);
+void CorrectPhysics();
 void DeinitUtil();
 void InitUtil();
 void* copy_val(void* val, size_t copy_size);

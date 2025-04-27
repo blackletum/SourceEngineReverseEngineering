@@ -155,7 +155,6 @@ bool InitExtension()
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x006158D0);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C350);
     functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x0077C4B0);
-    functions.CollisionRulesChanged = (pOneArgProt)(server_srv + 0x005D02E0);
     functions.FindEntityByClassname = (pThreeArgProt)(server_srv + 0x0064B2B0);
     functions.CleanupDeleteList = (pOneArgProt)(server_srv + 0x0064ACF0);
     functions.SetOwnerEntity = (pTwoArgProt)(server_srv + 0x005B3EE0);
@@ -168,7 +167,7 @@ bool InitExtension()
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
 
-    functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0004E780);
+    functions.recheck_ov_element = (pTwoArgProt)(vphysics_srv + 0x0011F840);
 
     synergy_functions.CombineDropshipSpawn = (pOneArgProt)(server_srv + 0x00AAE650);
     synergy_functions.SaveGameState = (pFourArgProt)(server_srv + 0x00BE5960);
@@ -295,23 +294,6 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)functions.MapEntity_ParseAllEntities, (void*)HooksSynergy::MapEntity_ParseAllEntitiesHook);
 
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011F840), (void*)HooksSynergy::recheck_ov_element_hook);
-}
-
-uint32_t HooksSynergy::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(isTicking)
-    {
-        rootconsole->ConsolePrint("ignored recheck ov!");
-        return 0;
-    }
-
-    rootconsole->ConsolePrint("rechecked ov [%p]", arg1);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(vphysics_srv + 0x0011F840);
-    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -464,19 +446,13 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     SetServerSleepStatus();
     RemoveBadEnts();
     
-    UpdateAllCollisions(true);
+    UpdateCollisions(true, true);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
-
-    if(*(uint8_t*)(fields.deferMindist))
-    {
-        rootconsole->ConsolePrint("defered!");
-        *(uint8_t*)(fields.deferMindist) = 0;
-    }
 
     functions.CleanupDeleteList(0);
 
@@ -509,6 +485,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
+    CorrectPhysics();
     ReplicateCheatsOnClient();
     EnterVehicles(save_player_vehicles_list);
 

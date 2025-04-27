@@ -14,7 +14,6 @@ bool firstplayer_hasjoined;
 bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
-bool allow_collision_recheck;
 
 int connected_clients;
 int incorrect_cheats_frames;
@@ -48,7 +47,7 @@ uint32_t current_vpk_buffer_ref;
 
 ValueList leakedResourcesVpkSystem;
 ValueList players_connect_commands_list;
-ValueList collisions_entity_list;
+ValueList ivp_list;
 
 void DeinitUtil()
 {
@@ -67,7 +66,6 @@ void InitUtil()
     isTicking = false;
     server_sleeping = false;
     replicating_client_cheats = false;
-    allow_collision_recheck = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000*2);
     current_vpk_buffer_ref = 0;
     incorrect_cheats_frames = 0;
@@ -75,16 +73,16 @@ void InitUtil()
     connected_clients = 0;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
-    collisions_entity_list = AllocateValuesList();
+    ivp_list = AllocateValuesList();
 
     HookFunctionsUtil();
 }
 
 void HookFunctionsUtil()
 {
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(functions.RecheckCollisionFilter), (void*)HooksUtil::RecheckCollisionFilterHook);
+    HookFunction(vphysics_srv, vphysics_srv_size, (void*)functions.recheck_ov_element, (void*)HooksUtil::recheck_ov_element_hook);
 
-    HookFunction(engine_srv, engine_srv_size, (void*)(functions.SendNetMsg), (void*)HooksUtil::SendNetMsgHook);
+    HookFunction(engine_srv, engine_srv_size, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
 
     HookFunction(server_srv, server_srv_size, (void*)functions.CreateEntityByName, (void*)HooksUtil::CreateEntityByNameHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
@@ -97,8 +95,8 @@ void HookFunctionsUtil()
     HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.PackedStoreDestructor), (void*)HooksUtil::PackedStoreDestructorHook);
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)(functions.CanSatisfyVpkCacheInternal), (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
+    HookFunction(dedicated_srv, dedicated_srv_size, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
@@ -441,6 +439,25 @@ uint32_t HooksUtil::EmptyCall()
     return 0;
 }
 
+uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(isTicking)
+    {
+        //rootconsole->ConsolePrint("ignored recheck ov!");
+
+        Value* ivp_real_object = CreateNewValue((void*)arg1);
+        InsertToValuesList(ivp_list, ivp_real_object, NULL, false, true);
+        return 0;
+    }
+
+    rootconsole->ConsolePrint("rechecked ov [%p]", arg1);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(functions.recheck_ov_element);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
 uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
@@ -700,22 +717,6 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-void resetsolidflags()
-{
-    uint32_t entity = 0;
-
-    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
-    {
-        if(IsEntityValid(entity))
-        {
-            uint32_t collision_property = entity+offsets.collision_property_offset;
-            uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
-
-            functions.SetSolidFlags(collision_property, 0);
-        }
-    }
-}
-
 uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -799,38 +800,10 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
     return pDynamicSixArgProt(arg0, arg1, arg2, arg3, arg4, arg5);
 }
 
-uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
+void UpdateCollisionByIVP(uint32_t ivp_real_object)
 {
-    pOneArgProt pDynamicOneArgFunc;
-    // arg0 = vphysics object dereferenced already
+    if(ivp_real_object == 0) return;
 
-    if(allow_collision_recheck)
-    {
-        //rootconsole->ConsolePrint("Allowed recheck!");
-        pDynamicOneArgFunc = (pOneArgProt)(functions.RecheckCollisionFilter);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    return 0;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
     uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
@@ -839,16 +812,31 @@ uint32_t HooksUtil::RecheckCollisionFilterHook(uint32_t arg0)
         {
             uint32_t vphysics_object = *(uint32_t*)(ent+offsets.vphysics_object_offset);
 
-            if(vphysics_object && (vphysics_object == arg0))
+            if(vphysics_object == 0) continue;
+
+            uint32_t ent_ivp_real_object = *(uint32_t*)(vphysics_object+8);
+
+            if(ent_ivp_real_object == ivp_real_object)
             {
-                //rootconsole->ConsolePrint("Found vphysics object to recheck!");
-                InsertEntityToCollisionsList(ent);
-                break;
+                uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+
+                //rootconsole->ConsolePrint("recheced collision");
+                functions.recheck_ov_element(manager, ivp_real_object);
+                return;
             }
         }
     }
+}
 
-    return 0;
+void CorrectPhysics()
+{
+    uint8_t deferMindist = *(uint8_t*)(fields.deferMindist);
+    
+    if(deferMindist)
+    {
+        rootconsole->ConsolePrint("defered!");
+        *(uint8_t*)(fields.deferMindist) = 0;
+    }
 }
 
 void LogVpkMemoryLeaks()
@@ -1554,10 +1542,8 @@ void InsertEntityToCollisionsList(uint32_t ent)
         char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
         uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
 
-        if(classname && strcmp(classname, "player") == 0) return;
-
         Value* entity = CreateNewValue((void*)refHandle);
-        InsertToValuesList(collisions_entity_list, entity, NULL, false, true);
+        InsertToValuesList(ivp_list, entity, NULL, false, true);
     }
 }
 
@@ -1571,9 +1557,15 @@ void UpdatePlayerCollisions()
     {
         if(IsEntityValid(entity))
         {
-            allow_collision_recheck = true;
-            functions.CollisionRulesChanged(entity);
-            allow_collision_recheck = false;
+            uint32_t vphysics_object = *(uint32_t*)(entity+offsets.vphysics_object_offset);
+
+            if(vphysics_object == 0) continue;
+
+            uint32_t ivp_real_object = *(uint32_t*)(vphysics_object+8);
+            uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+
+            //rootconsole->ConsolePrint("recheced collision");
+            functions.recheck_ov_element(manager, ivp_real_object);
         }
     }
 
@@ -1594,9 +1586,15 @@ void UpdateOtherCollisions()
 
             if(!m_Network)
             {
-                allow_collision_recheck = true;
-                functions.CollisionRulesChanged(entity);
-                allow_collision_recheck = false;
+                uint32_t vphysics_object = *(uint32_t*)(entity+offsets.vphysics_object_offset);
+
+                if(vphysics_object == 0) continue;
+    
+                uint32_t ivp_real_object = *(uint32_t*)(vphysics_object+8);
+                uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+    
+                //rootconsole->ConsolePrint("recheced collision");
+                functions.recheck_ov_element(manager, ivp_real_object);
             }
         }
     }
@@ -1614,9 +1612,15 @@ void UpdateAllCollisions(bool cleanup)
     {
         if(IsEntityValid(entity))
         {
-            allow_collision_recheck = true;
-            functions.CollisionRulesChanged(entity);
-            allow_collision_recheck = false;
+            uint32_t vphysics_object = *(uint32_t*)(entity+offsets.vphysics_object_offset);
+
+            if(vphysics_object == 0) continue;
+
+            uint32_t ivp_real_object = *(uint32_t*)(vphysics_object+8);
+            uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+
+            //rootconsole->ConsolePrint("recheced collision");
+            functions.recheck_ov_element(manager, ivp_real_object);
         }
     }
 
@@ -1627,29 +1631,20 @@ void UpdateCollisions(bool cleanup, bool flush)
 {
     if(cleanup) functions.CleanupDeleteList(0);
 
-    Value* first_entity = *collisions_entity_list;
+    Value* first_entity = *ivp_list;
 
     while(first_entity)
     {
         Value* nextEntity = first_entity->nextVal;
-        uint32_t object = GetCBaseEntity((uint32_t)first_entity->value);
+        uint32_t ivp_real_object = (uint32_t)first_entity->value;
 
-        if(IsEntityValid(object))
-        {
-            //if(flush) rootconsole->ConsolePrint("FLUSH Updated collisions!");
-            //else
-            //rootconsole->ConsolePrint("NON-FLUSH Updated collisions!");
-
-            allow_collision_recheck = true;
-            functions.CollisionRulesChanged(object);
-            allow_collision_recheck = false;
-        }
+        UpdateCollisionByIVP(ivp_real_object);
 
         if(flush) free(first_entity);
         first_entity = nextEntity;
     }
 
-    if(flush) *collisions_entity_list = NULL;
+    if(flush) *ivp_list = NULL;
 
     if(cleanup) functions.CleanupDeleteList(0);
 }
@@ -2096,6 +2091,8 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
         {
             if((uint32_t)aValue->value == (uint32_t)head->value)
             {
+                free(head);
+
                 if(lockInput)
                 {
                     pthread_mutex_unlock(lockInput);

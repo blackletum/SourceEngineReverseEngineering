@@ -104,8 +104,8 @@ bool InitExtension()
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000B1AE0);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000B5460);
-
-    functions.RecheckCollisionFilter = (pOneArgProt)(vphysics_srv + 0x0002B0E0);
+    
+    functions.recheck_ov_element = (pTwoArgProt)(vphysics_srv + 0x00111D20);
 
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x005983C0);
     functions.RemoveNormalDirect = (pOneArgProt)(server_srv + 0x00A92160);
@@ -120,7 +120,6 @@ bool InitExtension()
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00379460);
     functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x003794D0);
-    functions.CollisionRulesChanged = (pOneArgProt)(server_srv + 0x00294C60);
     functions.FindEntityByClassname = (pThreeArgProt)(server_srv + 0x007E7030);
     functions.CleanupDeleteList = (pOneArgProt)(server_srv + 0x007E6D20);
     functions.InvokeMethodReverseOrderRegParm = (pTwoArgProtRegParm)(server_srv + 0x0035C020);
@@ -217,13 +216,13 @@ void ApplyPatches()
 
 void HookFunctions()
 {
-    HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.RagdollBreak, (void*)HooksBlackMesa::RagdollBreakHook);
+    //HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.RagdollBreak, (void*)HooksBlackMesa::RagdollBreakHook);
     HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.CXenShieldController_UpdateOnRemove, (void*)HooksBlackMesa::CXenShieldController_UpdateOnRemoveHook);
     HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.UTIL_GetLocalPlayer, (void*)HooksBlackMesa::UTIL_GetLocalPlayerHook);
     HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.TestGroundMove, (void*)HooksBlackMesa::TestGroundMove);
     HookFunction(server_srv, server_srv_size, (void*)black_mesa_functions.ShouldHitEntity, (void*)HooksBlackMesa::ShouldHitEntityHook);
 
-    HookFunction(server_srv, server_srv_size, (void*)functions.CreateNoSpawn, (void*)HooksBlackMesa::CreateNoSpawnHook);
+    //HookFunction(server_srv, server_srv_size, (void*)functions.CreateNoSpawn, (void*)HooksBlackMesa::CreateNoSpawnHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormalDirect, (void*)HooksBlackMesa::UTIL_RemoveHookFailsafe);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormal, (void*)HooksBlackMesa::UTIL_RemoveBaseHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveInsta, (void*)HooksBlackMesa::HookInstaKill);
@@ -353,11 +352,9 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     isTicking = true;
 
     SetServerSleepStatus();
-
-    UpdateOtherCollisions();
-    UpdatePlayerCollisions();
-    
     RemoveBadEnts();
+
+    UpdateCollisions(true, true);
 
     pDynamicRegPermTwoArgFunc = (pTwoArgProtRegParm)(functions.InvokeMethodReverseOrderRegParm);
     pDynamicRegPermTwoArgFunc(0x2D, 0);
@@ -365,21 +362,21 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicRegPermTwoArgFunc = (pTwoArgProtRegParm)(functions.InvokePerFrameMethodRegParm);
     pDynamicRegPermTwoArgFunc(0x41, 0);
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(arg0);
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
 
     CorrectPhysics();
     ReplicateCheatsOnClient();
-    DisablePlayerWorldSpawnCollision();
+    //DisablePlayerWorldSpawnCollision();
 
     return 0;
 }
