@@ -52,6 +52,9 @@ void PopulateHookExclusionLists()
 
     hook_exclude_list_base[1] = vphysics_srv;
     hook_exclude_list_offset[1] = 0x0010F6F5;
+
+    hook_exclude_list_base[2] = vphysics_srv;
+    hook_exclude_list_offset[2] = 0x000F15D3;
 }
 
 void CheckForLocation()
