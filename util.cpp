@@ -14,6 +14,7 @@ bool firstplayer_hasjoined;
 bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
+bool allow_recheck_ov_element;
 
 int connected_clients;
 int incorrect_cheats_frames;
@@ -71,6 +72,7 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
+    allow_recheck_ov_element = false;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
     ivp_list = AllocateValuesList();
@@ -81,6 +83,8 @@ void InitUtil()
 void HookFunctionsUtil()
 {
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)functions.recheck_ov_element, (void*)HooksUtil::recheck_ov_element_hook);
+    //HookFunction(vphysics_srv, vphysics_srv_size, (void*)functions.get_all_near_mindists, (void*)HooksUtil::get_all_near_mindists_hook);
+    HookFunction(vphysics_srv, vphysics_srv_size, (void*)functions.IVP_Real_Object_Destructor, (void*)HooksUtil::IVP_Real_Object_Destructor_Hook);
 
     HookFunction(engine_srv, engine_srv_size, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
 
@@ -439,6 +443,59 @@ uint32_t HooksUtil::EmptyCall()
     return 0;
 }
 
+uint32_t HooksUtil::IVP_Real_Object_Destructor_Hook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    RemoveFromValuesList(ivp_list, (void*)arg0, NULL);
+    rootconsole->ConsolePrint("found dead object!");
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.IVP_Real_Object_Destructor);
+    return pDynamicOneArgFunc(arg0);
+}
+
+bool toggle_recheck = false;
+uint32_t HooksUtil::get_all_near_mindists_hook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    allow_recheck_ov_element = false;
+
+    uint32_t ent = FindEntityByIVP(arg0);
+
+    if(ent)
+    {
+        char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
+        allow_recheck_ov_element = true;
+    }
+
+    if(allow_recheck_ov_element == false)
+    {
+        rootconsole->ConsolePrint("IVP: [%p]", arg0);
+
+        
+        
+        /*if(toggle_recheck)
+        {
+            rootconsole->ConsolePrint("Allowed blocked call in get_near_all_mindists!");
+            allow_recheck_ov_element = true;
+            toggle_recheck = false;
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Blocked call in get_near_all_mindists!");
+            toggle_recheck = true;
+        }*/
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.get_all_near_mindists);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    allow_recheck_ov_element = false;
+
+    return returnVal;
+}
+
 uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
@@ -449,6 +506,7 @@ uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
 
         Value* ivp_real_object = CreateNewValue((void*)arg1);
         InsertToValuesList(ivp_list, ivp_real_object, NULL, false, true);
+        
         return 0;
     }
 
@@ -802,7 +860,26 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
 
 void UpdateCollisionByIVP(uint32_t ivp_real_object)
 {
-    if(ivp_real_object == 0) return;
+    uint32_t ent = FindEntityByIVP(ivp_real_object);
+
+    if(ent)
+    {
+        uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+        functions.recheck_ov_element(manager, ivp_real_object);
+    }
+    else
+    {
+        uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+
+        rootconsole->ConsolePrint("NON-PHYSICS-OBJECT-IVP");
+        functions.recheck_ov_element(manager, ivp_real_object);
+    }
+}
+
+uint32_t FindEntityByIVP(uint32_t ivp_real_object)
+{
+    uint32_t ent_found = 0;
+    if(ivp_real_object == 0) return ent_found;
 
     uint32_t ent = 0;
 
@@ -818,14 +895,18 @@ void UpdateCollisionByIVP(uint32_t ivp_real_object)
 
             if(ent_ivp_real_object == ivp_real_object)
             {
-                uint32_t manager = *(uint32_t*)((*(uint32_t*)((*(uint32_t*)(ivp_real_object+0x8E))+0x0C))+0x10);
+                if(ent_found)
+                {
+                    rootconsole->ConsolePrint("IVP used in more than one entity!");
+                    exit(1);
+                }
 
-                //rootconsole->ConsolePrint("recheced collision");
-                functions.recheck_ov_element(manager, ivp_real_object);
-                return;
+                ent_found = ent;
             }
         }
     }
+
+    return ent_found;
 }
 
 void CorrectPhysics()

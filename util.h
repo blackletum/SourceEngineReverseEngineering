@@ -45,6 +45,8 @@ public:
 	static uint32_t CalcAbsolutePositionHook(uint32_t arg0);
 	static uint32_t VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t recheck_ov_element_hook(uint32_t arg0, uint32_t arg1);
+	static uint32_t get_all_near_mindists_hook(uint32_t arg0);
+	static uint32_t IVP_Real_Object_Destructor_Hook(uint32_t arg0);
 };
 
 typedef struct _game_fields {
@@ -117,6 +119,8 @@ typedef struct _game_functions {
 	pThreeArgProt MapEntity_ParseAllEntities;
 	pOneArgProt DispatchSpawn;
 	pTwoArgProt recheck_ov_element;
+	pOneArgProt get_all_near_mindists;
+	pOneArgProt IVP_Real_Object_Destructor;
 } game_functions;
 
 typedef struct _Signature {
@@ -207,6 +211,7 @@ extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList players_connect_commands_list;
 
+uint32_t FindEntityByIVP(uint32_t ivp_real_object);
 void UpdateCollisionByIVP(uint32_t ivp_real_object);
 void CorrectPhysics();
 void DeinitUtil();

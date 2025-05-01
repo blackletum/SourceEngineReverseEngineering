@@ -106,6 +106,8 @@ bool InitExtension()
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000B5460);
     
     functions.recheck_ov_element = (pTwoArgProt)(vphysics_srv + 0x00111D20);
+    functions.get_all_near_mindists = (pOneArgProt)(vphysics_srv + 0x000F1590);
+    functions.IVP_Real_Object_Destructor = (pOneArgProt)(vphysics_srv + 0x000F2010);
 
     functions.SpawnPlayer = (pOneArgProt)(server_srv + 0x005983C0);
     functions.RemoveNormalDirect = (pOneArgProt)(server_srv + 0x00A92160);

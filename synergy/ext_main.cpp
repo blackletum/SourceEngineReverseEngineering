@@ -168,6 +168,7 @@ bool InitExtension()
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
 
     functions.recheck_ov_element = (pTwoArgProt)(vphysics_srv + 0x0011F840);
+    functions.IVP_Real_Object_Destructor = (pOneArgProt)(vphysics_srv + 0x00102880);
 
     synergy_functions.CombineDropshipSpawn = (pOneArgProt)(server_srv + 0x00AAE650);
     synergy_functions.SaveGameState = (pFourArgProt)(server_srv + 0x00BE5960);
