@@ -119,7 +119,6 @@ typedef struct _game_functions {
 	pThreeArgProt MapEntity_ParseAllEntities;
 	pOneArgProt DispatchSpawn;
 	pTwoArgProt recheck_ov_element;
-	pOneArgProt get_all_near_mindists;
 	pOneArgProt IVP_Real_Object_Destructor;
 } game_functions;
 
@@ -183,6 +182,8 @@ extern bool loaded_extension;
 extern bool firstplayer_hasjoined;
 extern bool player_collision_rules_changed;
 extern bool player_worldspawn_collision_disabled;
+
+extern int min_collision_frames;
 
 extern uint32_t hook_exclude_list_offset[512];
 extern uint32_t hook_exclude_list_base[512];
