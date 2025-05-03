@@ -511,6 +511,8 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     MakePlayersLeaveVehicles();
     FixCars();
 
+    UpdateCollisions(true, true);
+
     rootconsole->ConsolePrint("Saving game!");
 
     savegame_internal = true;
