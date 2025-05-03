@@ -18,7 +18,6 @@ bool replicating_client_cheats;
 int connected_clients;
 int incorrect_cheats_frames;
 int correct_cheats_frames;
-int min_collision_frames;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -72,7 +71,6 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
-    min_collision_frames = 0;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
     ivp_list = AllocateValuesList();
@@ -854,9 +852,7 @@ uint32_t FindEntityByIVP(uint32_t ivp_real_object)
 }
 
 void CorrectPhysics()
-{
-    min_collision_frames++;
-    
+{   
     uint8_t deferMindist = *(uint8_t*)(fields.deferMindist);
     
     if(deferMindist)
