@@ -447,12 +447,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     SetServerSleepStatus();
     RemoveBadEnts();
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true, true);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(simulating);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true, true);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
@@ -460,12 +460,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true, true);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true, true);
 
     if(savegame || savegame_delayed == 150)
     {
@@ -510,8 +510,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     MakePlayersLeaveVehicles();
     FixCars();
-
-    UpdateCollisions(true, true);
 
     rootconsole->ConsolePrint("Saving game!");
 
