@@ -577,8 +577,6 @@ uint32_t HooksSynergy::GlobalEntityListClear(uint32_t arg0)
     isTicking = false;
     firstplayer_hasjoined = false;
 
-    min_collision_frames = 0;
-
     pDynamicOneArgFunc = (pOneArgProt)(functions.ClearAllEntities);
     return pDynamicOneArgFunc(arg0);
 }
