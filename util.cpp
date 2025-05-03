@@ -456,7 +456,7 @@ uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(isTicking && min_collision_frames >= 300)
+    if(isTicking && firstplayer_hasjoined)
     {
         //rootconsole->ConsolePrint("ignored recheck ov!");
 

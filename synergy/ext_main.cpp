@@ -446,19 +446,19 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     SetServerSleepStatus();
     RemoveBadEnts();
-    
-    UpdateCollisions(true, true);
+
+    functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
+    pDynamicOneArgFunc(simulating);
+
+    functions.CleanupDeleteList(0);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
-
-    functions.CleanupDeleteList(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
-    pDynamicOneArgFunc(simulating);
 
     functions.CleanupDeleteList(0);
 
@@ -489,6 +489,9 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     CorrectPhysics();
     ReplicateCheatsOnClient();
     EnterVehicles(save_player_vehicles_list);
+
+    //AT THE END MANAGE THE COLLISIONS TO ENSURE THE LIST IS EMPTIED AT THE LAST FRAME
+    UpdateCollisions(true, true);
 
     return 0;
 }
