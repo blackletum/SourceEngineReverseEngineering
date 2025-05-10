@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define CLIENT_CHEATS_FRAME_LIMIT 50
+#define CLIENT_CHEATS_FRAME_LIMIT 10
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 
 typedef uint32_t (*pZeroArgProt)();
@@ -50,76 +50,77 @@ public:
 };
 
 typedef struct _game_fields {
-	uint32_t CGlobalEntityList;
-	uint32_t sv;
-	uint32_t RemoveImmediateSemaphore;
-	uint32_t sv_cheats_cvar;
-	uint32_t deferMindist;
-	uint32_t modelinfo;
-	uint32_t g_EventQueue;
+	uint32_t CGlobalEntityList = 0;
+	uint32_t sv = 0;
+	uint32_t RemoveImmediateSemaphore = 0;
+	uint32_t sv_cheats_cvar = 0;
+	uint32_t deferMindist = 0;
+	uint32_t modelinfo = 0;
+	uint32_t g_EventQueue = 0;
+	uint32_t g_DeleteList = 0;
 } game_fields;
 
 typedef struct _game_offsets {
-	uint32_t classname_offset;
-	uint32_t abs_origin_offset;
-	uint32_t origin_offset;
-	uint32_t abs_angles_offset;
-	uint32_t angles_offset;
-	uint32_t abs_velocity_offset;
-	uint32_t velocity_offset;
-	uint32_t refhandle_offset;
-	uint32_t iserver_offset;
-	uint32_t mnetwork_offset;
-	uint32_t collision_property_offset;
-	uint32_t m_CollisionGroup_offset;
-	uint32_t ismarked_offset;
-	uint32_t vphysics_object_offset;
-	uint32_t cvarstring_offset;
-	uint32_t isclientactive_offset;
-	uint32_t maxclients_offset;
-	uint32_t current_map_offset;
-	uint32_t getposition_vphysics_offset;
-	uint32_t setposition_vphysics_offset;
+	uint32_t classname_offset = 0;
+	uint32_t abs_origin_offset = 0;
+	uint32_t origin_offset = 0;
+	uint32_t abs_angles_offset = 0;
+	uint32_t angles_offset = 0;
+	uint32_t abs_velocity_offset = 0;
+	uint32_t velocity_offset = 0;
+	uint32_t refhandle_offset = 0;
+	uint32_t iserver_offset = 0;
+	uint32_t mnetwork_offset = 0;
+	uint32_t collision_property_offset = 0;
+	uint32_t m_CollisionGroup_offset = 0;
+	uint32_t ismarked_offset = 0;
+	uint32_t vphysics_object_offset = 0;
+	uint32_t cvarstring_offset = 0;
+	uint32_t isclientactive_offset = 0;
+	uint32_t maxclients_offset = 0;
+	uint32_t current_map_offset = 0;
+	uint32_t getposition_vphysics_offset = 0;
+	uint32_t setposition_vphysics_offset = 0;
 } game_offsets;
 
 typedef struct _game_functions {
-	pOneArgProt SpawnPlayer;
-	pOneArgProt RemoveNormalDirect;
-	pOneArgProt RemoveNormal;
-	pOneArgProt RemoveInsta;
-	pTwoArgProt SetSolidFlags;
-	pTwoArgProt DisableEntityCollisions;
-	pTwoArgProt EnableEntityCollisions;
-	pThreeArgProt FindEntityByClassname;
-	pOneArgProt CleanupDeleteList;
-	pTwoArgProt CreateEntityByName;
-	pOneArgProt PhysSimEnt;
-	pSixArgProt AcceptInput;
-	pOneArgProt UpdateOnRemoveBase;
-	pOneArgProt VphysicsSetObject;
-	pOneArgProt ClearAllEntities;
-	pOneArgProt PackedStoreDestructor;
-	pSevenArgProt CanSatisfyVpkCacheInternal;
-	pTwoArgProt SV_ReplicateConVarChange;
-	pThreeArgProt SendNetMsg;
-	pFourArgProt ClientCommand;
-	pTwoArgProt PEntityOfEntIndex;
-	pTwoArgProt GetPlayerUserId;
-	pTwoArgProtFastCall InvokeMethodReverseOrderFastCall;
-	pTwoArgProtFastCall InvokePerFrameMethodFastCall;
-	pTwoArgProtRegParm InvokeMethodReverseOrderRegParm;
-	pTwoArgProtRegParm InvokePerFrameMethodRegParm;
-	pOneArgProt ServiceEvents;
-	pOneArgProt Physics_RunThinkFunctions;
-	pTwoArgProt SetOwnerEntity;
-	pTwoArgProt DispatchAnimEvents;
-	pOneArgProt CalcAbsolutePosition;
-	pTwoArgProt VPhysicsUpdate;
-	pFourArgProt CreateNoSpawn;
-	pThreeArgProt MapEntity_ParseAllEntities;
-	pOneArgProt DispatchSpawn;
-	pTwoArgProt recheck_ov_element;
-	pOneArgProt IVP_Real_Object_Destructor;
+	pOneArgProt SpawnPlayer = 0;
+	pOneArgProt RemoveNormalDirect = 0;
+	pOneArgProt RemoveNormal = 0;
+	pOneArgProt RemoveInsta = 0;
+	pTwoArgProt SetSolidFlags = 0;
+	pTwoArgProt DisableEntityCollisions = 0;
+	pTwoArgProt EnableEntityCollisions = 0;
+	pThreeArgProt FindEntityByClassname = 0;
+	pOneArgProt CleanupDeleteList = 0;
+	pTwoArgProt CreateEntityByName = 0;
+	pOneArgProt PhysSimEnt = 0;
+	pSixArgProt AcceptInput = 0;
+	pOneArgProt UpdateOnRemoveBase = 0;
+	pOneArgProt VphysicsSetObject = 0;
+	pOneArgProt ClearAllEntities = 0;
+	pOneArgProt PackedStoreDestructor = 0;
+	pSevenArgProt CanSatisfyVpkCacheInternal = 0;
+	pTwoArgProt SV_ReplicateConVarChange = 0;
+	pThreeArgProt SendNetMsg = 0;
+	pFourArgProt ClientCommand = 0;
+	pTwoArgProt PEntityOfEntIndex = 0;
+	pTwoArgProt GetPlayerUserId = 0;
+	pTwoArgProtFastCall InvokeMethodReverseOrderFastCall = 0;
+	pTwoArgProtFastCall InvokePerFrameMethodFastCall = 0;
+	pTwoArgProtRegParm InvokeMethodReverseOrderRegParm = 0;
+	pTwoArgProtRegParm InvokePerFrameMethodRegParm = 0;
+	pOneArgProt ServiceEvents = 0;
+	pOneArgProt Physics_RunThinkFunctions = 0;
+	pTwoArgProt SetOwnerEntity = 0;
+	pTwoArgProt DispatchAnimEvents = 0;
+	pOneArgProt CalcAbsolutePosition = 0;
+	pTwoArgProt VPhysicsUpdate = 0;
+	pFourArgProt CreateNoSpawn = 0;
+	pThreeArgProt MapEntity_ParseAllEntities = 0;
+	pOneArgProt DispatchSpawn = 0;
+	pTwoArgProt recheck_ov_element = 0;
+	pOneArgProt IVP_Real_Object_Destructor = 0;
 } game_functions;
 
 typedef struct _Signature {
@@ -248,9 +249,8 @@ void HookFunctionsUtil();
 void ReplicateCheatsOnClient();
 void CorrectCheats();
 void SetServerSleepStatus();
-void SendClientConnectCommands(bool increment_frames);
+void SendClientConnectCommands(bool increment_frames, bool send_commands);
 void SendClientCommands(uint32_t player_edict);
-void NotifyCheatsFaking();
 int GetEarliestClients();
 bool VerifyEntity(uint32_t entity_object, bool validate);
 void CorrectVphysicsEntity(uint32_t ent);

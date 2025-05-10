@@ -98,6 +98,7 @@ bool InitExtension()
     fields.RemoveImmediateSemaphore = server_srv + 0x00F3BDD0;
     fields.g_EventQueue = server_srv + 0x00EA2690;
     fields.modelinfo = server_srv + 0x00EC7580;
+    fields.g_DeleteList = server_srv + 0x00EA95C0+0x0C;
 
     fields.deferMindist = vphysics_srv + 0x001B3900;
 
@@ -227,6 +228,12 @@ void ApplyPatches()
         memset((void*)(sdktools + 0x00016907), 0x90, 2);
     }
 
+    uint32_t reset_save_call = server_srv + 0x00888A53;
+    memset((void*)reset_save_call, 0x90, 6);
+    offset = (uint32_t)HooksSynergy::SaveGameStateManual - reset_save_call - 5;
+    *(uint8_t*)(reset_save_call) = 0xE8;
+    *(uint32_t*)(reset_save_call+1) = offset;
+
     uint32_t phys_freeze_fix = server_srv + 0x0077B759;
     *(uint8_t*)(phys_freeze_fix) = 0xEB;
 
@@ -295,6 +302,26 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)functions.MapEntity_ParseAllEntities, (void*)HooksSynergy::MapEntity_ParseAllEntitiesHook);
 
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
+}
+
+uint32_t HooksSynergy::SaveGameStateManual()
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    functions.CleanupDeleteList(0);
+    
+    // Save the game
+    uint32_t save_thing = *(uint32_t*)(server_srv + 0x00EC7550+0x0C);
+    uint32_t save_thing_two = *(uint32_t*)(server_srv + 0x0023D6D0);
+    uint32_t save_thing_three = *(uint32_t*)(server_srv + 0x0023D6D0+4);
+    uint32_t save_thing_four = *(uint32_t*)(server_srv + 0x0023D6D0+4+4);
+
+    pDynamicFourArgFunc = (pFourArgProt)( *(uint32_t*)((*(uint32_t*)(save_thing))+0x48) );
+    pDynamicFourArgFunc(save_thing, save_thing_two, save_thing_three, save_thing_four);
+
+    functions.CleanupDeleteList(0);
+
+    return 0;
 }
 
 uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -506,10 +533,18 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 {
     pFourArgProt pDynamicFourArgFunc;
 
-    save_frames = 0;
-
     MakePlayersLeaveVehicles();
     FixCars();
+
+    int32_t deleted_ents = *(int32_t*)fields.g_DeleteList;
+
+    if(deleted_ents > 0)
+    {
+        rootconsole->ConsolePrint("Failed to save game");
+        return 0;
+    }
+
+    save_frames = 0;
 
     rootconsole->ConsolePrint("Saving game!");
 

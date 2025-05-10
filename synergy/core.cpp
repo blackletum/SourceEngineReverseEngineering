@@ -220,15 +220,6 @@ void FixCars()
             {
                 rootconsole->ConsolePrint("FIXED_SCRIPT_NAME: [%s]", script);
             }
-
-            if(strcmp(clsname, "prop_vehicle_airboat") == 0)
-            {
-                if(strcmp(model, "models/airboat.mdl") != 0)
-                {
-                    rootconsole->ConsolePrint("Removed incorrectly spawned airboat!");
-                    HandleSpecificEntityRemoval(mainEnt, true, true);
-                }
-            }
         }
     }
 }

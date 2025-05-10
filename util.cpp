@@ -65,12 +65,12 @@ void InitUtil()
     player_worldspawn_collision_disabled = false;
     isTicking = false;
     server_sleeping = false;
-    replicating_client_cheats = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000*2);
     current_vpk_buffer_ref = 0;
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
+    replicating_client_cheats = false;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
     ivp_list = AllocateValuesList();
@@ -141,7 +141,7 @@ int GetEarliestClients()
     return earliest_clients;
 }
 
-void SendClientConnectCommands(bool increment_frames)
+void SendClientConnectCommands(bool increment_frames, bool send_commands)
 {
     int maxclients = *(int*)(fields.sv+offsets.maxclients_offset);
     int earliest_clients = GetEarliestClients();
@@ -169,15 +169,22 @@ void SendClientConnectCommands(bool increment_frames)
                     {
                         if(earliest_clients != connected_clients)
                         {
-                            rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
+                            if(!(!increment_frames && !send_commands))
+                                rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
                             found_player = true;
                             break;
                         }
                         
                         if(frames < 1)
                         {
+                            faking_cheats = true;
+                            rootconsole->ConsolePrint("cheats faked! set to true");
+                        }
+                        
+                        if(faking_cheats && send_commands)
+                        {
                             SendClientCommands(player_edict);
-                            rootconsole->ConsolePrint("found player");
+                            rootconsole->ConsolePrint("client commands sent");
                         }
     
                         if(frames > 1000) frames = 1000;
@@ -236,25 +243,6 @@ void SendClientConnectCommands(bool increment_frames)
     }
 }
 
-void NotifyCheatsFaking()
-{
-    Value* first_player = *players_connect_commands_list;
-
-    while(first_player && first_player->nextVal)
-    {
-        int player_index = (int)first_player->value;
-        int frames = (int)first_player->nextVal->value;
-
-        if(frames < 3)
-        {
-            faking_cheats = true;
-            return;
-        }
-
-        first_player = first_player->nextVal->nextVal;
-    }
-}
-
 void SendClientCommands(uint32_t player_edict)
 {
     functions.ClientCommand(0, player_edict, (uint32_t)"reload_particleseffects_client", 0);
@@ -299,23 +287,38 @@ void ReplicateCheatsOnClient()
 {
     if(incorrect_cheats_frames > 10000) incorrect_cheats_frames = 10000;
     if(correct_cheats_frames > 10000) correct_cheats_frames = 10000;
-    
+
+    int connected_clients_frame = 0;
+
     faking_cheats = false;
-
-    SendClientConnectCommands(false);
-    NotifyCheatsFaking();
-
     connected_clients = 0;
-    
+
+    //UPDATE LIST
+    SendClientConnectCommands(false, false);
+
+    //COUNT THE AMOUNT OF READY CLIENTS
     replicating_client_cheats = true;
     functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
     replicating_client_cheats = false;
 
-    SendClientConnectCommands(true);
+    connected_clients_frame = connected_clients;
+
+    //TELL SYSTEM THAT WE CAN SEND COMMANDS NOT YET AS WE HAVE NOT SENT THE FAKE PACKETS
+    SendClientConnectCommands(true, false);
+
+    //SEND THE FAKE PACKETS
+    replicating_client_cheats = true;
+    functions.SV_ReplicateConVarChange(fields.sv_cheats_cvar, (uint32_t)"1");
+    replicating_client_cheats = false;
+
+    connected_clients = connected_clients_frame;
+
+    //SEND THE CLIENT COMMANDS NOW
+    SendClientConnectCommands(false, true);
 
     if(!faking_cheats)
     {
-        if(correct_cheats_frames <= 10) CorrectCheats();
+        if(correct_cheats_frames <= 50) CorrectCheats();
         if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
 
         incorrect_cheats_frames = 0;
@@ -323,7 +326,7 @@ void ReplicateCheatsOnClient()
     }
     else
     {
-        if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT && incorrect_cheats_frames <= CLIENT_CHEATS_FRAME_LIMIT+10)
+        if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT && incorrect_cheats_frames <= CLIENT_CHEATS_FRAME_LIMIT+50)
         {
             rootconsole->ConsolePrint("Over the limit!");
             CorrectCheats();
@@ -478,15 +481,20 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     {
         connected_clients++;
 
-        if(!faking_cheats) return 0;
-        
-        if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT)
+        if(faking_cheats)
         {
-            rootconsole->ConsolePrint("Blocked!");
+            if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT)
+            {
+                rootconsole->ConsolePrint("Blocked!");
+                return 0;
+            }
+        }
+        else
+        {
             return 0;
         }
 
-        //rootconsole->ConsolePrint("Faking!");
+        rootconsole->ConsolePrint("Cheats have been faked!");
     }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);
