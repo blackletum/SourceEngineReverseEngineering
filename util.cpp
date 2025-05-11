@@ -181,7 +181,7 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                             rootconsole->ConsolePrint("cheats faked! set to true");
                         }
                         
-                        if(faking_cheats && send_commands)
+                        if(frames == 1 && send_commands)
                         {
                             SendClientCommands(player_edict);
                             rootconsole->ConsolePrint("client commands sent");
