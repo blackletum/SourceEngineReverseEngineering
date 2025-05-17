@@ -228,11 +228,12 @@ void ApplyPatches()
         memset((void*)(sdktools + 0x00016907), 0x90, 2);
     }
 
-    uint32_t reset_save_call = server_srv + 0x00888A53;
-    memset((void*)reset_save_call, 0x90, 6);
-    offset = (uint32_t)HooksSynergy::SaveGameStateManual - reset_save_call - 5;
-    *(uint8_t*)(reset_save_call) = 0xE8;
-    *(uint32_t*)(reset_save_call+1) = offset;
+    uint32_t remove_save_transition = server_srv + 0x00888A56;
+    memset((void*)remove_save_transition, 0x90, 3);
+
+    uint32_t lvl_shutdown_hook = server_srv + 0x006B2BEC;
+    offset = (uint32_t)HooksSynergy::LvlShutdownHook - lvl_shutdown_hook - 5;
+    *(uint32_t*)(lvl_shutdown_hook+1) = offset;
 
     uint32_t phys_freeze_fix = server_srv + 0x0077B759;
     *(uint8_t*)(phys_freeze_fix) = 0xEB;
@@ -304,12 +305,15 @@ void HookFunctions()
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 }
 
-uint32_t HooksSynergy::SaveGameStateManual()
+uint32_t HooksSynergy::LvlShutdownHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pFourArgProt pDynamicFourArgFunc;
 
+    rootconsole->ConsolePrint("Manual Save on Transition!");
+
+    FixCars();
     functions.CleanupDeleteList(0);
-    
+
     // Save the game
     uint32_t save_thing = *(uint32_t*)(server_srv + 0x00EC7550+0x0C);
     uint32_t save_thing_two = *(uint32_t*)(server_srv + 0x0023D6D0);
@@ -321,7 +325,7 @@ uint32_t HooksSynergy::SaveGameStateManual()
 
     functions.CleanupDeleteList(0);
 
-    return 0;
+    return (uint32_t)memset((void*)arg0, arg1, arg2);
 }
 
 uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
