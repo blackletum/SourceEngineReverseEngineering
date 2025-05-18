@@ -545,6 +545,7 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     if(deleted_ents > 0)
     {
         rootconsole->ConsolePrint("Failed to save game");
+        exit(EXIT_FAILURE);
         return 0;
     }
 
