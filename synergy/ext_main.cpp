@@ -138,6 +138,7 @@ bool InitExtension()
     functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x0030D720);
     functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x0030D5D0);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x002E5410);
+    functions.host_changelevel = (pThreeArgProt)(engine_srv + 0x002684B0);
 
     functions.ServiceEvents = (pOneArgProt)(server_srv + 0x00607B40);
     functions.InvokePerFrameMethodFastCall = (pTwoArgProtFastCall)(server_srv + 0x006E6400);
@@ -231,10 +232,6 @@ void ApplyPatches()
     uint32_t remove_save_transition = server_srv + 0x00888A56;
     memset((void*)remove_save_transition, 0x90, 3);
 
-    uint32_t lvl_shutdown_hook = server_srv + 0x006B2BEC;
-    offset = (uint32_t)HooksSynergy::LvlShutdownHook - lvl_shutdown_hook - 5;
-    *(uint32_t*)(lvl_shutdown_hook+1) = offset;
-
     uint32_t phys_freeze_fix = server_srv + 0x0077B759;
     *(uint8_t*)(phys_freeze_fix) = 0xEB;
 
@@ -295,6 +292,8 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
     HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
 
+    HookFunction(engine_srv, engine_srv_size, (void*)functions.host_changelevel, (void*)HooksSynergy::host_changelevelhook);
+
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormalDirect, (void*)HooksSynergy::UTIL_RemoveHookFailsafe);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormal, (void*)HooksSynergy::UTIL_RemoveBaseHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveInsta, (void*)HooksSynergy::HookInstaKill);
@@ -305,8 +304,9 @@ void HookFunctions()
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 }
 
-uint32_t HooksSynergy::LvlShutdownHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t HooksSynergy::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
+    pThreeArgProt pDynamicThreeArgFunc;
     pFourArgProt pDynamicFourArgFunc;
 
     rootconsole->ConsolePrint("Manual Save on Transition!");
@@ -325,7 +325,8 @@ uint32_t HooksSynergy::LvlShutdownHook(uint32_t arg0, uint32_t arg1, uint32_t ar
 
     functions.CleanupDeleteList(0);
 
-    return (uint32_t)memset((void*)arg0, arg1, arg2);
+    pDynamicThreeArgFunc = (pThreeArgProt)(functions.host_changelevel);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)

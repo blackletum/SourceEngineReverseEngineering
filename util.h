@@ -121,6 +121,7 @@ typedef struct _game_functions {
 	pOneArgProt DispatchSpawn = 0;
 	pTwoArgProt recheck_ov_element = 0;
 	pOneArgProt IVP_Real_Object_Destructor = 0;
+	pThreeArgProt host_changelevel = 0;
 } game_functions;
 
 typedef struct _Signature {
