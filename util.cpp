@@ -15,6 +15,7 @@ bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
 
+int global_userid;
 int connected_clients;
 int incorrect_cheats_frames;
 int correct_cheats_frames;
@@ -70,6 +71,7 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
+    global_userid = 0;
     replicating_client_cheats = false;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
@@ -178,6 +180,7 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                         if(frames < 1)
                         {
                             faking_cheats = true;
+                            global_userid = userid;
                             rootconsole->ConsolePrint("cheats faked! set to true");
                         }
                         
@@ -290,6 +293,7 @@ void ReplicateCheatsOnClient()
 
     int connected_clients_frame = 0;
 
+    global_userid = 0;
     faking_cheats = false;
     connected_clients = 0;
 
@@ -479,6 +483,8 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(replicating_client_cheats)
     {
+        int current_userid = *(uint32_t*)(arg0+offsets.cbaseclient_userid_offset);
+        
         connected_clients++;
 
         if(faking_cheats)
@@ -491,6 +497,12 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         }
         else
         {
+            return 0;
+        }
+
+        if(current_userid != global_userid)
+        {
+            rootconsole->ConsolePrint("Blocked userid [%d]", current_userid);
             return 0;
         }
 

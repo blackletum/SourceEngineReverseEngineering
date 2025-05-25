@@ -122,6 +122,7 @@ bool InitExtension()
     offsets.current_map_offset = 0x11;
     offsets.getposition_vphysics_offset = 0xC0;
     offsets.setposition_vphysics_offset = 0xB8;
+    offsets.cbaseclient_userid_offset = 0x14;
 
     synergy_offsets.vehicle_model_offset = 556;
     synergy_offsets.vehicle_script_offset = 1544;

@@ -95,6 +95,7 @@ bool InitExtension()
     offsets.current_map_offset = 0x11;
     offsets.getposition_vphysics_offset = 0xC0;
     offsets.setposition_vphysics_offset = 0xB8;
+    offsets.cbaseclient_userid_offset = 0x14;
 
     functions.ClientCommand = (pFourArgProt)(engine_srv + 0x0018A7B0);
     functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv + 0x0018A220);
