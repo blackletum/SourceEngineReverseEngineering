@@ -15,7 +15,6 @@ bool player_collision_rules_changed;
 bool player_worldspawn_collision_disabled;
 bool replicating_client_cheats;
 
-int global_userid;
 int connected_clients;
 int incorrect_cheats_frames;
 int correct_cheats_frames;
@@ -71,7 +70,6 @@ void InitUtil()
     incorrect_cheats_frames = 0;
     correct_cheats_frames = 0;
     connected_clients = 0;
-    global_userid = 0;
     replicating_client_cheats = false;
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
@@ -180,7 +178,6 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                         if(frames < 1)
                         {
                             faking_cheats = true;
-                            global_userid = userid;
                             rootconsole->ConsolePrint("cheats faked! set to true");
                         }
                         
@@ -286,14 +283,39 @@ void CorrectCheats()
     }
 }
 
+bool IsAllowedToFakeUserId(int userid_input)
+{
+    Value* first_connect_player = *players_connect_commands_list;
+
+    while(first_connect_player)
+    {
+        int player_index = (int)first_connect_player->value;
+        int frames = (int)first_connect_player->nextVal->value;
+
+        if(frames == 1)
+        {
+            uint32_t player_edict = functions.PEntityOfEntIndex(0, player_index);
+
+            if(player_edict)
+            {
+                int userid = functions.GetPlayerUserId(0, player_edict);
+                if(userid == userid_input) return true;
+            }
+        }
+
+        first_connect_player = first_connect_player->nextVal->nextVal;
+    }
+
+    return false;
+}
+
 void ReplicateCheatsOnClient()
 {
     if(incorrect_cheats_frames > 10000) incorrect_cheats_frames = 10000;
     if(correct_cheats_frames > 10000) correct_cheats_frames = 10000;
 
     int connected_clients_frame = 0;
-
-    global_userid = 0;
+    
     faking_cheats = false;
     connected_clients = 0;
 
@@ -500,7 +522,7 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
             return 0;
         }
 
-        if(current_userid != global_userid)
+        if(IsAllowedToFakeUserId(current_userid) == false)
         {
             rootconsole->ConsolePrint("Blocked userid [%d]", current_userid);
             return 0;

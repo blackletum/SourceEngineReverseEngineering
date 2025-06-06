@@ -312,7 +312,9 @@ uint32_t HooksSynergy::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32
 
     rootconsole->ConsolePrint("Manual Save on Transition!");
 
+    MakePlayersLeaveVehicles();
     FixCars();
+
     functions.CleanupDeleteList(0);
 
     // Save the game
@@ -479,12 +481,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     SetServerSleepStatus();
     RemoveBadEnts();
-
-    UpdateCollisions(true, true);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
-    pDynamicOneArgFunc(simulating);
-
     UpdateCollisions(true, true);
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
@@ -493,18 +489,27 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
-    UpdateCollisions(true, true);
+    functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
+    pDynamicOneArgFunc(simulating);
+
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    UpdateCollisions(true, true);
+    functions.CleanupDeleteList(0);
 
     if(savegame || savegame_delayed == 150)
     {
         rootconsole->ConsolePrint("Autosave created!");
 
+        save_frames = 0;
+
+        MakePlayersLeaveVehicles();
         FixCars();
+
         functions.CleanupDeleteList(0);
 
         savegame_autosave = true;
@@ -519,12 +524,13 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
     EnterVehicles(save_player_vehicles_list);
 
     //AT THE END MANAGE THE COLLISIONS TO ENSURE THE LIST IS EMPTIED AT THE LAST FRAME
     UpdateCollisions(true, true);
+
+    CorrectPhysics();
+    ReplicateCheatsOnClient();
 
     return 0;
 }
@@ -538,9 +544,6 @@ uint32_t HooksSynergy::AutosaveHook(uint32_t arg0)
 uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pFourArgProt pDynamicFourArgFunc;
-
-    MakePlayersLeaveVehicles();
-    FixCars();
 
     int32_t deleted_ents = *(int32_t*)fields.g_DeleteList;
 
@@ -569,7 +572,7 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(save_frames < 30)
+    if(save_frames < 50)
     {
         rootconsole->ConsolePrint("Prevented vehicle exit!");
         return 0;

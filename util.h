@@ -257,6 +257,7 @@ int GetEarliestClients();
 bool VerifyEntity(uint32_t entity_object, bool validate);
 void CorrectVphysicsEntity(uint32_t ent);
 void ResetEntityPosition(uint32_t object);
+bool IsAllowedToFakeUserId(int userid_input);
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);
