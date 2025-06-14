@@ -480,14 +480,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
-    RemoveBadEnts();
-    UpdateCollisions(true, true);
-
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
-    pDynamicFastCallTwoArgFunc(0x2D, 0);
-
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
-    pDynamicFastCallTwoArgFunc(0x41, 0);
 
     functions.CleanupDeleteList(0);
 
@@ -498,6 +490,14 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
+
+    UpdateCollisions(true, true);
+
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
+    pDynamicFastCallTwoArgFunc(0x2D, 0);
+
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
+    pDynamicFastCallTwoArgFunc(0x41, 0);
 
     functions.CleanupDeleteList(0);
 
@@ -525,6 +525,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     }
 
     EnterVehicles(save_player_vehicles_list);
+    RemoveBadEnts();
 
     //AT THE END MANAGE THE COLLISIONS TO ENSURE THE LIST IS EMPTIED AT THE LAST FRAME
     UpdateCollisions(true, true);
