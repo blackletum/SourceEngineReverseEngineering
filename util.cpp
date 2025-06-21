@@ -476,27 +476,21 @@ uint32_t HooksUtil::IVP_Real_Object_Destructor_Hook(uint32_t arg0)
     RemoveFromValuesList(ivp_list, (void*)arg0, NULL);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.IVP_Real_Object_Destructor);
-    return pDynamicOneArgFunc(arg0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    UpdateCollisions(true);
+
+    return returnVal;
 }
 
 uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(isTicking && firstplayer_hasjoined)
-    {
-        //rootconsole->ConsolePrint("ignored recheck ov!");
+    Value* ivp_real_object = CreateNewValue((void*)arg1);
+    InsertToValuesList(ivp_list, ivp_real_object, NULL, false, true);
 
-        Value* ivp_real_object = CreateNewValue((void*)arg1);
-        InsertToValuesList(ivp_list, ivp_real_object, NULL, false, true);
-        
-        return 0;
-    }
-
-    //rootconsole->ConsolePrint("rechecked ov [%p]", arg1);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(functions.recheck_ov_element);
-    return pDynamicTwoArgFunc(arg0, arg1);
+    return 0;
 }
 
 uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -860,7 +854,7 @@ void UpdateCollisionByIVP(uint32_t ivp_real_object)
     functions.recheck_ov_element(manager, ivp_real_object);
 }
 
-uint32_t FindEntityByIVP(uint32_t ivp_real_object)
+uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname)
 {
     uint32_t ent_found = 0;
     if(ivp_real_object == 0) return ent_found;
@@ -887,6 +881,22 @@ uint32_t FindEntityByIVP(uint32_t ivp_real_object)
 
                 ent_found = ent;
             }
+        }
+    }
+
+    if(ent_found)
+    {
+        char* classname = (char*)(*(uint32_t*)(ent_found+offsets.classname_offset));
+
+        if(search_classname && classname)
+        {
+            if(strcmp(classname, search_classname) == 0)
+            {
+                //rootconsole->ConsolePrint("Found [%s] by IVP", search_classname);
+                return ent_found;
+            }
+            else
+            return 0;
         }
     }
 
@@ -1677,10 +1687,8 @@ void UpdateAllCollisions(bool cleanup)
     if(cleanup) functions.CleanupDeleteList(0);
 }
 
-void UpdateCollisions(bool cleanup, bool flush)
+void UpdateCollisions(bool flush)
 {
-    if(cleanup) functions.CleanupDeleteList(0);
-
     Value* first_ivp = *ivp_list;
 
     while(first_ivp)
@@ -1695,8 +1703,6 @@ void UpdateCollisions(bool cleanup, bool flush)
     }
 
     if(flush) *ivp_list = NULL;
-
-    if(cleanup) functions.CleanupDeleteList(0);
 }
 
 void SetServerSleepStatus()

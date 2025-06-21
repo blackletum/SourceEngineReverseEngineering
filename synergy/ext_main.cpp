@@ -248,6 +248,10 @@ void ApplyPatches()
     offset = (uint32_t)HooksUtil::EmptyCall - hook_post_systems - 5;
     *(uint32_t*)(hook_post_systems+1) = offset;
 
+    uint32_t hook_pre_systems = server_srv + 0x006B1EBB;
+    offset = (uint32_t)HooksUtil::EmptyCall - hook_pre_systems - 5;
+    *(uint32_t*)(hook_pre_systems+1) = offset;
+
     uint32_t hook_service_event_queue = server_srv + 0x006B1F2A;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_service_event_queue - 5;
     *(uint32_t*)(hook_service_event_queue+1) = offset;
@@ -480,19 +484,18 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
+    
+    UpdateCollisions(true);
+    RemoveBadEnts();
 
+    //Presystems
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
+    pDynamicFastCallTwoArgFunc(0x3D, 0);
+
+    UpdateCollisions(true);
     functions.CleanupDeleteList(0);
 
-    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
-    pDynamicOneArgFunc(simulating);
-
-    functions.CleanupDeleteList(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
-    pDynamicOneArgFunc(fields.g_EventQueue);
-
-    UpdateCollisions(true, true);
-
+    //PostSystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
     pDynamicFastCallTwoArgFunc(0x2D, 0);
 
@@ -500,6 +503,16 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
     functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
+    pDynamicOneArgFunc(simulating);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
+    pDynamicOneArgFunc(fields.g_EventQueue);
+
+    functions.CleanupDeleteList(0);
+
+    EnterVehicles(save_player_vehicles_list);
 
     if(savegame || savegame_delayed == 150)
     {
@@ -524,11 +537,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    EnterVehicles(save_player_vehicles_list);
-    RemoveBadEnts();
-
-    //AT THE END MANAGE THE COLLISIONS TO ENSURE THE LIST IS EMPTIED AT THE LAST FRAME
-    UpdateCollisions(true, true);
+    functions.CleanupDeleteList(0);
 
     CorrectPhysics();
     ReplicateCheatsOnClient();
@@ -555,8 +564,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
         return 0;
     }
 
-    save_frames = 0;
-
     rootconsole->ConsolePrint("Saving game!");
 
     savegame_internal = true;
@@ -573,7 +580,7 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(save_frames < 50)
+    if(save_frames < 100)
     {
         rootconsole->ConsolePrint("Prevented vehicle exit!");
         return 0;

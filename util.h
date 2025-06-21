@@ -215,7 +215,7 @@ extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList players_connect_commands_list;
 
-uint32_t FindEntityByIVP(uint32_t ivp_real_object);
+uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname);
 void UpdateCollisionByIVP(uint32_t ivp_real_object);
 void CorrectPhysics();
 void DeinitUtil();
@@ -237,7 +237,7 @@ void RestoreMemoryProtections();
 void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);
 bool IsVectorInf(uint32_t base);
-void UpdateCollisions(bool cleanup, bool flush);
+void UpdateCollisions(bool flush);
 void UpdateOtherCollisions();
 void UpdatePlayerCollisions();
 void UpdateAllCollisions(bool cleanup);
