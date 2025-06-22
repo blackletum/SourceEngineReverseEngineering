@@ -570,6 +570,12 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     savegame_internal = false;
 
+    if(savegame_autosave)
+    {
+        rootconsole->ConsolePrint("Blocked autosave.sav!");
+        return 0;
+    }
+
     return returnVal;
 }
 
