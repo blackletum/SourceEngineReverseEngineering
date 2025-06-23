@@ -340,45 +340,10 @@ uint32_t HooksSynergy::MapEntity_ParseAllEntitiesHook(uint32_t arg0, uint32_t ar
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    char model_one[512] = "models/airboat.mdl";
-    char model_two[512] = "models\\airboat.mdl";
-
-    char script_one[512] = "scripts/vehicles/airboat.txt";
-    char script_two[512] = "scripts\\vehicles\\airboat.txt";
-
     rootconsole->ConsolePrint("\nMapEntity_ParseAllEntities\n");
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.MapEntity_ParseAllEntities);
-    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
-
-    uint32_t airboat_one = functions.CreateEntityByName((uint32_t)"prop_vehicle_airboat", (uint32_t)-1);
-    uint32_t airboat_two = functions.CreateEntityByName((uint32_t)"prop_vehicle_airboat", (uint32_t)-1);
-
-    if(airboat_one)
-    {
-        *(uint32_t*)(airboat_one+synergy_offsets.vehicle_model_offset) = (uint32_t)model_one;
-        *(uint32_t*)(airboat_one+synergy_offsets.vehicle_script_offset) = (uint32_t)script_one;
-
-        functions.DispatchSpawn(airboat_one);
-        HandleSpecificEntityRemoval(airboat_one, true, true);
-    }
-
-    if(airboat_two)
-    {
-        *(uint32_t*)(airboat_two+synergy_offsets.vehicle_model_offset) = (uint32_t)model_two;
-        *(uint32_t*)(airboat_two+synergy_offsets.vehicle_script_offset) = (uint32_t)script_two;
-
-        functions.DispatchSpawn(airboat_two);
-        HandleSpecificEntityRemoval(airboat_two, true, true);
-    }
-
-    //Zero memory
-    memset(model_one, 0, sizeof(model_one));
-    memset(model_two, 0, sizeof(model_two));
-    memset(script_one, 0, sizeof(script_one));
-    memset(script_two, 0, sizeof(script_two));
-    
-    return returnVal;
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t HooksSynergy::CombineDropshipSpawnHook(uint32_t arg0)
@@ -484,6 +449,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
+    UpdateCollisions(true);
     RemoveBadEnts();
 
     //Presystems
@@ -533,7 +499,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     }
 
     EnterVehicles(save_player_vehicles_list);
-    UpdateCollisions(true);
     functions.CleanupDeleteList(0);
 
     CorrectPhysics();

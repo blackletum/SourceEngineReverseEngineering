@@ -488,7 +488,7 @@ uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     Value* ivp_real_object = CreateNewValue((void*)arg1);
-    InsertToValuesList(ivp_list, ivp_real_object, NULL, false, true);
+    InsertToValuesList(ivp_list, ivp_real_object, NULL, true, true);
 
     return 0;
 }
