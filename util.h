@@ -21,6 +21,8 @@ typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtRegParm)(uint32_t, uin
 typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
 typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
+typedef void (*Error)(char const *pMsg, ...);
+
 class HooksUtil
 {
 public:
@@ -47,6 +49,7 @@ public:
 	static uint32_t recheck_ov_element_hook(uint32_t arg0, uint32_t arg1);
 	static uint32_t get_all_near_mindists_hook(uint32_t arg0);
 	static uint32_t IVP_Real_Object_Destructor_Hook(uint32_t arg0);
+	static uint32_t EngineErrorHook(char const *pMsg, ...);
 };
 
 typedef struct _game_fields {
@@ -123,6 +126,7 @@ typedef struct _game_functions {
 	pTwoArgProt recheck_ov_element = 0;
 	pOneArgProt IVP_Real_Object_Destructor = 0;
 	pThreeArgProt host_changelevel = 0;
+	Error EngineError = 0;
 } game_functions;
 
 typedef struct _Signature {

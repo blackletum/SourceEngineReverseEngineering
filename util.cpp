@@ -94,6 +94,8 @@ void HookFunctionsUtil()
     HookFunction(server_srv, server_srv_size, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
+
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
@@ -466,6 +468,17 @@ uint32_t HooksUtil::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 
 uint32_t HooksUtil::EmptyCall()
 {
+    return 0;
+}
+
+uint32_t HooksUtil::EngineErrorHook(char const *pMsg, ...)
+{
+    va_list marker;
+    va_start(marker, pMsg);
+    //vprintf( pMsg, marker );
+    rootconsole->ConsolePrint(pMsg, marker);
+    va_end(marker);
+
     return 0;
 }
 

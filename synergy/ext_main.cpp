@@ -166,6 +166,7 @@ bool InitExtension()
     functions.DispatchAnimEvents = (pTwoArgProt)(server_srv + 0x0056DC50);
     functions.MapEntity_ParseAllEntities = (pThreeArgProt)(server_srv + 0x00700EF0);
     functions.DispatchSpawn = (pOneArgProt)(server_srv + 0x008A5F80);
+    functions.EngineError = (Error)( (server_srv + 0x00700FB3) + (*(uint32_t*)(server_srv + 0x00700FB3+1)) + 5);
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000C7EB0);
@@ -548,7 +549,7 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(save_frames < 100)
+    if(save_frames < 150)
     {
         rootconsole->ConsolePrint("Prevented vehicle exit!");
         return 0;
