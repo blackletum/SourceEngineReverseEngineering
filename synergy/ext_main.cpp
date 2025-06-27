@@ -450,7 +450,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
-    UpdateCollisions(true);
     RemoveBadEnts();
 
     //Presystems
@@ -470,6 +469,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(simulating);
+
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
@@ -500,6 +501,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     }
 
     EnterVehicles(save_player_vehicles_list);
+    UpdateCollisions(true);
     functions.CleanupDeleteList(0);
 
     CorrectPhysics();
