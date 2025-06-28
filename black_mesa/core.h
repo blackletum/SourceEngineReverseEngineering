@@ -40,6 +40,6 @@ void PopulateHookExclusionLists();
 uint32_t GetCBaseEntity(uint32_t EHandle);
 
 void CheckForLocation();
-void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow);
+void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server)
 
 #endif

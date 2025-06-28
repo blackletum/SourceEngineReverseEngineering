@@ -52,7 +52,7 @@ extern bool savegame_internal;
 
 extern ValueList save_player_vehicles_list;
 
-void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow);
+void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);
 bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size);
 uint32_t GetCBaseEntity(uint32_t EHandle);
 void PopulateHookExclusionLists();

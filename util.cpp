@@ -471,6 +471,12 @@ uint32_t HooksUtil::EmptyCall()
     return 0;
 }
 
+uint32_t HooksUtil::StrictEntityValidationSlow(uint32_t arg0)
+{
+    HandleSpecificEntityRemoval(arg0, true, false, true, false);
+    return 0;
+}
+
 uint32_t HooksUtil::EngineErrorHook(char const *pMsg, ...)
 {
     va_list marker;
@@ -746,7 +752,7 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 
     char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
-    if(VerifyEntity(arg0, true) == false)
+    if(VerifyEntity(arg0, true, true) == false)
     {
         uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv;
         uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv;
@@ -769,7 +775,7 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
             if(vphysics_object && vphysics_object_check && vphysics_object == vphysics_object_check)
             {
                 rootconsole->ConsolePrint("Removed entity with the same physics object!!!");
-                HandleSpecificEntityRemoval(ent, true, true);
+                HandleSpecificEntityRemoval(ent, true, true, true, true);
             }
         }
     }
@@ -1854,7 +1860,7 @@ void RemoveBadEnts()
                 else
                     rootconsole->ConsolePrint("Removed bad ent!");
                 
-                HandleSpecificEntityRemoval(ent, true, true);
+                HandleSpecificEntityRemoval(ent, true, true, true, true);
             }
         }
     }
@@ -1862,7 +1868,7 @@ void RemoveBadEnts()
     functions.CleanupDeleteList(0);
 }
 
-bool VerifyEntity(uint32_t entity_object, bool validate)
+bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
@@ -1875,10 +1881,13 @@ bool VerifyEntity(uint32_t entity_object, bool validate)
 
     if(object_verify == 0)
     {
-        if(classname && strcmp(classname, "player") == 0)
+        if(validate_player)
         {
-            rootconsole->ConsolePrint("Allowed player entity without validation");
-            object_verify = entity_object;
+            if(classname && strcmp(classname, "player") == 0)
+            {
+                rootconsole->ConsolePrint("Allowed player entity without validation");
+                object_verify = entity_object;
+            }
         }
         else if(!validate)
         {

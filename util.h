@@ -50,6 +50,7 @@ public:
 	static uint32_t get_all_near_mindists_hook(uint32_t arg0);
 	static uint32_t IVP_Real_Object_Destructor_Hook(uint32_t arg0);
 	static uint32_t EngineErrorHook(char const *pMsg, ...);
+	static uint32_t StrictEntityValidationSlow(uint32_t arg0);
 };
 
 typedef struct _game_fields {
@@ -177,7 +178,7 @@ typedef struct _EntityOrigin {
 	float z;
 } EntityOrigin;
 
-extern void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow);
+extern void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);
 extern uint32_t GetCBaseEntity(uint32_t EHandle);
 
 extern game_fields fields;
@@ -258,7 +259,7 @@ void SetServerSleepStatus();
 void SendClientConnectCommands(bool increment_frames, bool send_commands);
 void SendClientCommands(uint32_t player_edict);
 int GetEarliestClients();
-bool VerifyEntity(uint32_t entity_object, bool validate);
+bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player);
 void CorrectVphysicsEntity(uint32_t ent);
 void ResetEntityPosition(uint32_t object);
 bool IsAllowedToFakeUserId(int userid_input);

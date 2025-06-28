@@ -8,6 +8,21 @@
 void ApplyPatchesSpecific()
 {
     uint32_t offset = 0;
+
+    //CBaseEntity* corruption fix
+    uint32_t antlion_guard_fix_one = server_srv + 0x00A2B5F4;
+    offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - antlion_guard_fix_one - 5;
+    *(uint32_t*)(antlion_guard_fix_one+1) = offset;
+
+    //CBaseEntity* corruption fix
+    uint32_t antlion_guard_fix_two = server_srv + 0x00A2B610;
+    offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - antlion_guard_fix_two - 5;
+    *(uint32_t*)(antlion_guard_fix_two+1) = offset;
+
+    //CBaseEntity* corruption fix
+    uint32_t tripmine_fix_one = server_srv + 0x00D11E75;
+    offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - tripmine_fix_one - 5;
+    *(uint32_t*)(tripmine_fix_one+1) = offset;
 }
 
 void HookFunctionsSpecific()

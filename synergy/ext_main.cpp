@@ -571,19 +571,19 @@ uint32_t HooksSynergy::UTIL_RemoveHookFailsafe(uint32_t arg0)
     if(arg0 == 0) return 0;
     uint32_t cbase = arg0-offsets.iserver_offset;
 
-    HandleSpecificEntityRemoval(cbase, true, true);
+    HandleSpecificEntityRemoval(cbase, true, true, true, true);
     return 0;
 }
 
 uint32_t HooksSynergy::UTIL_RemoveBaseHook(uint32_t arg0)
 {
-    HandleSpecificEntityRemoval(arg0, true, true);
+    HandleSpecificEntityRemoval(arg0, true, true, true, true);
     return 0;
 }
 
 uint32_t HooksSynergy::HookInstaKill(uint32_t arg0)
 {
-    HandleSpecificEntityRemoval(arg0, true, false);
+    HandleSpecificEntityRemoval(arg0, true, true, false, true);
     return 0;
 }
 

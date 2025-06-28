@@ -137,14 +137,14 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
     return total_items;
 }
 
-void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
+void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server)
 {
     Vector emptyVector;
     pThreeArgProt pDynamicThreeArgFunc;
 
     if(object == 0) return;
 
-    if(VerifyEntity(object, validate))
+    if(VerifyEntity(object, validate, validate_player))
     {
         char* classname = (char*)(*(uint32_t*)(object+offsets.classname_offset));
 
@@ -192,7 +192,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool slow)
     uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
 
     rootconsole->ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
-    exit(EXIT_FAILURE);
+    if(crash_server) exit(EXIT_FAILURE);
 }
 
 void FixCars()
