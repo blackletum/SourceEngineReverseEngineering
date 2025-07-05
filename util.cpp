@@ -481,8 +481,8 @@ uint32_t HooksUtil::EngineErrorHook(char const *pMsg, ...)
 {
     va_list marker;
     va_start(marker, pMsg);
-    //vprintf( pMsg, marker );
-    rootconsole->ConsolePrint(pMsg, marker);
+    vprintf( pMsg, marker );
+    //rootconsole->ConsolePrint(pMsg, marker);
     va_end(marker);
 
     return 0;
@@ -492,14 +492,10 @@ uint32_t HooksUtil::IVP_Real_Object_Destructor_Hook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    RemoveFromValuesList(ivp_list, (void*)arg0, NULL);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.IVP_Real_Object_Destructor);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
     UpdateCollisions(true);
 
-    return returnVal;
+    pDynamicOneArgFunc = (pOneArgProt)(functions.IVP_Real_Object_Destructor);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
