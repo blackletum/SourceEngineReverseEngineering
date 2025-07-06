@@ -261,6 +261,7 @@ void SendClientCommands(uint32_t player_edict);
 int GetEarliestClients();
 bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player);
 void CorrectVphysicsEntity(uint32_t ent);
+bool IsVphysicsEntityBad(uint32_t ent);
 void ResetEntityPosition(uint32_t object);
 bool IsAllowedToFakeUserId(int userid_input);
 

@@ -110,6 +110,9 @@ void ResetEntityPosition(uint32_t object)
 
     if(IsEntityValid(object))
     {
+        ZeroVector(object+offsets.origin_offset);
+        ZeroVector(object+offsets.abs_origin_offset);
+
         uint32_t vphysics_object = *(uint32_t*)(object+offsets.vphysics_object_offset);
     
         if(vphysics_object)
@@ -118,9 +121,6 @@ void ResetEntityPosition(uint32_t object)
             pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
             pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
         }
-    
-        ZeroVector(object+offsets.origin_offset);
-        ZeroVector(object+offsets.abs_origin_offset);
     }
 }
 
@@ -365,6 +365,36 @@ void ReplicateCheatsOnClient()
     }
 }
 
+bool IsVphysicsEntityBad(uint32_t ent)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(IsEntityValid(ent))
+    {
+        uint32_t vphysics_object = *(uint32_t*)(ent+offsets.vphysics_object_offset);
+
+        if(vphysics_object)
+        {
+            Vector current_origin;
+            Vector current_angles;
+
+            //GetPosition
+            pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.getposition_vphysics_offset)  );
+            pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
+
+            //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
+
+            if(!IsEntityPositionReasonable((uint32_t)&current_origin) || !IsEntityPositionReasonable((uint32_t)&current_angles))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void CorrectVphysicsEntity(uint32_t ent)
 {
     pThreeArgProt pDynamicThreeArgFunc;
@@ -403,12 +433,18 @@ void CorrectVphysicsEntity(uint32_t ent)
 
             if(bad_origin && bad_angles)
             {
+                ZeroVector(ent+offsets.origin_offset);
+                ZeroVector(ent+offsets.abs_origin_offset);
+
                 //SetPosition
                 pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
                 pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
             }
             else if(bad_origin)
             {
+                ZeroVector(ent+offsets.origin_offset);
+                ZeroVector(ent+offsets.abs_origin_offset);
+
                 //SetPosition
                 pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
                 pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&current_angles, 1);
@@ -492,10 +528,20 @@ uint32_t HooksUtil::IVP_Real_Object_Destructor_Hook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    UpdateCollisions(true);
+    uint32_t entity = FindEntityByIVP(arg0, NULL);
+
+    if(entity)
+    {
+        rootconsole->ConsolePrint("Removed entity because REAL OBJECT WAS REMOVED!");
+        HandleSpecificEntityRemoval(entity, true, true, true, true);
+    }
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.IVP_Real_Object_Destructor);
-    return pDynamicOneArgFunc(arg0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    RemoveFromValuesList(ivp_list, (void*)arg0, NULL);
+    
+    return returnVal;
 }
 
 uint32_t HooksUtil::recheck_ov_element_hook(uint32_t arg0, uint32_t arg1)
@@ -730,7 +776,11 @@ uint32_t HooksUtil::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
 
     if(IsEntityValid(arg0))
     {
-        CorrectVphysicsEntity(arg0);
+        if(IsVphysicsEntityBad(arg0))
+        {
+            rootconsole->ConsolePrint("Removed BAD physics entity!");
+            HandleSpecificEntityRemoval(arg0, true, true, true, true);
+        }
 
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.VPhysicsUpdate);
         return pDynamicTwoArgFunc(arg0, arg1);

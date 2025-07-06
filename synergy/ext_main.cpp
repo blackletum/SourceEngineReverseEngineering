@@ -450,6 +450,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
+    UpdateCollisions(true);
+    
     functions.CleanupDeleteList(0);
 
     //Presystems
@@ -457,7 +459,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc(0x3D, 0);
     
     functions.CleanupDeleteList(0);
-    UpdateCollisions(true);
 
     //PostSystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
