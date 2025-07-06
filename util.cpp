@@ -826,8 +826,6 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
         }
     }
 
-    UpdateCollisions(true);
-
     pDynamicOneArgFunc = (pOneArgProt)(functions.UpdateOnRemoveBase);
     return pDynamicOneArgFunc(arg0);
 }
