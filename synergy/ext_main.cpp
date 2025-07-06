@@ -93,7 +93,7 @@ bool InitExtension()
     fields.sv_cheats_cvar = engine_srv + 0x00402D70;
 
     synergy_fields.m_sbStaticPoseParamsLoadedDropship = server_srv + 0x00F6E854;
-    
+
     fields.CGlobalEntityList = server_srv + 0x00EAB6DC;
     fields.RemoveImmediateSemaphore = server_srv + 0x00F3BDD0;
     fields.g_EventQueue = server_srv + 0x00EA2690;
@@ -368,7 +368,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
-    
+
     uint32_t dropship_container_refhandle = *(uint32_t*)(arg0+synergy_offsets.dropship_container_offset);
     uint32_t container_object = GetCBaseEntity(dropship_container_refhandle);
     uint32_t modelinfo = *(uint32_t*)(fields.modelinfo);
@@ -380,7 +380,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
         if(studio_hdr)
         {
             rootconsole->ConsolePrint("Dropship gun patched! x1");
-    
+
             pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LookupPoseParameterDropship);
             return pDynamicThreeArgFunc(container_object, studio_hdr, arg2);
         }
@@ -407,7 +407,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
         if(studio_hdr)
         {
             rootconsole->ConsolePrint("Dropship gun patched! x2");
-    
+
             pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LookupPoseParameterDropship);
             return pDynamicThreeArgFunc(container_object, studio_hdr, arg2);
         }
@@ -450,14 +450,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
-    UpdateCollisions(true);
-    
     functions.CleanupDeleteList(0);
 
     //Presystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x3D, 0);
-    
+
     functions.CleanupDeleteList(0);
 
     //PostSystems
@@ -504,6 +502,9 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     EnterVehicles(save_player_vehicles_list);
     RemoveBadEnts();
+    UpdateCollisions(true);
+
+    functions.CleanupDeleteList(0);
 
     CorrectPhysics();
     ReplicateCheatsOnClient();
