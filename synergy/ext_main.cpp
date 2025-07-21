@@ -450,7 +450,19 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     isTicking = true;
 
     SetServerSleepStatus();
+    RemoveBadEnts();
+
     UpdateCollisions(true);
+
+    functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
+    pDynamicOneArgFunc(simulating);
+
+    functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
+    pDynamicOneArgFunc(fields.g_EventQueue);
 
     functions.CleanupDeleteList(0);
 
@@ -466,16 +478,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
-
-    functions.CleanupDeleteList(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
-    pDynamicOneArgFunc(simulating);
-
-    functions.CleanupDeleteList(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
-    pDynamicOneArgFunc(fields.g_EventQueue);
 
     functions.CleanupDeleteList(0);
 
@@ -503,11 +505,9 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     }
 
     EnterVehicles(save_player_vehicles_list);
-    RemoveBadEnts();
-    UpdateCollisions(true);
-
     functions.CleanupDeleteList(0);
 
+    UpdateCollisions(true);
     CorrectPhysics();
     ReplicateCheatsOnClient();
 
@@ -555,7 +555,7 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(save_frames < 300)
+    if(save_frames < 80)
     {
         rootconsole->ConsolePrint("Prevented vehicle exit!");
         return 0;
