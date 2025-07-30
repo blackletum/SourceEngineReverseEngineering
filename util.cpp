@@ -774,7 +774,7 @@ uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
             ((classname_s2 && strcmp(classname_s2, "npc_combine_s") == 0) && (!IsEntityValid(activeweapon_s2)))
         )
         {
-            rootconsole->ConsolePrint("COMBINE CANCELLED EVENTS");
+            //rootconsole->ConsolePrint("COMBINE CANCELLED EVENTS");
             return 0;
         }
         else if
@@ -784,7 +784,7 @@ uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
             ((classname_s2 && strcmp(classname_s2, "npc_citizen") == 0) && (!IsEntityValid(targetent_s2)))
         )
         {
-            rootconsole->ConsolePrint("CITIZEN CANCELLED EVENTS");
+            //rootconsole->ConsolePrint("CITIZEN CANCELLED EVENTS");
             return 0;
         }
 
