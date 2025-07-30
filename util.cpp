@@ -730,13 +730,23 @@ uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(IsEntityValid(arg1))
+    if(IsEntityValid(arg0) && IsEntityValid(arg1))
     {
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
+    else if(!IsEntityValid(arg0))
+    {
+        rootconsole->ConsolePrint("this* is invalid in SetOwnerEntity!");
+        return 0;
+    }
+    else if(arg1 != 0)
+    {
+        rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity! replaced with worldspawn");
 
-    if(arg1 != 0) rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity!");
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
+        return pDynamicTwoArgFunc(arg0, functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn"));
+    }
 
     pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
     return pDynamicTwoArgFunc(arg0, 0);
@@ -746,8 +756,40 @@ uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(IsEntityValid(arg1))
+    if(IsEntityValid(arg0) && IsEntityValid(arg1))
     {
+        char* classname_s1 = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
+        char* classname_s2 = (char*)(*(uint32_t*)(arg1+offsets.classname_offset));
+
+        uint32_t activeweapon_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.activeweapon_offset));
+        uint32_t targetent_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.targetent_offset));
+
+        uint32_t activeweapon_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.activeweapon_offset));
+        uint32_t targetent_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.targetent_offset));
+
+        if
+        (
+            ((classname_s1 && strcmp(classname_s1, "npc_combine_s") == 0) && (!IsEntityValid(activeweapon_s1)))
+            ||
+            ((classname_s2 && strcmp(classname_s2, "npc_combine_s") == 0) && (!IsEntityValid(activeweapon_s2)))
+        )
+        {
+            rootconsole->ConsolePrint("COMBINE CANCELLED EVENTS");
+            return 0;
+        }
+        else if
+        (
+            ((classname_s1 && strcmp(classname_s1, "npc_citizen") == 0) && (!IsEntityValid(targetent_s1)))
+            ||
+            ((classname_s2 && strcmp(classname_s2, "npc_citizen") == 0) && (!IsEntityValid(targetent_s2)))
+        )
+        {
+            rootconsole->ConsolePrint("CITIZEN CANCELLED EVENTS");
+            return 0;
+        }
+
+        //rootconsole->ConsolePrint("%s %s %p %p %p %p", *(uint32_t*)(arg0+offsets.classname_offset), *(uint32_t*)(arg1+offsets.classname_offset), activeweapon_s1, targetent_s1, activeweapon_s2, targetent_s2);
+
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.DispatchAnimEvents);
         return pDynamicTwoArgFunc(arg0, arg1);
     }

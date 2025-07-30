@@ -86,6 +86,8 @@ typedef struct _game_offsets {
 	uint32_t getposition_vphysics_offset = 0;
 	uint32_t setposition_vphysics_offset = 0;
 	uint32_t cbaseclient_userid_offset = 0;
+	uint32_t activeweapon_offset = 0;
+	uint32_t targetent_offset = 0;
 } game_offsets;
 
 typedef struct _game_functions {

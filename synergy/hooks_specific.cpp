@@ -27,13 +27,69 @@ void ApplyPatchesSpecific()
 
 void HookFunctionsSpecific()
 {
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
+
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
 }
 
-uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions(uint32_t arg0)
+uint32_t NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(arg1)
+    {
+        pDynamicFourArgFunc = (pFourArgProt)(synergy_functions.CSoundControllerImp_SoundChangeVolume);
+        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+    }
+
+    rootconsole->ConsolePrint("Prevented crash in helicopter sound system");
+    return 0;
+}
+
+uint32_t NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t ent_check = GetCBaseEntity(*(uint32_t*)(arg0+0x0F64));
+
+    if(IsEntityValid(ent_check))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.CNPC_RollerMine_InputJoltVehicle);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Failed to service jolt on vehicle");
+    return 0;
+}
+
+uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.UTIL_GetPlayerMP);
+    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
+
+    if(returnVal == 0)
+    {
+        uint32_t player = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
+
+        if(IsEntityValid(player))
+        {
+            return player;
+        }
+
+        return functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
+    }
+
+    return returnVal;
+}
+
+uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
@@ -50,7 +106,7 @@ uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateCondition
     return 0;
 }
 
-uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryTarget(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
@@ -67,7 +123,7 @@ uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryTarget(uint32_t arg0, uint32
     return 0;
 }
 
-uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence(uint32_t arg0, uint32_t arg1)
+uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
@@ -84,7 +140,7 @@ uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence(uint32_t 
     return 0;
 }
 
-uint32_t NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint(uint32_t arg0, uint32_t arg1)
+uint32_t NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 

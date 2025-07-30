@@ -33,6 +33,9 @@ typedef struct _synergy_game_functions {
     pTwoArgProt CAI_PassengerBehaviorCompanion_FindEntrySequence;
     pThreeArgProt CAI_PassengerBehavior_GetEntryTarget;
     pOneArgProt CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions;
+    pTwoArgProt UTIL_GetPlayerMP;
+    pOneArgProt CNPC_RollerMine_InputJoltVehicle;
+    pFourArgProt CSoundControllerImp_SoundChangeVolume;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

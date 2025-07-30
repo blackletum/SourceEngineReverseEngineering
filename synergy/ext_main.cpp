@@ -123,6 +123,8 @@ bool InitExtension()
     offsets.getposition_vphysics_offset = 0xC0;
     offsets.setposition_vphysics_offset = 0xB8;
     offsets.cbaseclient_userid_offset = 0x14;
+    offsets.activeweapon_offset = 0x8F4;
+    offsets.targetent_offset = 0x0A60;
 
     synergy_offsets.vehicle_model_offset = 556;
     synergy_offsets.vehicle_script_offset = 1544;
@@ -184,6 +186,9 @@ bool InitExtension()
     synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence = (pTwoArgProt)(server_srv + 0x00C6E560);
     synergy_functions.CAI_PassengerBehavior_GetEntryTarget = (pThreeArgProt)(server_srv + 0x00C62C70);
     synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions = (pOneArgProt)(server_srv + 0x00C66FB0);
+    synergy_functions.UTIL_GetPlayerMP = (pTwoArgProt)(server_srv + 0x008A0F00);
+    synergy_functions.CNPC_RollerMine_InputJoltVehicle = (pOneArgProt)(server_srv + 0x00B3AF40);
+    synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv + 0x00851A40);
 
     PopulateHookExclusionLists();
 
