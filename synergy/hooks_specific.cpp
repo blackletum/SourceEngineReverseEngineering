@@ -23,6 +23,11 @@ void ApplyPatchesSpecific()
     uint32_t tripmine_fix_one = server_srv + 0x00D11E75;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - tripmine_fix_one - 5;
     *(uint32_t*)(tripmine_fix_one+1) = offset;
+
+    //CBaseEntity* corruption fix
+    uint32_t combineball_fix = server_srv + 0x00BA6675;
+    offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - combineball_fix - 5;
+    *(uint32_t*)(combineball_fix+1) = offset;
 }
 
 void HookFunctionsSpecific()
@@ -76,13 +81,17 @@ uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
 
     if(returnVal == 0)
     {
+        //rootconsole->ConsolePrint("UTIL_GetPlayerMP failed!");
+
         uint32_t player = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
 
         if(IsEntityValid(player))
         {
+            //rootconsole->ConsolePrint("Returned valid player!");
             return player;
         }
 
+        //rootconsole->ConsolePrint("Returned worldspawn!");
         return functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
     }
 

@@ -735,11 +735,6 @@ uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
-    else if(!IsEntityValid(arg0))
-    {
-        rootconsole->ConsolePrint("this* is invalid in SetOwnerEntity!");
-        return 0;
-    }
     else if(arg1 != 0)
     {
         rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity! replaced with worldspawn");
@@ -761,34 +756,69 @@ uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
         char* classname_s1 = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
         char* classname_s2 = (char*)(*(uint32_t*)(arg1+offsets.classname_offset));
 
-        uint32_t activeweapon_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.activeweapon_offset));
-        uint32_t targetent_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.targetent_offset));
-
-        uint32_t activeweapon_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.activeweapon_offset));
-        uint32_t targetent_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.targetent_offset));
-
-        if
-        (
-            ((classname_s1 && strcmp(classname_s1, "npc_combine_s") == 0) && (!IsEntityValid(activeweapon_s1)))
-            ||
-            ((classname_s2 && strcmp(classname_s2, "npc_combine_s") == 0) && (!IsEntityValid(activeweapon_s2)))
-        )
+        if((classname_s1 && strcmp(classname_s1, "npc_citizen") == 0) || (classname_s1 && strcmp(classname_s1, "npc_combine_s") == 0))
         {
-            //rootconsole->ConsolePrint("COMBINE CANCELLED EVENTS");
-            return 0;
-        }
-        else if
-        (
-            ((classname_s1 && strcmp(classname_s1, "npc_citizen") == 0) && (!IsEntityValid(targetent_s1)))
-            ||
-            ((classname_s2 && strcmp(classname_s2, "npc_citizen") == 0) && (!IsEntityValid(targetent_s2)))
-        )
-        {
-            //rootconsole->ConsolePrint("CITIZEN CANCELLED EVENTS");
-            return 0;
+            uint32_t activeweapon_refhandle_s1 = *(uint32_t*)(arg0+offsets.activeweapon_offset);
+            uint32_t targetent_refhandle_s1 = *(uint32_t*)(arg0+offsets.targetent_offset);
+
+            if(activeweapon_refhandle_s1 == 0) *(uint32_t*)(arg0+offsets.activeweapon_offset) = 0xFFFFFFFF;
+            if(targetent_refhandle_s1 == 0) *(uint32_t*)(arg0+offsets.targetent_offset) = 0xFFFFFFFF;
+
+            if(activeweapon_refhandle_s1 != 0xFFFFFFFF)
+            {
+                uint32_t activeweapon_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.activeweapon_offset));
+
+                if(!IsEntityValid(activeweapon_s1))
+                {
+                    *(uint32_t*)(arg0+offsets.activeweapon_offset) = 0xFFFFFFFF;
+                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", activeweapon_refhandle_s1);
+                }
+            }
+
+            if(targetent_refhandle_s1 != 0xFFFFFFFF)
+            {
+                uint32_t targetent_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.targetent_offset));
+
+                if(!IsEntityValid(targetent_s1))
+                {
+                    *(uint32_t*)(arg0+offsets.targetent_offset) = 0xFFFFFFFF;
+                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", targetent_refhandle_s1);
+                }
+            }
         }
 
-        //rootconsole->ConsolePrint("%s %s %p %p %p %p", *(uint32_t*)(arg0+offsets.classname_offset), *(uint32_t*)(arg1+offsets.classname_offset), activeweapon_s1, targetent_s1, activeweapon_s2, targetent_s2);
+        if((classname_s2 && strcmp(classname_s2, "npc_citizen") == 0) || (classname_s2 && strcmp(classname_s2, "npc_combine_s") == 0))
+        {
+            uint32_t activeweapon_refhandle_s2 = *(uint32_t*)(arg1+offsets.activeweapon_offset);
+            uint32_t targetent_refhandle_s2 = *(uint32_t*)(arg1+offsets.targetent_offset);
+
+            if(activeweapon_refhandle_s2 == 0) *(uint32_t*)(arg1+offsets.activeweapon_offset) = 0xFFFFFFFF;
+            if(targetent_refhandle_s2 == 0) *(uint32_t*)(arg1+offsets.targetent_offset) = 0xFFFFFFFF;
+
+            if(activeweapon_refhandle_s2 != 0xFFFFFFFF)
+            {
+                uint32_t activeweapon_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.activeweapon_offset));
+                
+                if(!IsEntityValid(activeweapon_s2))
+                {
+                    *(uint32_t*)(arg1+offsets.activeweapon_offset) = 0xFFFFFFFF;
+                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", activeweapon_refhandle_s2);
+                }
+            }
+
+            if(targetent_refhandle_s2 != 0xFFFFFFFF)
+            {
+                uint32_t targetent_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.targetent_offset));
+
+                if(!IsEntityValid(targetent_s2))
+                {
+                    *(uint32_t*)(arg1+offsets.targetent_offset) = 0xFFFFFFFF;
+                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", targetent_refhandle_s2);
+                }
+            }
+        }
+
+        //rootconsole->ConsolePrint("%d %d", activeweapon_refhandle, targetent_refhandle);
 
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.DispatchAnimEvents);
         return pDynamicTwoArgFunc(arg0, arg1);
