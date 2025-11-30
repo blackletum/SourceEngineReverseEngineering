@@ -85,7 +85,6 @@ void HookFunctionsUtil()
 
     HookFunction(engine_srv, engine_srv_size, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
 
-    HookFunction(server_srv, server_srv_size, (void*)functions.CreateEntityByName, (void*)HooksUtil::CreateEntityByNameHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
     HookFunction(server_srv, server_srv_size, (void*)functions.AcceptInput, (void*)HooksUtil::AcceptInputHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.UpdateOnRemoveBase, (void*)HooksUtil::UpdateOnRemove);
@@ -730,12 +729,7 @@ uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(IsEntityValid(arg0) && IsEntityValid(arg1))
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-    else if(arg1 != 0)
+    if(arg1 != 0 && !IsEntityValid(arg1))
     {
         rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity! replaced with worldspawn");
 
@@ -744,7 +738,7 @@ uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
     }
 
     pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
-    return pDynamicTwoArgFunc(arg0, 0);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
@@ -753,73 +747,6 @@ uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
 
     if(IsEntityValid(arg0) && IsEntityValid(arg1))
     {
-        char* classname_s1 = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
-        char* classname_s2 = (char*)(*(uint32_t*)(arg1+offsets.classname_offset));
-
-        if((classname_s1 && strcmp(classname_s1, "npc_citizen") == 0) || (classname_s1 && strcmp(classname_s1, "npc_combine_s") == 0))
-        {
-            uint32_t activeweapon_refhandle_s1 = *(uint32_t*)(arg0+offsets.activeweapon_offset);
-            uint32_t targetent_refhandle_s1 = *(uint32_t*)(arg0+offsets.targetent_offset);
-
-            if(activeweapon_refhandle_s1 == 0) *(uint32_t*)(arg0+offsets.activeweapon_offset) = 0xFFFFFFFF;
-            if(targetent_refhandle_s1 == 0) *(uint32_t*)(arg0+offsets.targetent_offset) = 0xFFFFFFFF;
-
-            if(activeweapon_refhandle_s1 != 0xFFFFFFFF)
-            {
-                uint32_t activeweapon_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.activeweapon_offset));
-
-                if(!IsEntityValid(activeweapon_s1))
-                {
-                    *(uint32_t*)(arg0+offsets.activeweapon_offset) = 0xFFFFFFFF;
-                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", activeweapon_refhandle_s1);
-                }
-            }
-
-            if(targetent_refhandle_s1 != 0xFFFFFFFF)
-            {
-                uint32_t targetent_s1 = GetCBaseEntity(*(uint32_t*)(arg0+offsets.targetent_offset));
-
-                if(!IsEntityValid(targetent_s1))
-                {
-                    *(uint32_t*)(arg0+offsets.targetent_offset) = 0xFFFFFFFF;
-                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", targetent_refhandle_s1);
-                }
-            }
-        }
-
-        if((classname_s2 && strcmp(classname_s2, "npc_citizen") == 0) || (classname_s2 && strcmp(classname_s2, "npc_combine_s") == 0))
-        {
-            uint32_t activeweapon_refhandle_s2 = *(uint32_t*)(arg1+offsets.activeweapon_offset);
-            uint32_t targetent_refhandle_s2 = *(uint32_t*)(arg1+offsets.targetent_offset);
-
-            if(activeweapon_refhandle_s2 == 0) *(uint32_t*)(arg1+offsets.activeweapon_offset) = 0xFFFFFFFF;
-            if(targetent_refhandle_s2 == 0) *(uint32_t*)(arg1+offsets.targetent_offset) = 0xFFFFFFFF;
-
-            if(activeweapon_refhandle_s2 != 0xFFFFFFFF)
-            {
-                uint32_t activeweapon_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.activeweapon_offset));
-                
-                if(!IsEntityValid(activeweapon_s2))
-                {
-                    *(uint32_t*)(arg1+offsets.activeweapon_offset) = 0xFFFFFFFF;
-                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", activeweapon_refhandle_s2);
-                }
-            }
-
-            if(targetent_refhandle_s2 != 0xFFFFFFFF)
-            {
-                uint32_t targetent_s2 = GetCBaseEntity(*(uint32_t*)(arg1+offsets.targetent_offset));
-
-                if(!IsEntityValid(targetent_s2))
-                {
-                    *(uint32_t*)(arg1+offsets.targetent_offset) = 0xFFFFFFFF;
-                    rootconsole->ConsolePrint("Detected bad entity in DispatchAnimEvents %p", targetent_refhandle_s2);
-                }
-            }
-        }
-
-        //rootconsole->ConsolePrint("%d %d", activeweapon_refhandle, targetent_refhandle);
-
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.DispatchAnimEvents);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
@@ -881,22 +808,7 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
         exit(EXIT_FAILURE);
     }
 
-    uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
-    uint32_t ent = 0;
-
-    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        if(IsEntityValid(ent) && ent != arg0)
-        {
-            uint32_t vphysics_object_check = *(uint32_t*)(ent+offsets.vphysics_object_offset);
-
-            if(vphysics_object && vphysics_object_check && vphysics_object == vphysics_object_check)
-            {
-                rootconsole->ConsolePrint("Removed entity with the same physics object!!!");
-                HandleSpecificEntityRemoval(ent, true, true, true, true);
-            }
-        }
-    }
+    ExtensionUpdateOnRemove(arg0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.UpdateOnRemoveBase);
     return pDynamicOneArgFunc(arg0);
@@ -933,14 +845,6 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.PhysSimEnt);
     return pDynamicOneArgFunc(arg0);
-}
-
-uint32_t HooksUtil::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(functions.CreateEntityByName);
-    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t HooksUtil::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)

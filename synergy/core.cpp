@@ -137,6 +137,22 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
     return total_items;
 }
 
+void ExtensionUpdateOnRemove(uint32_t arg0)
+{
+    Vector emptyVector;
+    pThreeArgProt pDynamicThreeArgFunc;
+    char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
+
+    if(strcmp(classname, "player") == 0)
+    {
+        rootconsole->ConsolePrint("left vehicle before player leaves!");
+
+        //LeaveVehicle
+        pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(arg0))+synergy_offsets.leavevehicle_offset) );
+        pDynamicThreeArgFunc(arg0, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
+    }
+}
+
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server)
 {
     Vector emptyVector;
@@ -296,13 +312,21 @@ void MakePlayersLeaveVehicles()
                     Value* player_value = CreateNewValue((void*)*(uint32_t*)(player+offsets.refhandle_offset));
                     Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(player_vehicle+offsets.refhandle_offset));
                     Value* passenger_value = CreateNewValue((void*)passenger);
+                    Value* steam_id_copy_one = CreateNewValue((void*)*(uint32_t*)(player_vehicle+0x0C));
+                    Value* steam_id_copy_two = CreateNewValue((void*)*(uint32_t*)(player_vehicle+0x10));
 
                     InsertToValuesList(save_player_vehicles_list, player_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, vehicle_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, passenger_value, NULL, true, false);
+                    InsertToValuesList(save_player_vehicles_list, steam_id_copy_one, NULL, true, false);
+                    InsertToValuesList(save_player_vehicles_list, steam_id_copy_two, NULL, true, false);
                 }
 
                 Vector emptyVector;
+
+                //remove steam ownership!
+                *(uint32_t*)(player_vehicle+0x0C) = 0;
+                *(uint32_t*)(player_vehicle+0x10) = 0;
 
                 //LeaveVehicle
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+synergy_offsets.leavevehicle_offset) );
@@ -317,23 +341,31 @@ void EnterVehicles(ValueList vehi_list)
     pThreeArgProt pDynamicThreeArgFunc;
     Value* first_player = *vehi_list;
 
-    while(first_player && first_player->nextVal && first_player->nextVal->nextVal)
+    while(first_player && first_player->nextVal)
     {
         uint32_t player = GetCBaseEntity((uint32_t)first_player->value);
         uint32_t vehicle = GetCBaseEntity((uint32_t)first_player->nextVal->value);
-        uint32_t passenger = (uint32_t)first_player->nextVal->nextVal->value;
 
         if(IsEntityValid(player) && IsEntityValid(vehicle))
         {
+            uint32_t passenger = (uint32_t)first_player->nextVal->nextVal->value;
+            uint32_t steam_id_copy_one = (uint32_t)first_player->nextVal->nextVal->nextVal->value;
+            uint32_t steam_id_copy_two = (uint32_t)first_player->nextVal->nextVal->nextVal->nextVal->value;
+
             rootconsole->ConsolePrint("Vehicle Entered! passenger [%d]", passenger);
+
+            *(uint32_t*)(vehicle+0x0C) = steam_id_copy_one;
+            *(uint32_t*)(vehicle+0x10) = steam_id_copy_two;
 
             //EnterVehicle
             pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+synergy_offsets.entervehicle_offset) );
             pDynamicThreeArgFunc(player, *(uint32_t*)(vehicle+synergy_offsets.iserver_vehicle_offset), passenger);
         }
 
-        Value* nextPlayer = first_player->nextVal->nextVal->nextVal;
+        Value* nextPlayer = first_player->nextVal->nextVal->nextVal->nextVal->nextVal;
 
+        free(first_player->nextVal->nextVal->nextVal->nextVal);
+        free(first_player->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal);
         free(first_player->nextVal);
         free(first_player);

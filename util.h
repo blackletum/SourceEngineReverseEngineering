@@ -33,7 +33,6 @@ public:
 	static uint32_t OperatorNewHook(uint32_t size);
 	static uint32_t OperatorNewArrayHook(uint32_t size);
 	static uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
-	static uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t PhysSimEnt(uint32_t arg0);
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t UpdateOnRemove(uint32_t arg0);
@@ -51,6 +50,14 @@ public:
 	static uint32_t IVP_Real_Object_Destructor_Hook(uint32_t arg0);
 	static uint32_t EngineErrorHook(char const *pMsg, ...);
 	static uint32_t StrictEntityValidationSlow(uint32_t arg0);
+	static uint32_t CEntityFactoryDictionary_CreateHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t PlayerSpawnHook(uint32_t arg0);
+	static uint32_t SimulateEntitiesHook(uint8_t simulating);
+	static uint32_t HookInstaKill(uint32_t arg0);
+	static uint32_t UTIL_RemoveHookFailsafe(uint32_t arg0);
+	static uint32_t UTIL_RemoveBaseHook(uint32_t arg0);
+	static uint32_t GlobalEntityListClear(uint32_t arg0);
+	static uint32_t host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 };
 
 typedef struct _game_fields {
@@ -88,6 +95,7 @@ typedef struct _game_offsets {
 	uint32_t cbaseclient_userid_offset = 0;
 	uint32_t activeweapon_offset = 0;
 	uint32_t targetent_offset = 0;
+	uint32_t getcbasentity_offset = 0;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -129,6 +137,7 @@ typedef struct _game_functions {
 	pTwoArgProt recheck_ov_element = 0;
 	pOneArgProt IVP_Real_Object_Destructor = 0;
 	pThreeArgProt host_changelevel = 0;
+	pTwoArgProt CEntityFactoryDictionary_Create = 0;
 	Error EngineError = 0;
 } game_functions;
 
@@ -180,6 +189,7 @@ typedef struct _EntityOrigin {
 	float z;
 } EntityOrigin;
 
+extern void ExtensionUpdateOnRemove(uint32_t arg0);
 extern void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);
 extern uint32_t GetCBaseEntity(uint32_t EHandle);
 
