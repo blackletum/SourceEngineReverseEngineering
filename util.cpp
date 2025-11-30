@@ -170,8 +170,8 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                     {
                         if(earliest_clients != connected_clients)
                         {
-                            if(!(!increment_frames && !send_commands))
-                                rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
+                            //if(!(!increment_frames && !send_commands))
+                                //rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
                             found_player = true;
                             break;
                         }
