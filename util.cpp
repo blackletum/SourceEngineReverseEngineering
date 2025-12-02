@@ -824,6 +824,14 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
         exit(EXIT_FAILURE);
         return 0;
     }
+    else if(functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player") == 0)
+    {
+        if(firstplayer_hasjoined)
+        {
+            //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
+            return 0;
+        }
+    }
 
     uint32_t sim_ent_ref = *(uint32_t*)(arg0+offsets.refhandle_offset);
     uint32_t object_check = GetCBaseEntity(sim_ent_ref);
