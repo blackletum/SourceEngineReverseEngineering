@@ -126,6 +126,7 @@ bool InitExtension()
     offsets.activeweapon_offset = 0x8F4;
     offsets.targetent_offset = 0x0A60;
     offsets.getcbasentity_offset = 0x1C;
+    offsets.m_pGroup_offset = 0x0D8;
 
     synergy_offsets.vehicle_model_offset = 556;
     synergy_offsets.vehicle_script_offset = 1544;
@@ -170,6 +171,8 @@ bool InitExtension()
     functions.MapEntity_ParseAllEntities = (pThreeArgProt)(server_srv + 0x00700EF0);
     functions.CEntityFactoryDictionary_Create = (pTwoArgProt)(server_srv + 0x0089FBE0);
     functions.DispatchSpawn = (pOneArgProt)(server_srv + 0x008A5F80);
+    functions.AiSelectSchedule = (pOneArgProt)(server_srv + 0x004A6910);
+    functions.AiCleanupOnDeath = (pOneArgProt)(server_srv + 0x004A3CA0);
     functions.EngineError = (Error)( (server_srv + 0x00700FB3) + (*(uint32_t*)(server_srv + 0x00700FB3+1)) + 5);
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);

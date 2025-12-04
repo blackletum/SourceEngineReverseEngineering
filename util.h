@@ -19,6 +19,7 @@ typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint3
 
 typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtRegParm)(uint32_t, uint32_t);
 typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
+typedef uint32_t (__attribute__((thiscall)) *pOneArgProtThisCall)(uint32_t);
 typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
 typedef void (*Error)(char const *pMsg, ...);
@@ -58,6 +59,7 @@ public:
 	static uint32_t UTIL_RemoveBaseHook(uint32_t arg0);
 	static uint32_t GlobalEntityListClear(uint32_t arg0);
 	static uint32_t host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t AiSelectScheduleHook(uint32_t arg0);
 };
 
 typedef struct _game_fields {
@@ -96,6 +98,7 @@ typedef struct _game_offsets {
 	uint32_t activeweapon_offset = 0;
 	uint32_t targetent_offset = 0;
 	uint32_t getcbasentity_offset = 0;
+	uint32_t m_pGroup_offset = 0;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -138,6 +141,8 @@ typedef struct _game_functions {
 	pOneArgProt IVP_Real_Object_Destructor = 0;
 	pThreeArgProt host_changelevel = 0;
 	pTwoArgProt CEntityFactoryDictionary_Create = 0;
+	pOneArgProt AiSelectSchedule = 0;
+	pOneArgProt AiCleanupOnDeath = 0;
 	Error EngineError = 0;
 } game_functions;
 

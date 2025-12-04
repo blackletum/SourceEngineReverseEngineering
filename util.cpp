@@ -93,6 +93,7 @@ void HookFunctionsUtil()
     HookFunction(server_srv, server_srv_size, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
 
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
@@ -504,6 +505,29 @@ uint32_t HooksUtil::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t HooksUtil::EmptyCall()
 {
     return 0;
+}
+
+uint32_t HooksUtil::AiSelectScheduleHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    uint32_t m_pGroup = *(uint32_t*)(arg0+offsets.m_pGroup_offset);
+
+    if(m_pGroup)
+    {   
+        uint32_t entity_chk_ref = *(uint32_t*)(m_pGroup+4);
+        uint32_t object = GetCBaseEntity(entity_chk_ref);
+
+        if(!IsEntityValid(object))
+        {
+            rootconsole->ConsolePrint("\nGame engine failed to cleanup death!\n");
+
+            pDynamicOneArgFunc = (pOneArgProt)(functions.AiCleanupOnDeath);
+            pDynamicOneArgFunc(arg0);
+        }
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.AiSelectSchedule);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksUtil::StrictEntityValidationSlow(uint32_t arg0)
