@@ -36,6 +36,7 @@ typedef struct _synergy_game_functions {
     pTwoArgProt UTIL_GetPlayerMP;
     pOneArgProt CNPC_RollerMine_InputJoltVehicle;
     pFourArgProt CSoundControllerImp_SoundChangeVolume;
+    pOneArgProt PrepForLevelTransition;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

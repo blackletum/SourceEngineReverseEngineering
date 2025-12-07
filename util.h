@@ -60,6 +60,7 @@ public:
 	static uint32_t GlobalEntityListClear(uint32_t arg0);
 	static uint32_t host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t AiSelectScheduleHook(uint32_t arg0);
+	static uint32_t RappelBehavior_GatherConditionsHook(uint32_t arg0);
 };
 
 typedef struct _game_fields {
@@ -99,6 +100,7 @@ typedef struct _game_offsets {
 	uint32_t targetent_offset = 0;
 	uint32_t getcbasentity_offset = 0;
 	uint32_t m_pGroup_offset = 0;
+	uint32_t enemy_offset = 0;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -143,6 +145,8 @@ typedef struct _game_functions {
 	pTwoArgProt CEntityFactoryDictionary_Create = 0;
 	pOneArgProt AiSelectSchedule = 0;
 	pOneArgProt AiCleanupOnDeath = 0;
+	pOneArgProt MakeDormant = 0;
+	pOneArgProt RappelBehavior_GatherConditions;
 	Error EngineError = 0;
 } game_functions;
 
@@ -201,6 +205,9 @@ extern uint32_t GetCBaseEntity(uint32_t EHandle);
 extern game_fields fields;
 extern game_offsets offsets;
 extern game_functions functions;
+
+extern float transitioning_player[3];
+extern uint32_t transitioned_clients[512];
 
 extern bool loaded_extension;
 
@@ -281,6 +288,11 @@ void CorrectVphysicsEntity(uint32_t ent);
 bool IsVphysicsEntityBad(uint32_t ent);
 void ResetEntityPosition(uint32_t object);
 bool IsAllowedToFakeUserId(int userid_input);
+void ZeroArrayList(uint32_t* list);
+void InsertToArrayList(uint32_t* list, uint32_t value);
+bool IsValueInArrayList(uint32_t* list, uint32_t value);
+void TeleportPlayersToTransition();
+void RemoveHl2Ragdolls();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

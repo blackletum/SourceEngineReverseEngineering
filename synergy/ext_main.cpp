@@ -127,6 +127,7 @@ bool InitExtension()
     offsets.targetent_offset = 0x0A60;
     offsets.getcbasentity_offset = 0x1C;
     offsets.m_pGroup_offset = 0x0D8;
+    offsets.enemy_offset = 0x0A58;
 
     synergy_offsets.vehicle_model_offset = 556;
     synergy_offsets.vehicle_script_offset = 1544;
@@ -173,6 +174,8 @@ bool InitExtension()
     functions.DispatchSpawn = (pOneArgProt)(server_srv + 0x008A5F80);
     functions.AiSelectSchedule = (pOneArgProt)(server_srv + 0x004A6910);
     functions.AiCleanupOnDeath = (pOneArgProt)(server_srv + 0x004A3CA0);
+    functions.MakeDormant = (pOneArgProt)(server_srv + 0x005B2820);
+    functions.RappelBehavior_GatherConditions = (pOneArgProt)(server_srv + 0x004BBDD0);
     functions.EngineError = (Error)( (server_srv + 0x00700FB3) + (*(uint32_t*)(server_srv + 0x00700FB3+1)) + 5);
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);
@@ -194,6 +197,7 @@ bool InitExtension()
     synergy_functions.UTIL_GetPlayerMP = (pTwoArgProt)(server_srv + 0x008A0F00);
     synergy_functions.CNPC_RollerMine_InputJoltVehicle = (pOneArgProt)(server_srv + 0x00B3AF40);
     synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv + 0x00851A40);
+    synergy_functions.PrepForLevelTransition = (pOneArgProt)(server_srv + 0x0078B160);
 
     PopulateHookExclusionLists();
 
@@ -291,6 +295,10 @@ void ApplyPatches()
     uint32_t patch_player_restore = server_srv + 0x00BDD1EC;
     memset((void*)patch_player_restore, 0x90, 0x26);
 
+    uint32_t patch_player_transition = server_srv + 0x00885EF1;
+    offset = (uint32_t)HooksSynergy::PrepForLevelTransitionHook - patch_player_transition - 5;
+    *(uint32_t*)(patch_player_transition+1) = offset;
+
     //CMessageEntity
     uint32_t remove_extra_call = server_srv + 0x0070720B;
     offset = (uint32_t)HooksUtil::EmptyCall - remove_extra_call - 5;
@@ -314,6 +322,23 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
 }
 
+uint32_t HooksSynergy::PrepForLevelTransitionHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+offsets.refhandle_offset);
+    float* abs_origin_player = (float*)(arg0+offsets.abs_origin_offset);
+    
+    InsertToArrayList(transitioned_clients, refHandle);
+    memcpy(transitioning_player, abs_origin_player, sizeof(float) * 3);
+    transitioning_player[2] += 5.0f;
+
+    //rootconsole->ConsolePrint("player detected with %f.2 %f.2 %f.2", transitioning_player[0], transitioning_player[1], transitioning_player[2]);
+
+    pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.PrepForLevelTransition);
+    return pDynamicOneArgFunc(arg0);
+}
+
 uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
@@ -323,6 +348,9 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     MakePlayersLeaveVehicles();
     FixCars();
+
+    RemoveHl2Ragdolls();
+    TeleportPlayersToTransition();
 
     functions.CleanupDeleteList(0);
 
@@ -336,6 +364,8 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
     pDynamicFourArgFunc(save_thing, save_thing_two, save_thing_three, save_thing_four);
 
     functions.CleanupDeleteList(0);
+
+    ZeroArrayList(transitioned_clients);
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.host_changelevel);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);

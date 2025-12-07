@@ -8,6 +8,9 @@ game_fields fields;
 game_offsets offsets;
 game_functions functions;
 
+float transitioning_player[3] = {};
+uint32_t transitioned_clients[512] = {};
+
 bool loaded_extension;
 bool faking_cheats;
 bool firstplayer_hasjoined;
@@ -94,6 +97,8 @@ void HookFunctionsUtil()
     HookFunction(server_srv, server_srv_size, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.MakeDormant, (void*)HooksUtil::EmptyCall);
+    HookFunction(server_srv, server_srv_size, (void*)functions.RappelBehavior_GatherConditions, (void*)HooksUtil::RappelBehavior_GatherConditionsHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
 
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
@@ -505,6 +510,33 @@ uint32_t HooksUtil::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t HooksUtil::EmptyCall()
 {
     return 0;
+}
+
+uint32_t HooksUtil::RappelBehavior_GatherConditionsHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t chk = *(uint32_t*)(arg0+4);
+
+    if(chk)
+    {
+        uint32_t enemy_entity_ref = *(uint32_t*)(chk+offsets.enemy_offset);
+        uint32_t enemy_entity = GetCBaseEntity(enemy_entity_ref);
+
+        if(!IsEntityValid(enemy_entity))
+        {
+            uint32_t player = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
+
+            if(IsEntityValid(player))
+            {
+                rootconsole->ConsolePrint("Provided an enemy to a RappelBehavior because the original enemy was invalid!");
+                *(uint32_t*)(chk+offsets.enemy_offset) = *(uint32_t*)(player+offsets.refhandle_offset);
+            }
+        }
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.RappelBehavior_GatherConditions);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksUtil::AiSelectScheduleHook(uint32_t arg0)
@@ -2279,4 +2311,86 @@ EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn
     kv->value = valueIn;
 
     return kv;
+}
+
+void ZeroArrayList(uint32_t* list)
+{
+    for(int i = 0; i < 512; i++)
+    {
+        list[i] = 0;
+    }
+}
+
+bool IsValueInArrayList(uint32_t* list, uint32_t value)
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(list[i] == value) return true;
+    }
+
+    return false;
+}
+
+void InsertToArrayList(uint32_t* list, uint32_t value)
+{
+    if(value == 0) return;
+
+    for(int i = 0; i < 512; i++)
+    {
+        if(list[i] == value) return;
+    }
+
+    for(int i = 0; i < 512; i++)
+    {
+        if(list[i] == 0)
+        {
+            list[i] = value;
+            return;
+        }
+    }
+}
+
+void RemoveHl2Ragdolls()
+{
+    uint32_t entity = 0;
+
+    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"hl2mp_ragdoll")) != 0)
+    {
+        if(IsEntityValid(entity))
+        {
+            rootconsole->ConsolePrint("Removed hl2mp_ragdoll entity!");
+            HandleSpecificEntityRemoval(entity, true, true, true, true);
+        }
+    }
+}
+
+void TeleportPlayersToTransition()
+{
+    uint32_t entity = 0;
+
+    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"player")) != 0)
+    {
+        if(IsEntityValid(entity))
+        {
+            uint32_t player_check_ref = *(uint32_t*)(entity+offsets.refhandle_offset);
+
+            if(!IsValueInArrayList(transitioned_clients, player_check_ref))
+            {
+                float* abs_origin_player = (float*)(entity+offsets.abs_origin_offset);
+                float* origin_player = (float*)(entity+offsets.origin_offset);
+
+                memcpy(abs_origin_player, transitioning_player, sizeof(float) * 3);
+                memcpy(origin_player, transitioning_player, sizeof(float) * 3);
+
+                rootconsole->ConsolePrint("Teleported player to transition!");
+            }
+            else
+            {
+                rootconsole->ConsolePrint("Skipped teleporting transitioned player!");
+                
+                *(float*)(entity+offsets.abs_origin_offset+8) += 5.0f;
+                *(float*)(entity+offsets.origin_offset+8) += 5.0f;
+            }
+        }
+    }
 }
