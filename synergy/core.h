@@ -5,38 +5,39 @@
 
 typedef struct _synergy_game_fields {
     //Synergy fields
-    uint32_t m_sbStaticPoseParamsLoadedDropship;
+    uint32_t m_sbStaticPoseParamsLoadedDropship = 0;
 } synergy_game_fields;
 
 typedef struct _synergy_game_offsets {
     //Synergy offsets
-    uint32_t vehicle_model_offset;
-    uint32_t vehicle_script_offset;
-    uint32_t iserver_vehicle_offset;
-    uint32_t base_vehicle_offset;
-    uint32_t getpassengercount_offset;
-    uint32_t player_vehicle_offset;
-    uint32_t leavevehicle_offset;
-    uint32_t entervehicle_offset;
-    uint32_t dropship_container_offset;
+    uint32_t vehicle_model_offset = 0;
+    uint32_t vehicle_script_offset = 0;
+    uint32_t iserver_vehicle_offset = 0;
+    uint32_t base_vehicle_offset = 0;
+    uint32_t getpassengercount_offset = 0;
+    uint32_t player_vehicle_offset = 0;
+    uint32_t leavevehicle_offset = 0;
+    uint32_t entervehicle_offset = 0;
+    uint32_t dropship_container_offset = 0;
 } synergy_game_offsets;
 
 typedef struct _synergy_game_functions {
     //Synergy functions
-    pOneArgProt CombineDropshipSpawn;
-    pFourArgProt SaveGameState;
-    pTwoArgProt RestorePlayer;
-    pOneArgProtFastCall Autosave_Silent;
-    pThreeArgProt LookupPoseParameterDropship;
-    pOneArgProt PopulatePoseParametersDropship;
-    pTwoArgProt CAI_PassengerBehavior_ReserveEntryPoint;
-    pTwoArgProt CAI_PassengerBehaviorCompanion_FindEntrySequence;
-    pThreeArgProt CAI_PassengerBehavior_GetEntryTarget;
-    pOneArgProt CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions;
-    pTwoArgProt UTIL_GetPlayerMP;
-    pOneArgProt CNPC_RollerMine_InputJoltVehicle;
-    pFourArgProt CSoundControllerImp_SoundChangeVolume;
-    pOneArgProt PrepForLevelTransition;
+    pOneArgProt CombineDropshipSpawn = 0;
+    pFourArgProt SaveGameState = 0;
+    pTwoArgProt RestorePlayer = 0;
+    pOneArgProtFastCall Autosave_Silent = 0;
+    pThreeArgProt LookupPoseParameterDropship = 0;
+    pOneArgProt PopulatePoseParametersDropship = 0;
+    pTwoArgProt CAI_PassengerBehavior_ReserveEntryPoint = 0;
+    pTwoArgProt CAI_PassengerBehaviorCompanion_FindEntrySequence = 0;
+    pThreeArgProt CAI_PassengerBehavior_GetEntryTarget = 0;
+    pOneArgProt CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions = 0;
+    pTwoArgProt UTIL_GetPlayerMP = 0;
+    pOneArgProt CNPC_RollerMine_InputJoltVehicle = 0;
+    pFourArgProt CSoundControllerImp_SoundChangeVolume = 0;
+    pOneArgProt PrepForLevelTransition = 0;
+    pThreeArgProt LoadGameState = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;
@@ -49,10 +50,10 @@ extern uint32_t synergy_srv_size;
 extern bool sdktools_passed;
 
 extern int save_frames;
-extern int savegame_delayed;
 extern bool savegame;
 extern bool savegame_autosave;
 extern bool savegame_internal;
+extern bool saved_game_once;
 
 extern ValueList save_player_vehicles_list;
 

@@ -15,10 +15,10 @@ uint32_t synergy_srv_size;
 bool sdktools_passed;
 
 int save_frames;
-int savegame_delayed;
 bool savegame;
 bool savegame_autosave;
 bool savegame_internal;
+bool saved_game_once;
 
 ValueList save_player_vehicles_list;
 

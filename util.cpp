@@ -2384,13 +2384,6 @@ void TeleportPlayersToTransition()
 
                 rootconsole->ConsolePrint("Teleported player to transition!");
             }
-            else
-            {
-                rootconsole->ConsolePrint("Skipped teleporting transitioned player!");
-                
-                *(float*)(entity+offsets.abs_origin_offset+8) += 5.0f;
-                *(float*)(entity+offsets.origin_offset+8) += 5.0f;
-            }
         }
     }
 }

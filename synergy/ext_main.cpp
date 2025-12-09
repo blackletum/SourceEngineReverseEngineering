@@ -82,7 +82,6 @@ bool InitExtension()
     sdktools_passed = IsAllowedToPatchSdkTools(sdktools, sdktools_size);
 
     save_frames = 0;
-    savegame_delayed = 0;
     savegame = false;
     savegame_internal = false;
     savegame_autosave = false;
@@ -198,6 +197,7 @@ bool InitExtension()
     synergy_functions.CNPC_RollerMine_InputJoltVehicle = (pOneArgProt)(server_srv + 0x00B3AF40);
     synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv + 0x00851A40);
     synergy_functions.PrepForLevelTransition = (pOneArgProt)(server_srv + 0x0078B160);
+    synergy_functions.LoadGameState = (pThreeArgProt)(server_srv + 0x00BE78C0);
 
     PopulateHookExclusionLists();
 
@@ -331,7 +331,6 @@ uint32_t HooksSynergy::PrepForLevelTransitionHook(uint32_t arg0)
     
     InsertToArrayList(transitioned_clients, refHandle);
     memcpy(transitioning_player, abs_origin_player, sizeof(float) * 3);
-    transitioning_player[2] += 5.0f;
 
     //rootconsole->ConsolePrint("player detected with %f.2 %f.2 %f.2", transitioning_player[0], transitioning_player[1], transitioning_player[2]);
 
@@ -449,7 +448,6 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 
     if(!firstplayer_hasjoined)
     {
-        savegame_delayed = 0;
     }
 
     firstplayer_hasjoined = true;
@@ -466,10 +464,8 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
     save_frames++;
-    savegame_delayed++;
 
     if(save_frames > 10000) save_frames = 10000;
-    if(savegame_delayed > 10000) savegame_delayed = 10000;
 
     isTicking = true;
 
@@ -505,7 +501,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    if(savegame || savegame_delayed == 150)
+    if(savegame)
     {
         rootconsole->ConsolePrint("Autosave created!");
 
@@ -526,6 +522,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         functions.CleanupDeleteList(0);
 
         savegame = false;
+        saved_game_once = true;
     }
 
     EnterVehicles(save_player_vehicles_list);
@@ -541,6 +538,21 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 uint32_t HooksSynergy::AutosaveHook(uint32_t arg0)
 {
     savegame = true;
+    return 0;
+}
+
+//not used
+uint32_t HooksSynergy::LoadGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    if(saved_game_once)
+    {
+        pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LoadGameState);
+        return pDynamicThreeArgFunc(arg0, arg1, arg2);
+    }
+
+    rootconsole->ConsolePrint("Skipped LoadGameState!");
     return 0;
 }
 
@@ -626,6 +638,7 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
 
     isTicking = false;
     firstplayer_hasjoined = false;
+    saved_game_once = false;
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ClearAllEntities);
     return pDynamicOneArgFunc(arg0);
@@ -665,7 +678,6 @@ uint32_t HooksUtil::PlayerSpawnHook(uint32_t arg0)
 
     if(!firstplayer_hasjoined)
     {
-        savegame_delayed = 0;
     }
 
     firstplayer_hasjoined = true;
