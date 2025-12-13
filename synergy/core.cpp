@@ -19,6 +19,7 @@ bool savegame;
 bool savegame_autosave;
 bool savegame_internal;
 bool saved_game_once;
+bool disable_player_restore;
 
 ValueList save_player_vehicles_list;
 
@@ -209,6 +210,29 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
 
     rootconsole->ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
     if(crash_server) exit(EXIT_FAILURE);
+}
+
+void SaveGame_Extension()
+{
+    pOneArgProtFastCall pDynamicFastCallOneArgFunc;
+
+    save_frames = 0;
+    
+    MakePlayersLeaveVehicles();
+    FixCars();
+
+    functions.CleanupDeleteList(0);
+
+    savegame_autosave = true;
+
+    pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(synergy_functions.Autosave_Silent);
+    pDynamicFastCallOneArgFunc(0);
+
+    savegame_autosave = false;
+
+    functions.CleanupDeleteList(0);
+    
+    saved_game_once = true;
 }
 
 void FixCars()

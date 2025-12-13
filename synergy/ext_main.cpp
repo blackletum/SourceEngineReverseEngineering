@@ -85,6 +85,8 @@ bool InitExtension()
     savegame = false;
     savegame_internal = false;
     savegame_autosave = false;
+    saved_game_once = false;
+    disable_player_restore = false;
 
     save_player_vehicles_list = AllocateValuesList();
 
@@ -197,7 +199,7 @@ bool InitExtension()
     synergy_functions.CNPC_RollerMine_InputJoltVehicle = (pOneArgProt)(server_srv + 0x00B3AF40);
     synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv + 0x00851A40);
     synergy_functions.PrepForLevelTransition = (pOneArgProt)(server_srv + 0x0078B160);
-    synergy_functions.LoadGameState = (pThreeArgProt)(server_srv + 0x00BE78C0);
+    synergy_functions.Restore = (pTwoArgProt)(server_srv + 0x00BE01A0);
 
     PopulateHookExclusionLists();
 
@@ -320,6 +322,7 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)functions.ClearAllEntities, (void*)HooksUtil::GlobalEntityListClear);
     HookFunction(server_srv, server_srv_size, (void*)functions.SpawnPlayer, (void*)HooksUtil::PlayerSpawnHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
 }
 
 uint32_t HooksSynergy::PrepForLevelTransitionHook(uint32_t arg0)
@@ -446,6 +449,12 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
+    if(disable_player_restore)
+    {
+        rootconsole->ConsolePrint("Blocked RestorePlayer!");
+        return 0;
+    }
+
     if(!firstplayer_hasjoined)
     {
     }
@@ -504,25 +513,9 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     if(savegame)
     {
         rootconsole->ConsolePrint("Autosave created!");
-
-        save_frames = 0;
-
-        MakePlayersLeaveVehicles();
-        FixCars();
-
-        functions.CleanupDeleteList(0);
-
-        savegame_autosave = true;
-
-        pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(synergy_functions.Autosave_Silent);
-        pDynamicFastCallOneArgFunc(0);
-
-        savegame_autosave = false;
-
-        functions.CleanupDeleteList(0);
+        SaveGame_Extension();
 
         savegame = false;
-        saved_game_once = true;
     }
 
     EnterVehicles(save_player_vehicles_list);
@@ -541,19 +534,28 @@ uint32_t HooksSynergy::AutosaveHook(uint32_t arg0)
     return 0;
 }
 
-//not used
-uint32_t HooksSynergy::LoadGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
 {
-    pThreeArgProt pDynamicThreeArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
     if(saved_game_once)
     {
-        pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.LoadGameState);
-        return pDynamicThreeArgFunc(arg0, arg1, arg2);
+        pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.Restore);
+        return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    rootconsole->ConsolePrint("Skipped LoadGameState!");
-    return 0;
+    SaveGame_Extension();
+    rootconsole->ConsolePrint("Skipped Restore! (loaded current game back from save)");
+
+    disable_player_restore = true;
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.Restore);
+    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
+
+    disable_player_restore = false;
+
+    savegame = true;
+    return returnVal;
 }
 
 uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

@@ -37,7 +37,7 @@ typedef struct _synergy_game_functions {
     pOneArgProt CNPC_RollerMine_InputJoltVehicle = 0;
     pFourArgProt CSoundControllerImp_SoundChangeVolume = 0;
     pOneArgProt PrepForLevelTransition = 0;
-    pThreeArgProt LoadGameState = 0;
+    pTwoArgProt Restore = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;
@@ -54,6 +54,7 @@ extern bool savegame;
 extern bool savegame_autosave;
 extern bool savegame_internal;
 extern bool saved_game_once;
+extern bool disable_player_restore;
 
 extern ValueList save_player_vehicles_list;
 
@@ -68,5 +69,6 @@ void FixCars();
 uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle);
 void MakePlayersLeaveVehicles();
 void EnterVehicles(ValueList vehi_list);
+void SaveGame_Extension();
 
 #endif
