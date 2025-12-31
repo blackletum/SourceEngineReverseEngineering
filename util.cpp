@@ -108,15 +108,24 @@ void HookFunctionsUtil()
     HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
-void ResetEntityPosition(uint32_t object)
+void UpdateEntityPosition(uint32_t object, float x, float y, float z)
 {
-    Vector empty_vector;
     pFourArgProt pDynamicFourArgFunc;
 
     if(IsEntityValid(object))
     {
-        ZeroVector(object+offsets.origin_offset);
-        ZeroVector(object+offsets.abs_origin_offset);
+        Vector empty_vector;
+        Vector new_position;
+
+        new_position.x = x;
+        new_position.y = y;
+        new_position.z = z;
+
+        float* origin_vector = (float*)(object+offsets.origin_offset);
+        float* abs_origin_vector = (float*)(object+offsets.abs_origin_offset);
+
+        memcpy(origin_vector, &new_position, sizeof(float)*3);
+        memcpy(abs_origin_vector, &new_position, sizeof(float)*3);
 
         uint32_t vphysics_object = *(uint32_t*)(object+offsets.vphysics_object_offset);
     
@@ -124,7 +133,7 @@ void ResetEntityPosition(uint32_t object)
         {
             //SetPosition
             pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
-            pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
+            pDynamicFourArgFunc(vphysics_object, (uint32_t)&new_position, (uint32_t)&empty_vector, 1);
         }
     }
 }
@@ -525,7 +534,7 @@ uint32_t HooksUtil::RappelBehavior_GatherConditionsHook(uint32_t arg0)
 
         if(!IsEntityValid(enemy_entity))
         {
-            uint32_t player = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
+            uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
             if(IsEntityValid(player))
             {
@@ -790,7 +799,7 @@ uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
         rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity! replaced with worldspawn");
 
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
-        return pDynamicTwoArgFunc(arg0, functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn"));
+        return pDynamicTwoArgFunc(arg0, functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn"));
     }
 
     pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
@@ -829,20 +838,14 @@ uint32_t HooksUtil::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(IsEntityValid(arg0))
+    if(IsVphysicsEntityBad(arg0))
     {
-        if(IsVphysicsEntityBad(arg0))
-        {
-            rootconsole->ConsolePrint("Removed BAD physics entity!");
-            HandleSpecificEntityRemoval(arg0, true, true, true, true);
-        }
-
-        pDynamicTwoArgFunc = (pTwoArgProt)(functions.VPhysicsUpdate);
-        return pDynamicTwoArgFunc(arg0, arg1);
+        rootconsole->ConsolePrint("Removed BAD physics entity!");
+        HandleSpecificEntityRemoval(arg0, true, true, true, true);
     }
 
-    rootconsole->ConsolePrint("Entity was invalid in vphysics update!");
-    return 0;
+    pDynamicTwoArgFunc = (pTwoArgProt)(functions.VPhysicsUpdate);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
@@ -874,32 +877,7 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(arg0 == 0)
-    {
-        rootconsole->ConsolePrint("Passed NULL simulation entity!");
-        exit(EXIT_FAILURE);
-        return 0;
-    }
-    else if(functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player") == 0)
-    {
-        if(firstplayer_hasjoined)
-        {
-            //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
-            return 0;
-        }
-    }
-
-    uint32_t sim_ent_ref = *(uint32_t*)(arg0+offsets.refhandle_offset);
-    uint32_t object_check = GetCBaseEntity(sim_ent_ref);
-
-    if(object_check == 0)
-    {
-        rootconsole->ConsolePrint("Passed in non-existant simulation entity!");
-        exit(EXIT_FAILURE);
-        return 0;
-    }
-
-    char* clsname =  (char*) ( *(uint32_t*)(arg0+offsets.classname_offset) );
+    char* clsname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
     if(IsMarkedForDeletion(arg0+offsets.iserver_offset))
     {
@@ -966,7 +944,7 @@ uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname)
 
     uint32_t ent = 0;
 
-    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(fields.gEntList, ent, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(ent))
         {
@@ -1662,14 +1640,14 @@ void RestoreMemoryProtections()
     }
 }
 
-void ZeroVector(uint32_t vector)
+inline void ZeroVector(uint32_t vector)
 {
     *(float*)(vector) = 0;
     *(float*)(vector+4) = 0;
     *(float*)(vector+8) = 0;
 }
 
-bool IsVectorNaN(uint32_t base)
+inline bool IsVectorNaN(uint32_t base)
 {
     float s0 = *(float*)(base);
     float s1 = *(float*)(base+4);
@@ -1678,7 +1656,7 @@ bool IsVectorNaN(uint32_t base)
     return (s0 != s0) || (s1 != s1) || (s2 != s2);
 }
 
-bool IsVectorInf(uint32_t base)
+inline bool IsVectorInf(uint32_t base)
 {
     float s0 = *(float*)(base);
     float s1 = *(float*)(base+4);
@@ -1690,13 +1668,13 @@ bool IsVectorInf(uint32_t base)
 }
 
 
-bool IsValidVector(uint32_t base)
+inline bool IsValidVector(uint32_t base)
 {
     if(IsVectorNaN(base) || IsVectorInf(base)) return false;
     return true;
 }
 
-bool IsEntityPositionReasonable(uint32_t v)
+inline bool IsEntityPositionReasonable(uint32_t v)
 {
     float x = *(float*)(v);
     float y = *(float*)(v+4);
@@ -1721,7 +1699,7 @@ void UpdatePlayerCollisions()
 
     uint32_t entity = 0;
 
-    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"player")) != 0)
+    while((entity = functions.FindEntityByClassname(fields.gEntList, entity, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(entity))
         {
@@ -1745,7 +1723,7 @@ void UpdateOtherCollisions()
 
     uint32_t entity = 0;
 
-    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
+    while((entity = functions.FindEntityByClassname(fields.gEntList, entity, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(entity))
         {
@@ -1774,7 +1752,7 @@ void UpdateAllCollisions(bool cleanup)
 
     uint32_t entity = 0;
 
-    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"*")) != 0)
+    while((entity = functions.FindEntityByClassname(fields.gEntList, entity, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(entity))
         {
@@ -1812,7 +1790,7 @@ void UpdateCollisions(bool flush)
 
 void SetServerSleepStatus()
 {
-    uint32_t firstPlayer = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
+    uint32_t firstPlayer = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
     if(!IsEntityValid(firstPlayer))
     {
@@ -1828,7 +1806,7 @@ void FixPlayerCollisionGroup()
 {
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.gEntList, player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(player))
         {
@@ -1849,10 +1827,10 @@ void FixPlayerCollisionGroup()
 
 void DisablePlayerWorldSpawnCollision()
 {
-    uint32_t worldspawn = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
+    uint32_t worldspawn = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn");
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.gEntList, player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(worldspawn) && IsEntityValid(player))
         {
@@ -1885,13 +1863,13 @@ void DisablePlayerCollisions()
 {
     uint32_t current_player = 0;
 
-    while((current_player = functions.FindEntityByClassname(fields.CGlobalEntityList, current_player, (uint32_t)"player")) != 0)
+    while((current_player = functions.FindEntityByClassname(fields.gEntList, current_player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(current_player))
         {
             uint32_t other_players = 0;
 
-            while((other_players = functions.FindEntityByClassname(fields.CGlobalEntityList, other_players, (uint32_t)"player")) != 0)
+            while((other_players = functions.FindEntityByClassname(fields.gEntList, other_players, (uint32_t)"player")) != 0)
             {
                 if(IsEntityValid(other_players) && other_players != current_player)
                 {
@@ -1909,7 +1887,7 @@ void RemoveBadEnts()
 
     uint32_t ent = 0;
 
-    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(fields.gEntList, ent, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(ent))
         {
@@ -1986,12 +1964,12 @@ bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player)
     else                return false;
 }
 
-bool IsMarkedForDeletion(uint32_t arg0)
+inline bool IsMarkedForDeletion(uint32_t arg0)
 {
     return *(uint32_t*)(*(uint32_t*)(arg0 + 8) + offsets.ismarked_offset) & 1;
 }
 
-uint32_t IsEntityValid(uint32_t entity)
+inline uint32_t IsEntityValid(uint32_t entity)
 {
     pOneArgProt pDynamicOneArgFunc;
     if(entity == 0) return entity;
@@ -2354,7 +2332,7 @@ void RemoveHl2Ragdolls()
 {
     uint32_t entity = 0;
 
-    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"hl2mp_ragdoll")) != 0)
+    while((entity = functions.FindEntityByClassname(fields.gEntList, entity, (uint32_t)"hl2mp_ragdoll")) != 0)
     {
         if(IsEntityValid(entity))
         {
@@ -2368,7 +2346,7 @@ void TeleportPlayersToTransition()
 {
     uint32_t entity = 0;
 
-    while((entity = functions.FindEntityByClassname(fields.CGlobalEntityList, entity, (uint32_t)"player")) != 0)
+    while((entity = functions.FindEntityByClassname(fields.gEntList, entity, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(entity))
         {
@@ -2376,12 +2354,13 @@ void TeleportPlayersToTransition()
 
             if(!IsValueInArrayList(transitioned_clients, player_check_ref))
             {
-                float* abs_origin_player = (float*)(entity+offsets.abs_origin_offset);
-                float* origin_player = (float*)(entity+offsets.origin_offset);
+                if(transitioning_player[0] == 0 && transitioning_player[1] == 0 && transitioning_player[2] == 0)
+                {
+                    rootconsole->ConsolePrint("Transition position not set, cannot teleport player!");
+                    continue;
+                }
 
-                memcpy(abs_origin_player, transitioning_player, sizeof(float) * 3);
-                memcpy(origin_player, transitioning_player, sizeof(float) * 3);
-
+                UpdateEntityPosition(entity, transitioning_player[0], transitioning_player[1], transitioning_player[2]);
                 rootconsole->ConsolePrint("Teleported player to transition!");
             }
         }

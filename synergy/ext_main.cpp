@@ -2,9 +2,10 @@
 
 #include "extension.h"
 #include "util.h"
-#include "core.h"
-#include "ext_main.h"
-#include "hooks_specific.h"
+
+#include "synergy/core.h"
+#include "synergy/ext_main.h"
+#include "synergy/hooks_specific.h"
 
 void DeinitExtension()
 {
@@ -95,7 +96,7 @@ bool InitExtension()
 
     synergy_fields.m_sbStaticPoseParamsLoadedDropship = server_srv + 0x00F6E854;
 
-    fields.CGlobalEntityList = server_srv + 0x00EAB6DC;
+    fields.gEntList = server_srv + 0x00EAB6DC;
     fields.RemoveImmediateSemaphore = server_srv + 0x00F3BDD0;
     fields.g_EventQueue = server_srv + 0x00EA2690;
     fields.modelinfo = server_srv + 0x00EC7580;
@@ -146,6 +147,7 @@ bool InitExtension()
     functions.GetPlayerUserId = (pTwoArgProt)(engine_srv + 0x0030D5D0);
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x002E5410);
     functions.host_changelevel = (pThreeArgProt)(engine_srv + 0x002684B0);
+    functions.LevelChangedSnap = (pOneArgProt)(engine_srv + 0x002D98B0);
 
     functions.ServiceEvents = (pOneArgProt)(server_srv + 0x00607B40);
     functions.InvokePerFrameMethodFastCall = (pTwoArgProtFastCall)(server_srv + 0x006E6400);
@@ -224,16 +226,18 @@ void ApplyPatches()
 {
     uint32_t offset = 0;
 
-    uint32_t hook_dedicated_vpk_malloc = dedicated_srv + 0x000C81D4;
-    offset = (uint32_t)HooksUtil::VpkCacheBufferAllocHook - hook_dedicated_vpk_malloc - 5;
-    *(uint32_t*)(hook_dedicated_vpk_malloc+1) = offset;
+    uint32_t patch_vpk_cache_allocation = dedicated_srv + 0x000C81CD;
+    memset((void*)patch_vpk_cache_allocation, 0x90, 0xC);
 
-    uint32_t patch_stack_vpk_cache_allocation = dedicated_srv + 0x000C81CD;
-    memset((void*)patch_stack_vpk_cache_allocation, 0x90, 7);
+    //esi
+    *(uint8_t*)(patch_vpk_cache_allocation) = 0x89;
+    *(uint8_t*)(patch_vpk_cache_allocation+1) = 0x34;
+    *(uint8_t*)(patch_vpk_cache_allocation+2) = 0x24;
 
-    *(uint8_t*)(patch_stack_vpk_cache_allocation) = 0x89;
-    *(uint8_t*)(patch_stack_vpk_cache_allocation+1) = 0x34;
-    *(uint8_t*)(patch_stack_vpk_cache_allocation+2) = 0x24;
+    patch_vpk_cache_allocation = patch_vpk_cache_allocation + 3;
+    offset = (uint32_t)HooksUtil::VpkCacheBufferAllocHook - patch_vpk_cache_allocation - 5;
+    *(uint8_t*)(patch_vpk_cache_allocation) = 0xE8;
+    *(uint32_t*)(patch_vpk_cache_allocation+1) = offset;
 
     uint32_t force_jump_vpk_allocation = dedicated_srv + 0x000C80B3;
     memset((void*)force_jump_vpk_allocation, 0x90, 6);
@@ -297,6 +301,9 @@ void ApplyPatches()
     uint32_t patch_player_restore = server_srv + 0x00BDD1EC;
     memset((void*)patch_player_restore, 0x90, 0x26);
 
+    uint32_t fix_save_transition = server_srv + 0x00BE597F;
+    *(uint8_t*)(fix_save_transition) = 0xEB;
+
     uint32_t patch_player_transition = server_srv + 0x00885EF1;
     offset = (uint32_t)HooksSynergy::PrepForLevelTransitionHook - patch_player_transition - 5;
     *(uint32_t*)(patch_player_transition+1) = offset;
@@ -313,16 +320,29 @@ void HookFunctions()
     HookFunction(server_srv, server_srv_size, (void*)synergy_functions.RestorePlayer, (void*)HooksSynergy::RestorePlayerHook);
     HookFunction(server_srv, server_srv_size, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
     HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
+    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
+
     HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 
+    HookFunction(engine_srv, engine_srv_size, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
     HookFunction(engine_srv, engine_srv_size, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
+
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormalDirect, (void*)HooksUtil::UTIL_RemoveHookFailsafe);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormal, (void*)HooksUtil::UTIL_RemoveBaseHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.RemoveInsta, (void*)HooksUtil::HookInstaKill);
     HookFunction(server_srv, server_srv_size, (void*)functions.ClearAllEntities, (void*)HooksUtil::GlobalEntityListClear);
     HookFunction(server_srv, server_srv_size, (void*)functions.SpawnPlayer, (void*)HooksUtil::PlayerSpawnHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
+}
+
+uint32_t HooksUtil::LevelChangedSnapHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    
+    ReleaseLeakedPackedEntities(arg0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.LevelChangedSnap);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksSynergy::PrepForLevelTransitionHook(uint32_t arg0)
@@ -368,6 +388,7 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
     functions.CleanupDeleteList(0);
 
     ZeroArrayList(transitioned_clients);
+    memset(transitioning_player, 0, sizeof(transitioning_player));
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.host_changelevel);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -477,6 +498,15 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     if(save_frames > 10000) save_frames = 10000;
 
     isTicking = true;
+
+    if(functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player") == 0)
+    {
+        if(firstplayer_hasjoined)
+        {
+            //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
+            return 0;
+        }
+    }
 
     SetServerSleepStatus();
     RemoveBadEnts();

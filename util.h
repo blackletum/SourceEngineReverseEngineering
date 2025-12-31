@@ -61,10 +61,11 @@ public:
 	static uint32_t host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t AiSelectScheduleHook(uint32_t arg0);
 	static uint32_t RappelBehavior_GatherConditionsHook(uint32_t arg0);
+	static uint32_t LevelChangedSnapHook(uint32_t arg0);
 };
 
 typedef struct _game_fields {
-	uint32_t CGlobalEntityList = 0;
+	uint32_t gEntList = 0;
 	uint32_t sv = 0;
 	uint32_t RemoveImmediateSemaphore = 0;
 	uint32_t sv_cheats_cvar = 0;
@@ -130,6 +131,8 @@ typedef struct _game_functions {
 	pTwoArgProtFastCall InvokePerFrameMethodFastCall = 0;
 	pTwoArgProtRegParm InvokeMethodReverseOrderRegParm = 0;
 	pTwoArgProtRegParm InvokePerFrameMethodRegParm = 0;
+	pZeroArgProt PreSystemsThink = 0;
+	pZeroArgProt PostSystemsThink = 0;
 	pOneArgProt ServiceEvents = 0;
 	pOneArgProt Physics_RunThinkFunctions = 0;
 	pTwoArgProt SetOwnerEntity = 0;
@@ -148,6 +151,7 @@ typedef struct _game_functions {
 	pOneArgProt MakeDormant = 0;
 	pOneArgProt RappelBehavior_GatherConditions;
 	Error EngineError = 0;
+	pOneArgProt LevelChangedSnap = 0;
 } game_functions;
 
 typedef struct _Signature {
@@ -286,7 +290,7 @@ int GetEarliestClients();
 bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player);
 void CorrectVphysicsEntity(uint32_t ent);
 bool IsVphysicsEntityBad(uint32_t ent);
-void ResetEntityPosition(uint32_t object);
+void UpdateEntityPosition(uint32_t object, float x, float y, float z);
 bool IsAllowedToFakeUserId(int userid_input);
 void ZeroArrayList(uint32_t* list);
 void InsertToArrayList(uint32_t* list, uint32_t value);

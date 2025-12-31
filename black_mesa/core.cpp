@@ -2,7 +2,8 @@
 
 #include "extension.h"
 #include "util.h"
-#include "core.h"
+
+#include "black_mesa/core.h"
 
 uint32_t last_ragdoll_gib;
 int ragdoll_breaking_gib_counter;
@@ -34,7 +35,7 @@ uint32_t GetCBaseEntity(uint32_t EHandle)
     uint32_t shift_right = EHandle >> 0x0D;
     uint32_t disassembly = EHandle & 0x1FFF;
     disassembly = disassembly << 0x4;
-    disassembly = fields.CGlobalEntityList + disassembly;
+    disassembly = fields.gEntList + disassembly;
 
     if( ((*(uint32_t*)(disassembly+0x08))) == shift_right)
     {
@@ -47,8 +48,8 @@ uint32_t GetCBaseEntity(uint32_t EHandle)
 
 void PopulateHookExclusionLists()
 {
-    hook_exclude_list_base[0] = server_srv;
-    hook_exclude_list_offset[0] = 0x00A92201;
+    hook_exclude_list_base[0] = vphysics_srv;
+    hook_exclude_list_offset[0] = 0x00139EA5;
 }
 
 void CheckForLocation()
@@ -63,7 +64,7 @@ void CheckForLocation()
 
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.gEntList, player, (uint32_t)"player")) != 0)
     {
         bool in_area = false;
         uint32_t player_abs = player+0x294;
@@ -108,6 +109,11 @@ void CheckForLocation()
     }
 }
 
+void ExtensionUpdateOnRemove(uint32_t arg0)
+{
+    
+}
+
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server)
 {
     pThreeArgProt pDynamicThreeArgFunc;
@@ -124,7 +130,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
             if(isTicking && slow)
             {
                 rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
-                ResetEntityPosition(object);
+                UpdateEntityPosition(object, 0, 0, 0);
                 return;
             }
         }

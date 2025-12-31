@@ -15,6 +15,8 @@ public:
 	static uint32_t CNihiBallzDestructor(uint32_t arg0);
 	static uint32_t InputApplySettingsHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t LaunchMortarHook(uint32_t arg0);
+	static uint32_t CXenShieldController_UpdateOnRemoveHook(uint32_t arg0);
+	static uint32_t ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 };
 
 #endif

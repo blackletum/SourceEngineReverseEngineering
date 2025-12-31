@@ -2,8 +2,8 @@
 
 #include "extension.h"
 #include "util.h"
-#include "core.h"
-#include "ext_main.h"
+
+#include "synergy/core.h"
 
 synergy_game_fields synergy_fields;
 synergy_game_offsets synergy_offsets;
@@ -76,7 +76,7 @@ void PopulateHookExclusionLists()
 
 uint32_t GetCBaseEntity(uint32_t EHandle)
 {
-    uint32_t EntityList = fields.CGlobalEntityList;
+    uint32_t EntityList = fields.gEntList;
     uint32_t refHandle = (EHandle & 0xFFF) << 4;
 
     EHandle = EHandle >> 0x0C;
@@ -138,6 +138,31 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
     return total_items;
 }
 
+void ReleaseLeakedPackedEntities(uint32_t snapManager)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    int freed_leaks = 0;
+
+    for(int i = 0; i < 2048; i++)
+    {
+        //rootconsole->ConsolePrint("trying [%d] ent", i);
+        uint32_t computed_ref = *(uint32_t*)(snapManager+i*4+0x70);
+
+        if(computed_ref != 0)
+        {
+            //RemoveEntityReference
+            pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x002DA520);
+            pDynamicTwoArgFunc(snapManager, computed_ref);
+
+            *(uint32_t*)(snapManager+i*4+0x70) = 0;
+            freed_leaks++;
+        }
+    }
+
+    rootconsole->ConsolePrint("Purged [%d] packed ents!", freed_leaks);
+}
+
 void ExtensionUpdateOnRemove(uint32_t arg0)
 {
     Vector emptyVector;
@@ -175,7 +200,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
                 pDynamicThreeArgFunc(object, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
     
-                ResetEntityPosition(object);
+                UpdateEntityPosition(object, 0, 0, 0);
     
                 emptyVector.x = 0;
                 emptyVector.y = 0;
@@ -185,7 +210,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
                 pDynamicThreeArgFunc(object, (uint32_t)&emptyVector, (uint32_t)&emptyVector);
 
-                ResetEntityPosition(object);
+                UpdateEntityPosition(object, 0, 0, 0);
                 return;
             }
         }
@@ -239,7 +264,7 @@ void FixCars()
 {
     uint32_t mainEnt = 0;
 
-    while((mainEnt = functions.FindEntityByClassname(fields.CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+    while((mainEnt = functions.FindEntityByClassname(fields.gEntList, mainEnt, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(mainEnt))
         {
@@ -320,7 +345,7 @@ void MakePlayersLeaveVehicles()
 
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.gEntList, player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(player))
         {

@@ -70,5 +70,6 @@ uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle);
 void MakePlayersLeaveVehicles();
 void EnterVehicles(ValueList vehi_list);
 void SaveGame_Extension();
+void ReleaseLeakedPackedEntities(uint32_t snapManager);
 
 #endif

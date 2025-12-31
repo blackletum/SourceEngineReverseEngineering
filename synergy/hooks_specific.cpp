@@ -2,8 +2,9 @@
 
 #include "extension.h"
 #include "util.h"
-#include "core.h"
-#include "hooks_specific.h"
+
+#include "synergy/core.h"
+#include "synergy/hooks_specific.h"
 
 void ApplyPatchesSpecific()
 {
@@ -83,7 +84,7 @@ uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
     {
         //rootconsole->ConsolePrint("UTIL_GetPlayerMP failed!");
 
-        uint32_t player = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
+        uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
         if(IsEntityValid(player))
         {
@@ -92,7 +93,7 @@ uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
         }
 
         //rootconsole->ConsolePrint("Returned worldspawn!");
-        return functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
+        return functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn");
     }
 
     return returnVal;
