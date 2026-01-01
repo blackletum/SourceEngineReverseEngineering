@@ -12,19 +12,19 @@ typedef struct _black_mesa_game_offsets {
 } black_mesa_game_offsets;
 
 typedef struct _black_mesa_game_functions {
-    pThreeArgProt RagdollBreak;
-    pOneArgProt CXenShieldController_UpdateOnRemove;
-    pOneArgProt UTIL_GetLocalPlayer;
-    pSevenArgProt TestGroundMove;
-    pThreeArgProt ShouldHitEntity;
-    pOneArgProt LaunchMortar;
-    pTwoArgProt InputSetCSMVolume;
-    pTwoArgProt InputApplySettings;
-    pOneArgProt CNihiBallzDestructor;
-    pTwoArgProt EnumElement;
-    pTwoArgProt TakeDamage;
-    pTwoArgProt CPropHevCharger_ShouldApplyEffect;
-    pTwoArgProt CPropRadiationCharger_ShouldApplyEffect;
+    pThreeArgProt RagdollBreak = 0;
+    pOneArgProt CXenShieldController_UpdateOnRemove = 0;
+    pOneArgProt UTIL_GetLocalPlayer = 0;
+    pSevenArgProt TestGroundMove = 0;
+    pThreeArgProt ShouldHitEntity = 0;
+    pOneArgProt LaunchMortar = 0;
+    pTwoArgProt InputSetCSMVolume = 0;
+    pTwoArgProt InputApplySettings = 0;
+    pOneArgProt CNihiBallzDestructor = 0;
+    pTwoArgProt EnumElement = 0;
+    pTwoArgProt TakeDamage = 0;
+    pTwoArgProt CPropHevCharger_ShouldApplyEffect = 0;
+    pTwoArgProt CPropRadiationCharger_ShouldApplyEffect = 0;
 } black_mesa_game_functions;
 
 extern black_mesa_game_fields black_mesa_fields;

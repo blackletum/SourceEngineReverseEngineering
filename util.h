@@ -67,7 +67,6 @@ public:
 typedef struct _game_fields {
 	uint32_t gEntList = 0;
 	uint32_t sv = 0;
-	uint32_t RemoveImmediateSemaphore = 0;
 	uint32_t sv_cheats_cvar = 0;
 	uint32_t deferMindist = 0;
 	uint32_t modelinfo = 0;
@@ -149,9 +148,10 @@ typedef struct _game_functions {
 	pOneArgProt AiSelectSchedule = 0;
 	pOneArgProt AiCleanupOnDeath = 0;
 	pOneArgProt MakeDormant = 0;
-	pOneArgProt RappelBehavior_GatherConditions;
+	pOneArgProt RappelBehavior_GatherConditions = 0;
 	Error EngineError = 0;
 	pOneArgProt LevelChangedSnap = 0;
+	pTwoArgProt RemoveEntitySnapReference = 0;
 } game_functions;
 
 typedef struct _Signature {

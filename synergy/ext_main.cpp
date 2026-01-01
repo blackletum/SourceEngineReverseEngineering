@@ -97,7 +97,6 @@ bool InitExtension()
     synergy_fields.m_sbStaticPoseParamsLoadedDropship = server_srv + 0x00F6E854;
 
     fields.gEntList = server_srv + 0x00EAB6DC;
-    fields.RemoveImmediateSemaphore = server_srv + 0x00F3BDD0;
     fields.g_EventQueue = server_srv + 0x00EA2690;
     fields.modelinfo = server_srv + 0x00EC7580;
     fields.g_DeleteList = server_srv + 0x00EA95C0+0x0C;
@@ -148,6 +147,7 @@ bool InitExtension()
     functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv + 0x002E5410);
     functions.host_changelevel = (pThreeArgProt)(engine_srv + 0x002684B0);
     functions.LevelChangedSnap = (pOneArgProt)(engine_srv + 0x002D98B0);
+    functions.RemoveEntitySnapReference = (pTwoArgProt)(engine_srv + 0x002DA520);
 
     functions.ServiceEvents = (pOneArgProt)(server_srv + 0x00607B40);
     functions.InvokePerFrameMethodFastCall = (pTwoArgProtFastCall)(server_srv + 0x006E6400);
@@ -540,7 +540,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    if(savegame)
+    if(savegame && save_frames > 1500)
     {
         rootconsole->ConsolePrint("Autosave created!");
         SaveGame_Extension();
@@ -671,6 +671,8 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
     isTicking = false;
     firstplayer_hasjoined = false;
     saved_game_once = false;
+
+    save_frames = 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ClearAllEntities);
     return pDynamicOneArgFunc(arg0);

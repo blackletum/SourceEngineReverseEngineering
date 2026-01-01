@@ -3,7 +3,7 @@
 #include "extension.h"
 #include "util.h"
 
-#include "black_mesa/core.h"
+#include "bms/core.h"
 
 uint32_t last_ragdoll_gib;
 int ragdoll_breaking_gib_counter;

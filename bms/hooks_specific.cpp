@@ -3,8 +3,8 @@
 #include "extension.h"
 #include "util.h"
 
-#include "black_mesa/core.h"
-#include "black_mesa/hooks_specific.h"
+#include "bms/core.h"
+#include "bms/hooks_specific.h"
 
 void ApplyPatchesSpecific()
 {

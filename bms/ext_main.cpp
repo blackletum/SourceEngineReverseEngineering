@@ -3,9 +3,9 @@
 #include "extension.h"
 #include "util.h"
 
-#include "black_mesa/core.h"
-#include "black_mesa/ext_main.h"
-#include "black_mesa/hooks_specific.h"
+#include "bms/core.h"
+#include "bms/ext_main.h"
+#include "bms/hooks_specific.h"
 
 void DeinitExtension()
 {

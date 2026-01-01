@@ -151,8 +151,7 @@ void ReleaseLeakedPackedEntities(uint32_t snapManager)
 
         if(computed_ref != 0)
         {
-            //RemoveEntityReference
-            pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x002DA520);
+            pDynamicTwoArgFunc = (pTwoArgProt)(functions.RemoveEntitySnapReference);
             pDynamicTwoArgFunc(snapManager, computed_ref);
 
             *(uint32_t*)(snapManager+i*4+0x70) = 0;
