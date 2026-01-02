@@ -152,6 +152,8 @@ typedef struct _game_functions {
 	Error EngineError = 0;
 	pOneArgProt LevelChangedSnap = 0;
 	pTwoArgProt RemoveEntitySnapReference = 0;
+	pTwoArgProt SetLocalOrigin = 0;
+	pTwoArgProt SetAbsOrigin = 0;
 } game_functions;
 
 typedef struct _Signature {

@@ -179,6 +179,8 @@ bool InitExtension()
     functions.AiCleanupOnDeath = (pOneArgProt)(server_srv + 0x004A3CA0);
     functions.MakeDormant = (pOneArgProt)(server_srv + 0x005B2820);
     functions.RappelBehavior_GatherConditions = (pOneArgProt)(server_srv + 0x004BBDD0);
+    functions.SetAbsOrigin = (pTwoArgProt)(server_srv + 0x005B0F70);
+    functions.SetLocalOrigin = (pTwoArgProt)(server_srv + 0x005B0E00);
     functions.EngineError = (Error)( (server_srv + 0x00700FB3) + (*(uint32_t*)(server_srv + 0x00700FB3+1)) + 5);
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);

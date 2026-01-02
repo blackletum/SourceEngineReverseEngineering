@@ -122,6 +122,8 @@ bool InitExtension()
     functions.DispatchAnimEvents = (pTwoArgProt)(server_srv + 0x005211C0);
     functions.CalcAbsolutePosition = (pOneArgProt)(server_srv + 0x0054B740);
     functions.VPhysicsUpdate = (pTwoArgProt)(server_srv + 0x002A5300);
+    functions.SetAbsOrigin = (pTwoArgProt)(server_srv + 0x0054E3D0);
+    functions.SetLocalOrigin = (pTwoArgProt)(server_srv + 0x0054FC10);
     
     black_mesa_functions.CXenShieldController_UpdateOnRemove = (pOneArgProt)(server_srv + 0x006827B0);
     black_mesa_functions.InputSetCSMVolume = (pTwoArgProt)(server_srv + 0x008781A0);

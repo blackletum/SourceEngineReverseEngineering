@@ -110,6 +110,7 @@ void HookFunctionsUtil()
 
 void UpdateEntityPosition(uint32_t object, float x, float y, float z)
 {
+    pTwoArgProt pDynamicTwoArgFunc;
     pFourArgProt pDynamicFourArgFunc;
 
     if(IsEntityValid(object))
@@ -121,12 +122,6 @@ void UpdateEntityPosition(uint32_t object, float x, float y, float z)
         new_position.y = y;
         new_position.z = z;
 
-        float* origin_vector = (float*)(object+offsets.origin_offset);
-        float* abs_origin_vector = (float*)(object+offsets.abs_origin_offset);
-
-        memcpy(origin_vector, &new_position, sizeof(float)*3);
-        memcpy(abs_origin_vector, &new_position, sizeof(float)*3);
-
         uint32_t vphysics_object = *(uint32_t*)(object+offsets.vphysics_object_offset);
     
         if(vphysics_object)
@@ -135,6 +130,14 @@ void UpdateEntityPosition(uint32_t object, float x, float y, float z)
             pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
             pDynamicFourArgFunc(vphysics_object, (uint32_t)&new_position, (uint32_t)&empty_vector, 1);
         }
+
+        //rootconsole->ConsolePrint("updated abs pos to %f %f %f", new_position.x, new_position.y, new_position.z);
+
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetAbsOrigin);
+        pDynamicTwoArgFunc(object, (uint32_t)&new_position);
+
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetLocalOrigin);
+        pDynamicTwoArgFunc(object, (uint32_t)&new_position);
     }
 }
 
