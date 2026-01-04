@@ -96,6 +96,7 @@ bool InitExtension()
     offsets.getposition_vphysics_offset = 0xC0;
     offsets.setposition_vphysics_offset = 0xB8;
     offsets.cbaseclient_userid_offset = 0x14;
+    offsets.enemy_offset = 0x9E8;
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000CA410);
     functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv + 0x000CE250);
@@ -124,6 +125,11 @@ bool InitExtension()
     functions.VPhysicsUpdate = (pTwoArgProt)(server_srv + 0x002A5300);
     functions.SetAbsOrigin = (pTwoArgProt)(server_srv + 0x0054E3D0);
     functions.SetLocalOrigin = (pTwoArgProt)(server_srv + 0x0054FC10);
+
+    functions.GetEnemy = (pOneArgProt)(server_srv + 0x0042AB80);
+    functions.GetEnemy2 = (pOneArgProt)(server_srv + 0x0042ABD0);
+
+    functions.SetEnemy = (pThreeArgProt)(server_srv + 0x00448540);
     
     black_mesa_functions.CXenShieldController_UpdateOnRemove = (pOneArgProt)(server_srv + 0x006827B0);
     black_mesa_functions.InputSetCSMVolume = (pTwoArgProt)(server_srv + 0x008781A0);
@@ -176,7 +182,7 @@ void ApplyPatches()
     *(uint8_t*)(phys_freeze_fix) = 0xEB;
 
     uint32_t hook_run_think_functions = server_srv + 0x008C6DF3;
-    offset = (uint32_t)HooksBlackMesa::SimulateEntitiesHook - hook_run_think_functions - 5;
+    offset = (uint32_t)HooksUtil::SimulateEntitiesHook - hook_run_think_functions - 5;
     *(uint32_t*)(hook_run_think_functions+1) = offset;
 
     uint32_t eventqueue_hook = server_srv + 0x008C6DFD;
@@ -286,23 +292,21 @@ uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
     return returnVal;
 }
 
-uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
+uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 {
     pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
 
     isTicking = true;
 
-    if(functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player") == 0)
+    SetServerSleepStatus();
+
+    if(server_sleeping)
     {
-        if(firstplayer_hasjoined)
-        {
-            //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
-            return 0;
-        }
+        //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
+        return 0;
     }
 
-    SetServerSleepStatus();
     RemoveBadEnts();
 
     UpdateCollisions(true);
@@ -310,26 +314,23 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
-    pDynamicOneArgFunc(arg0);
-
-    functions.CleanupDeleteList(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
-    pDynamicOneArgFunc(fields.g_EventQueue);
+    pDynamicOneArgFunc(simulating);
 
     functions.CleanupDeleteList(0);
 
     pDynamicZeroArgFunc = (pZeroArgProt)(functions.PreSystemsThink);
     pDynamicZeroArgFunc();
 
-    functions.CleanupDeleteList(0);
-
     pDynamicZeroArgFunc = (pZeroArgProt)(functions.PostSystemsThink);
     pDynamicZeroArgFunc();
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
+    pDynamicOneArgFunc(fields.g_EventQueue);
 
     functions.CleanupDeleteList(0);
 
     UpdateCollisions(true);
+    FixManualThink();
     CorrectPhysics();
 
     return 0;
@@ -401,6 +402,34 @@ uint32_t HooksUtil::PlayerSpawnHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.SpawnPlayer);
     return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t HooksUtil::SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
+
+    if(classname && strcmp(classname, "npc_nihilanth") == 0)
+    {
+        rootconsole->ConsolePrint("\nBlocked SetEnemy for npc_nihilanth\n");
+        return 0;
+    }
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(functions.SetEnemy);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
+uint32_t HooksUtil::GetEnemyHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.GetEnemy);
+    uint32_t enemy = pDynamicOneArgFunc(arg0);
+
+    //apply return address check here
+
+    return enemy;
 }
 
 // SE_BMS

@@ -98,7 +98,9 @@ void HookFunctionsUtil()
     HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.MakeDormant, (void*)HooksUtil::EmptyCall);
-    HookFunction(server_srv, server_srv_size, (void*)functions.RappelBehavior_GatherConditions, (void*)HooksUtil::RappelBehavior_GatherConditionsHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.GetEnemy, (void*)HooksUtil::GetEnemyHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.GetEnemy2, (void*)HooksUtil::GetEnemyHook);
+    HookFunction(server_srv, server_srv_size, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
     HookFunction(server_srv, server_srv_size, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
 
     HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
@@ -522,33 +524,6 @@ uint32_t HooksUtil::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t HooksUtil::EmptyCall()
 {
     return 0;
-}
-
-uint32_t HooksUtil::RappelBehavior_GatherConditionsHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    uint32_t chk = *(uint32_t*)(arg0+4);
-
-    if(chk)
-    {
-        uint32_t enemy_entity_ref = *(uint32_t*)(chk+offsets.enemy_offset);
-        uint32_t enemy_entity = GetCBaseEntity(enemy_entity_ref);
-
-        if(!IsEntityValid(enemy_entity))
-        {
-            uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
-
-            if(IsEntityValid(player))
-            {
-                rootconsole->ConsolePrint("Provided an enemy to a RappelBehavior because the original enemy was invalid!");
-                *(uint32_t*)(chk+offsets.enemy_offset) = *(uint32_t*)(player+offsets.refhandle_offset);
-            }
-        }
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(functions.RappelBehavior_GatherConditions);
-    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksUtil::AiSelectScheduleHook(uint32_t arg0)
@@ -1795,14 +1770,10 @@ void SetServerSleepStatus()
 {
     uint32_t firstPlayer = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
-    if(!IsEntityValid(firstPlayer))
-    {
-        server_sleeping = true;
-    }
-    else
-    {
+    if(firstPlayer)
         server_sleeping = false;
-    }
+    else if(firstplayer_hasjoined)
+        server_sleeping = true;
 }
 
 void FixPlayerCollisionGroup()

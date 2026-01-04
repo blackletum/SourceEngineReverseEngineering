@@ -60,7 +60,8 @@ public:
 	static uint32_t GlobalEntityListClear(uint32_t arg0);
 	static uint32_t host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t AiSelectScheduleHook(uint32_t arg0);
-	static uint32_t RappelBehavior_GatherConditionsHook(uint32_t arg0);
+	static uint32_t GetEnemyHook(uint32_t arg0);
+	static uint32_t SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t LevelChangedSnapHook(uint32_t arg0);
 };
 
@@ -148,12 +149,14 @@ typedef struct _game_functions {
 	pOneArgProt AiSelectSchedule = 0;
 	pOneArgProt AiCleanupOnDeath = 0;
 	pOneArgProt MakeDormant = 0;
-	pOneArgProt RappelBehavior_GatherConditions = 0;
 	Error EngineError = 0;
 	pOneArgProt LevelChangedSnap = 0;
 	pTwoArgProt RemoveEntitySnapReference = 0;
 	pTwoArgProt SetLocalOrigin = 0;
 	pTwoArgProt SetAbsOrigin = 0;
+	pOneArgProt GetEnemy = 0;
+	pOneArgProt GetEnemy2 = 0;
+	pThreeArgProt SetEnemy = 0;
 } game_functions;
 
 typedef struct _Signature {

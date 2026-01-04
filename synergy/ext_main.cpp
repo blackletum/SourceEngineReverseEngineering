@@ -178,9 +178,14 @@ bool InitExtension()
     functions.AiSelectSchedule = (pOneArgProt)(server_srv + 0x004A6910);
     functions.AiCleanupOnDeath = (pOneArgProt)(server_srv + 0x004A3CA0);
     functions.MakeDormant = (pOneArgProt)(server_srv + 0x005B2820);
-    functions.RappelBehavior_GatherConditions = (pOneArgProt)(server_srv + 0x004BBDD0);
     functions.SetAbsOrigin = (pTwoArgProt)(server_srv + 0x005B0F70);
     functions.SetLocalOrigin = (pTwoArgProt)(server_srv + 0x005B0E00);
+
+    functions.GetEnemy = (pOneArgProt)(server_srv + 0x0043B850);
+    functions.GetEnemy2 = (pOneArgProt)(server_srv + 0x0043B8F0);
+
+    
+
     functions.EngineError = (Error)( (server_srv + 0x00700FB3) + (*(uint32_t*)(server_srv + 0x00700FB3+1)) + 5);
 
     functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv + 0x000C4B70);
@@ -501,16 +506,14 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     isTicking = true;
 
-    if(functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player") == 0)
+    SetServerSleepStatus();
+
+    if(server_sleeping)
     {
-        if(firstplayer_hasjoined)
-        {
-            //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
-            return 0;
-        }
+        //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
+        return 0;
     }
 
-    SetServerSleepStatus();
     RemoveBadEnts();
 
     UpdateCollisions(true);
@@ -522,16 +525,9 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
-    pDynamicOneArgFunc(fields.g_EventQueue);
-
-    functions.CleanupDeleteList(0);
-
     //Presystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x3D, 0);
-
-    functions.CleanupDeleteList(0);
 
     //PostSystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
@@ -539,6 +535,9 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
+    pDynamicOneArgFunc(fields.g_EventQueue);
 
     functions.CleanupDeleteList(0);
 
@@ -587,6 +586,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
     disable_player_restore = false;
 
     savegame = true;
+    savegame_frames = 2000;
     return returnVal;
 }
 
@@ -720,6 +720,41 @@ uint32_t HooksUtil::PlayerSpawnHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.SpawnPlayer);
     return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t HooksUtil::SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    char* classname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(functions.SetEnemy);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
+uint32_t HooksUtil::GetEnemyHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.GetEnemy);
+    uint32_t enemy = pDynamicOneArgFunc(arg0);
+
+    if(!enemy)
+    {
+        if((uint32_t)__builtin_return_address(0) == (server_srv + 0x004BBE8B))
+        {
+            rootconsole->ConsolePrint("GetEnemy returned NULL");
+
+            uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
+
+            if(IsEntityValid(player))
+                return player;
+            
+            return functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn");
+        }
+    }
+
+    return enemy;
 }
 
 // SE_SDK2013

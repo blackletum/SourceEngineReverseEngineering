@@ -14,7 +14,7 @@ typedef struct _black_mesa_game_offsets {
 typedef struct _black_mesa_game_functions {
     pThreeArgProt RagdollBreak = 0;
     pOneArgProt CXenShieldController_UpdateOnRemove = 0;
-    pOneArgProt UTIL_GetLocalPlayer = 0;
+    pZeroArgProt UTIL_GetLocalPlayer = 0;
     pSevenArgProt TestGroundMove = 0;
     pThreeArgProt ShouldHitEntity = 0;
     pOneArgProt LaunchMortar = 0;
@@ -40,6 +40,7 @@ void PopulateHookExclusionLists();
 uint32_t GetCBaseEntity(uint32_t EHandle);
 
 void CheckForLocation();
+void FixManualThink();
 void ExtensionUpdateOnRemove(uint32_t arg0);
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);
 

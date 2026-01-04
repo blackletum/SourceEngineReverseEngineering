@@ -87,12 +87,8 @@ uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
         uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
         if(IsEntityValid(player))
-        {
-            //rootconsole->ConsolePrint("Returned valid player!");
             return player;
-        }
-
-        //rootconsole->ConsolePrint("Returned worldspawn!");
+        
         return functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn");
     }
 
