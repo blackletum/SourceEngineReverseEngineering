@@ -586,7 +586,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
     disable_player_restore = false;
 
     savegame = true;
-    savegame_frames = 2000;
+    save_frames = 2000;
     return returnVal;
 }
 
