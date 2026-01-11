@@ -404,7 +404,7 @@ bool IsVphysicsEntityBad(uint32_t ent)
 
             //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
 
-            if(!IsEntityPositionReasonable((uint32_t)&current_origin) || !IsEntityPositionReasonable((uint32_t)&current_angles))
+            if(!IsEntityPositionReasonable((uint32_t)&current_origin))
             {
                 return true;
             }

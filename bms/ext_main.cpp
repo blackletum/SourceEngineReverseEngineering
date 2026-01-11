@@ -330,7 +330,6 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     functions.CleanupDeleteList(0);
 
     UpdateCollisions(true);
-    FixManualThink();
     CorrectPhysics();
 
     return 0;

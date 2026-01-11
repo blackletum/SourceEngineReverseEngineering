@@ -52,48 +52,6 @@ void PopulateHookExclusionLists()
     hook_exclude_list_offset[0] = 0x00139EA5;
 }
 
-void FixManualThink()
-{
-    uint32_t entity = 0;
-
-    while((entity = functions.FindEntityByClassname(fields.gEntList, entity, (uint32_t)"*")) != 0)
-    {
-        if(IsEntityValid(entity))
-        {
-            char* classname = (char*)(*(uint32_t*)(entity+offsets.classname_offset));
-
-            if(classname && strcmp(classname, "npc_nihilanth") == 0)
-            {
-                uint32_t enemy_entity_ref = *(uint32_t*)(entity+offsets.enemy_offset);
-                uint32_t enemy_entity = GetCBaseEntity(enemy_entity_ref);
-
-                if(!IsEntityValid(enemy_entity))
-                {
-                    rootconsole->ConsolePrint("\n\nFixed nihilanth enemy!\n\n");
-
-                    uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
-
-                    if(IsEntityValid(player))
-                    {
-                        rootconsole->ConsolePrint("Found player to set as nihilanth enemy!");
-                        *(uint32_t*)(entity+offsets.enemy_offset) = *(uint32_t*)(player+offsets.refhandle_offset);
-                        continue;
-                    }
-                    
-                    uint32_t worldspawn = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn");
-
-                    if(worldspawn)
-                    {
-                        rootconsole->ConsolePrint("Setting worldspawn as nihilanth enemy!");
-                        *(uint32_t*)(entity+offsets.enemy_offset) = *(uint32_t*)(worldspawn+offsets.refhandle_offset);
-                        continue;
-                    }
-                }
-            }
-        }
-    }
-}
-
 void CheckForLocation()
 {
     uint32_t current_map = fields.sv+offsets.current_map_offset;
