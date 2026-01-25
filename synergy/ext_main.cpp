@@ -520,14 +520,11 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
-    pDynamicOneArgFunc(simulating);
-
-    functions.CleanupDeleteList(0);
-
     //Presystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x3D, 0);
+
+    functions.CleanupDeleteList(0);
 
     //PostSystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
@@ -535,6 +532,13 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x41, 0);
+
+    functions.CleanupDeleteList(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
+    pDynamicOneArgFunc(simulating);
+
+    functions.CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);

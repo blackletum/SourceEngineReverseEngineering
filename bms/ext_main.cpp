@@ -313,16 +313,20 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
+    pDynamicZeroArgFunc = (pZeroArgProt)(functions.PreSystemsThink);
+    pDynamicZeroArgFunc();
+
+    functions.CleanupDeleteList(0);
+
+    pDynamicZeroArgFunc = (pZeroArgProt)(functions.PostSystemsThink);
+    pDynamicZeroArgFunc();
+
+    functions.CleanupDeleteList(0);
+
     pDynamicOneArgFunc = (pOneArgProt)(functions.Physics_RunThinkFunctions);
     pDynamicOneArgFunc(simulating);
 
     functions.CleanupDeleteList(0);
-
-    pDynamicZeroArgFunc = (pZeroArgProt)(functions.PreSystemsThink);
-    pDynamicZeroArgFunc();
-
-    pDynamicZeroArgFunc = (pZeroArgProt)(functions.PostSystemsThink);
-    pDynamicZeroArgFunc();
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
