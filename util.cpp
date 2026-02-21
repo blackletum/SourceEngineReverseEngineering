@@ -1750,6 +1750,8 @@ void UpdateAllCollisions(bool cleanup)
 
 void UpdateCollisions(bool flush)
 {
+    functions.CleanupDeleteList(0);
+
     Value* first_ivp = *ivp_list;
 
     while(first_ivp)
@@ -1764,6 +1766,8 @@ void UpdateCollisions(bool flush)
     }
 
     if(flush) *ivp_list = NULL;
+
+    functions.CleanupDeleteList(0);
 }
 
 void SetServerSleepStatus()

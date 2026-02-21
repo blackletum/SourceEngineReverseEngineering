@@ -299,7 +299,12 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     isTicking = true;
 
+    RemoveBadEnts();
+
     SetServerSleepStatus();
+    CorrectPhysics();
+
+    UpdateCollisions(true);
 
     if(server_sleeping)
     {
@@ -307,18 +312,9 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         return 0;
     }
 
-    RemoveBadEnts();
-
-    UpdateCollisions(true);
-
     functions.CleanupDeleteList(0);
 
     pDynamicZeroArgFunc = (pZeroArgProt)(functions.PreSystemsThink);
-    pDynamicZeroArgFunc();
-
-    functions.CleanupDeleteList(0);
-
-    pDynamicZeroArgFunc = (pZeroArgProt)(functions.PostSystemsThink);
     pDynamicZeroArgFunc();
 
     functions.CleanupDeleteList(0);
@@ -331,10 +327,12 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true);
+
+    pDynamicZeroArgFunc = (pZeroArgProt)(functions.PostSystemsThink);
+    pDynamicZeroArgFunc();
 
     UpdateCollisions(true);
-    CorrectPhysics();
 
     return 0;
 }

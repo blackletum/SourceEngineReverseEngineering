@@ -506,7 +506,14 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     isTicking = true;
 
+    RemoveBadEnts();
+
     SetServerSleepStatus();
+    EnterVehicles(save_player_vehicles_list);
+    ReplicateCheatsOnClient();
+    CorrectPhysics();
+
+    UpdateCollisions(true);
 
     if(server_sleeping)
     {
@@ -514,24 +521,11 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         return 0;
     }
 
-    RemoveBadEnts();
-
-    UpdateCollisions(true);
-
     functions.CleanupDeleteList(0);
 
     //Presystems
     pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
     pDynamicFastCallTwoArgFunc(0x3D, 0);
-
-    functions.CleanupDeleteList(0);
-
-    //PostSystems
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
-    pDynamicFastCallTwoArgFunc(0x2D, 0);
-
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
-    pDynamicFastCallTwoArgFunc(0x41, 0);
 
     functions.CleanupDeleteList(0);
 
@@ -543,7 +537,16 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true);
+
+    //PostSystems
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
+    pDynamicFastCallTwoArgFunc(0x2D, 0);
+
+    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
+    pDynamicFastCallTwoArgFunc(0x41, 0);
+
+    UpdateCollisions(true);
 
     if(savegame && save_frames > 1500)
     {
@@ -553,12 +556,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    EnterVehicles(save_player_vehicles_list);
-    functions.CleanupDeleteList(0);
-
     UpdateCollisions(true);
-    CorrectPhysics();
-    ReplicateCheatsOnClient();
 
     return 0;
 }
