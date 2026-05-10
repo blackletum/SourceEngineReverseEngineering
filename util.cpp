@@ -1304,7 +1304,7 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
     }
 }
 
-void HookFunction(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer)
+void HookFunction(uint32_t start_address, uint32_t end_address, void* target_pointer, void* hook_pointer)
 {
     if(!target_pointer || !hook_pointer)
     {
@@ -1312,71 +1312,91 @@ void HookFunction(uint32_t base_address, uint32_t size, void* target_pointer, vo
         return;
     }
 
-    uint32_t search_address = base_address;
-    uint32_t search_address_max = base_address+size;
+    uint32_t request_end_exclusive = (end_address == 0xFFFFFFFFu) ? 0xFFFFFFFFu : (end_address + 1);
 
-    while(search_address + 3 <= search_address_max)
+    for(int i = 0; i < 512 && i + 2 < 512; i += 3)
     {
-        uint32_t four_byte_addr = *(uint32_t*)(search_address);
+        uint32_t segment_start = memory_prots_save_list[i];
+        uint32_t segment_end_exclusive = memory_prots_save_list[i+1];
+        uint32_t segment_protections = memory_prots_save_list[i+2];
 
-        if(four_byte_addr == (uint32_t)target_pointer)
-        {
-            if(IsAddressExcluded(base_address, search_address))
-            {
-                rootconsole->ConsolePrint("(abs) Skipped patch at [%X]", search_address);
-                search_address++;
-                continue;
-            }
-
-            //rootconsole->ConsolePrint("Patched abs address: [%X]", search_address);
-            *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
-            
-            search_address++;
+        if(segment_start == 0 || segment_end_exclusive == 0)
             continue;
-        }
 
-        uint8_t byte = *(uint8_t*)(search_address);
+        if((segment_protections & PROT_READ) == 0)
+            continue;
 
-        if(byte == 0xE8 || byte == 0xE9)
+        if(segment_start < start_address)
+            segment_start = start_address;
+
+        if(request_end_exclusive < segment_end_exclusive)
+            segment_end_exclusive = request_end_exclusive;
+
+        if(segment_start >= segment_end_exclusive)
+            continue;
+
+        uint32_t search_address = segment_start;
+
+        while(search_address + 3 < segment_end_exclusive)
         {
-            uint32_t call_address = *(uint32_t*)(search_address + 1);
-            uint32_t chk = search_address + call_address + 5;
+            uint32_t four_byte_addr = *(uint32_t*)(search_address);
 
-            if(chk == (uint32_t)target_pointer)
+            if(four_byte_addr == (uint32_t)target_pointer)
             {
-                if(IsAddressExcluded(base_address, search_address))
+                if(IsAddressExcluded(start_address, search_address))
                 {
-                    rootconsole->ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
+                    rootconsole->ConsolePrint("(abs) Skipped patch at [%X]", search_address);
                     search_address++;
                     continue;
                 }
 
-                //rootconsole->ConsolePrint("(unsigned) Hooked address: [%X]", search_address - base_address);
-                uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
-                *(uint32_t*)(search_address+1) = offset;
+                *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
+
+                search_address++;
+                continue;
             }
-            else
+
+            uint8_t byte = *(uint8_t*)(search_address);
+
+            if((byte == 0xE8 || byte == 0xE9) && search_address + 4 < segment_end_exclusive)
             {
-                //check signed addition
-                chk = search_address + (int32_t)call_address + 5;
+                uint32_t call_address = *(uint32_t*)(search_address + 1);
+                uint32_t chk = search_address + call_address + 5;
 
                 if(chk == (uint32_t)target_pointer)
                 {
-                    if(IsAddressExcluded(base_address, search_address))
+                    if(IsAddressExcluded(start_address, search_address))
                     {
-                        rootconsole->ConsolePrint("(signed) Skipped patch at [%X]", search_address);
+                        rootconsole->ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
                         search_address++;
                         continue;
                     }
 
-                    rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - base_address);
                     uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                     *(uint32_t*)(search_address+1) = offset;
                 }
-            }
-        }
+                else
+                {
+                    chk = search_address + (int32_t)call_address + 5;
 
-        search_address++;
+                    if(chk == (uint32_t)target_pointer)
+                    {
+                        if(IsAddressExcluded(start_address, search_address))
+                        {
+                            rootconsole->ConsolePrint("(signed) Skipped patch at [%X]", search_address);
+                            search_address++;
+                            continue;
+                        }
+
+                        rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - start_address);
+                        uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
+                        *(uint32_t*)(search_address+1) = offset;
+                    }
+                }
+            }
+
+            search_address++;
+        }
     }
 }
 
@@ -1561,7 +1581,6 @@ void AllowWriteToMappedMemory()
 
         if(start_address_parsed && end_address_parsed && protections)
         {
-            rootconsole->ConsolePrint("%X", start_address_parsed);
             int save_protections = PROT_NONE;
 
             if(strstr(protections, "r") != 0)
