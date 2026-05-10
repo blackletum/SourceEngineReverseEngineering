@@ -35,12 +35,12 @@ uint32_t server_srv;
 uint32_t server;
 uint32_t sdktools;
 
-uint32_t engine_srv_size;
-uint32_t dedicated_srv_size;
-uint32_t vphysics_srv_size;
-uint32_t server_srv_size;
-uint32_t server_size;
-uint32_t sdktools_size;
+uint32_t engine_srv_end;
+uint32_t dedicated_srv_end;
+uint32_t vphysics_srv_end;
+uint32_t server_srv_end;
+uint32_t server_end;
+uint32_t sdktools_end;
 
 bool isTicking;
 bool server_sleeping;
@@ -54,9 +54,9 @@ ValueList ivp_list;
 
 void DeinitUtil()
 {
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)HooksUtil::MallocHookLarge, (void*)malloc);
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)HooksUtil::PackedStoreDestructorHook, (void*)functions.PackedStoreDestructor);
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook, (void*)functions.CanSatisfyVpkCacheInternal);
+    HookFunction(dedicated_srv, dedicated_srv_end, (void*)HooksUtil::MallocHookLarge, (void*)malloc);
+    HookFunction(dedicated_srv, dedicated_srv_end, (void*)HooksUtil::PackedStoreDestructorHook, (void*)functions.PackedStoreDestructor);
+    HookFunction(dedicated_srv, dedicated_srv_end, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook, (void*)functions.CanSatisfyVpkCacheInternal);
 }
 
 void InitUtil()
@@ -83,31 +83,31 @@ void InitUtil()
 
 void HookFunctionsUtil()
 {
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)functions.recheck_ov_element, (void*)HooksUtil::recheck_ov_element_hook);
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)functions.IVP_Real_Object_Destructor, (void*)HooksUtil::IVP_Real_Object_Destructor_Hook);
+    HookFunction(vphysics_srv, vphysics_srv_end, (void*)functions.recheck_ov_element, (void*)HooksUtil::recheck_ov_element_hook);
+    HookFunction(vphysics_srv, vphysics_srv_end, (void*)functions.IVP_Real_Object_Destructor, (void*)HooksUtil::IVP_Real_Object_Destructor_Hook);
 
-    HookFunction(engine_srv, engine_srv_size, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
+    HookFunction(engine_srv, engine_srv_end, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
 
-    HookFunction(server_srv, server_srv_size, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
-    HookFunction(server_srv, server_srv_size, (void*)functions.AcceptInput, (void*)HooksUtil::AcceptInputHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.UpdateOnRemoveBase, (void*)HooksUtil::UpdateOnRemove);
-    HookFunction(server_srv, server_srv_size, (void*)functions.VphysicsSetObject, (void*)HooksUtil::VPhysicsSetObjectHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.SetOwnerEntity, (void*)HooksUtil::SetOwnerEntityHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.MakeDormant, (void*)HooksUtil::EmptyCall);
-    HookFunction(server_srv, server_srv_size, (void*)functions.GetEnemy, (void*)HooksUtil::GetEnemyHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.GetEnemy2, (void*)HooksUtil::GetEnemyHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
+    HookFunction(server_srv, server_srv_end, (void*)functions.AcceptInput, (void*)HooksUtil::AcceptInputHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.UpdateOnRemoveBase, (void*)HooksUtil::UpdateOnRemove);
+    HookFunction(server_srv, server_srv_end, (void*)functions.VphysicsSetObject, (void*)HooksUtil::VPhysicsSetObjectHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.SetOwnerEntity, (void*)HooksUtil::SetOwnerEntityHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.MakeDormant, (void*)HooksUtil::EmptyCall);
+    HookFunction(server_srv, server_srv_end, (void*)functions.GetEnemy, (void*)HooksUtil::GetEnemyHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.GetEnemy2, (void*)HooksUtil::GetEnemyHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
 
-    HookFunction(server_srv, server_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
+    HookFunction(server_srv, server_srv_end, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
-    HookFunction(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
+    HookFunction(dedicated_srv, dedicated_srv_end, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
+    HookFunction(dedicated_srv, dedicated_srv_end, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
+    HookFunction(dedicated_srv, dedicated_srv_end, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
 void UpdateEntityPosition(uint32_t object, float x, float y, float z)
@@ -1432,10 +1432,13 @@ Library* LoadLibrary(char* library_full_path)
                 if(loaded_libraries[i] == 0)
                 {
                     Library* new_lib = (Library*)(malloc(sizeof(Library)));
+
                     new_lib->library_linkmap = (void*)library_lm;
                     new_lib->library_signature = (char*)copy_val(library_full_path, strlen(library_full_path)+1);
-                    new_lib->library_base_address = library_lm->l_addr;
-                    new_lib->library_size = 0;
+
+                    new_lib->start_address = 0;
+                    new_lib->end_address = 0;
+
                     loaded_libraries[i] = (uint32_t)new_lib;
                     
                     rootconsole->ConsolePrint("Loaded [%s]", library_full_path);
@@ -1451,50 +1454,50 @@ Library* LoadLibrary(char* library_full_path)
     return NULL;
 }
 
-Library* getlibrary(char* file_line)
+bool IsOurLibraryPath(char* abs_path)
 {
+    if(!abs_path) return false;
+
     for(int i = 0; i < 512; i++)
     {
         if(our_libraries[i] == 0) continue;
-
-        char* match = strcasestr(file_line, (char*)our_libraries[i]);
-
-        if(match)
-        {
-            int temp_char_reverser = 0;
-            char* abs_path = NULL;
-
-            while(abs_path == NULL)
-            {
-                if(*(char*)(match-temp_char_reverser) == ' ')
-                {
-                    if(*(char*)(match-temp_char_reverser+1) == '/')
-                    {
-                        abs_path = match-temp_char_reverser+1;
-                    }
-                }
-
-                temp_char_reverser++;
-            }
-
-            /*char file_line_temp[512];
-            snprintf(file_line_temp, 512, "%s", file_line);
-            strtok(file_line_temp, " \t");
-            for(int i = 0; i < 4; i++) strtok(NULL, " \t");
-            char* abs_path = strtok(NULL, " \t");*/
-
-            //rootconsole->ConsolePrint("abs [%s]", abs_path);
-
-            Library* found_lib = LoadLibrary(abs_path);
-
-            if(found_lib)
-            {
-                //rootconsole->ConsolePrint("Detected our library [%s]", our_libraries[i]);
-                return found_lib;
-            }
-        }
+        if(strcasestr(abs_path, (char*)our_libraries[i]) != NULL) return true;
     }
 
+    return false;
+}
+
+char* getlibrary(char* file_line)
+{
+    if(!file_line) return NULL;
+
+    uint32_t start_addr = 0;
+    uint32_t end_addr = 0;
+    uint32_t file_offset = 0;
+    char perms[8] = {0};
+    char dev[32] = {0};
+    unsigned long inode = 0;
+    int path_start = 0;
+
+    int parsed = sscanf(file_line, "%x-%x %7s %x %31s %lu %n", &start_addr, &end_addr, perms, &file_offset, dev, &inode, &path_start);
+    if(parsed < 6) return NULL;
+
+    while(file_line[path_start] == ' ' || file_line[path_start] == '\t')
+    {
+        path_start++;
+    }
+
+    if(file_line[path_start] != '/') return NULL;
+
+    char* abs_path = (char*)copy_val(file_line + path_start, strlen(file_line + path_start) + 1);
+    if(!abs_path) return NULL;
+
+    if(access(abs_path, F_OK) == 0)
+    {
+        return abs_path;
+    }
+
+    free(abs_path);
     return NULL;
 }
 
@@ -1513,13 +1516,32 @@ void AllowWriteToMappedMemory()
         return;
     }
 
-    char* file_line = (char*) malloc(sizeof(char) * 1024);
+    char* file_line = (char*) malloc(1024);
+    char* current_abs_path = (char*) malloc(1024);
+
+    snprintf(file_line, 1024, "%s", "");
+    snprintf(current_abs_path, 1024, "%s", "");
+    Library* currentLibrary = NULL;
 
     while(fgets(file_line, 1024, smaps_file))
     {
         sscanf(file_line, "%[^\n]s", file_line);
+        char* abs_path = getlibrary(file_line);
+        
+        if(abs_path != NULL && strcasecmp(abs_path, current_abs_path) != 0)
+        {
+            snprintf(current_abs_path, 1024, "%s", abs_path);
+            currentLibrary = NULL;
 
-        Library* currentLibrary = getlibrary(file_line);
+            if(IsOurLibraryPath(current_abs_path))
+            {
+                currentLibrary = LoadLibrary(current_abs_path);
+                //rootconsole->ConsolePrint("%s", currentLibrary->library_signature);
+            }
+        }
+
+        free(abs_path);
+
         if(!currentLibrary) continue;
 
         char* file_line_cpy = (char*) malloc(strlen(file_line)+1);
@@ -1537,18 +1559,17 @@ void AllowWriteToMappedMemory()
         if(start_address) start_address_parsed = strtoul(start_address, NULL, 16);
         if(end_address) end_address_parsed = strtoul(end_address, NULL, 16);
 
-        int save_protections = PROT_NONE;
-
-        if(strstr(protections, "r") != 0)
-            save_protections = PROT_READ;
-        if(strstr(protections, "w") != 0)
-            save_protections = save_protections | PROT_WRITE;
-        if(strstr(protections, "x") != 0)
-            save_protections = save_protections | PROT_EXEC;
-
-        if(start_address_parsed && end_address_parsed)
+        if(start_address_parsed && end_address_parsed && protections)
         {
-            int address_size = end_address_parsed - start_address_parsed;
+            rootconsole->ConsolePrint("%X", start_address_parsed);
+            int save_protections = PROT_NONE;
+
+            if(strstr(protections, "r") != 0)
+                save_protections = PROT_READ;
+            if(strstr(protections, "w") != 0)
+                save_protections = save_protections | PROT_WRITE;
+            if(strstr(protections, "x") != 0)
+                save_protections = save_protections | PROT_EXEC;
 
             for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
             {
@@ -1562,7 +1583,12 @@ void AllowWriteToMappedMemory()
                 }
             }
 
-            currentLibrary->library_size += address_size;
+            if(currentLibrary->start_address == 0)
+            {
+                currentLibrary->start_address = start_address_parsed;
+            }
+
+            currentLibrary->end_address = end_address_parsed;
         }
 
         free(file_line_cpy);
@@ -1582,8 +1608,9 @@ void ForceMemoryAccess()
         
         size_t pagesize = sysconf(_SC_PAGE_SIZE);
         uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
+        uint32_t protect_length = memory_prots_save_list[i+1] - pagestart;
 
-        if(mprotect((void*)pagestart, memory_prots_save_list[i+1] - memory_prots_save_list[i], PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+        if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
         {
             //rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
 
@@ -1605,8 +1632,9 @@ void RestoreMemoryProtections()
     {
         size_t pagesize = sysconf(_SC_PAGE_SIZE);
         uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
+        uint32_t protect_length = memory_prots_save_list[i+1] - pagestart;
 
-        if(mprotect((void*)pagestart, memory_prots_save_list[i+1] - memory_prots_save_list[i], memory_prots_save_list[i+2]) == -1)
+        if(mprotect((void*)pagestart, protect_length, memory_prots_save_list[i+2]) == -1)
         {
             perror("mprotect");
             exit(EXIT_FAILURE);
@@ -2343,4 +2371,52 @@ void TeleportPlayersToTransition()
             }
         }
     }
+}
+
+int ReleaseLeakedMemory(ValueList leakList, bool destroy)
+{
+    if(!leakList)
+        return 0;
+    
+    Value* leak = *leakList;
+    char listName[256];
+    snprintf(listName, 256, "Unknown List");
+
+    if(!leak)
+    {
+        if(destroy)
+        {
+            free(leakList);
+            leakList = NULL;
+            return 0;
+        }
+
+        rootconsole->ConsolePrint("[%s] Attempted to free leaks from an empty leaked resources list!", listName);
+        return 0;
+    }
+
+    int total_items = ValueListItems(leakList, NULL);
+
+    while(leak)
+    {
+        Value* detachedValue = leak->nextVal;
+
+        //rootconsole->ConsolePrint("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
+        free(leak->value);
+        free(leak);
+
+        leak = detachedValue;
+    }
+
+    *leakList = NULL;
+
+    rootconsole->ConsolePrint("FREED [%d] memory allocations", total_items);
+
+    if(destroy)
+    {
+        free(leakList);
+        leakList = NULL;
+    }
+
+    return total_items;
 }

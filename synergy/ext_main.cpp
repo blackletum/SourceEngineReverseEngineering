@@ -59,28 +59,28 @@ bool InitExtension()
         return false;
     }
 
-    rootconsole->ConsolePrint("server_srv_lib [%X] size [%X]", server_srv_lib->library_base_address, server_srv_lib->library_size);
-    rootconsole->ConsolePrint("synergy_srv_lib [%X] size [%X]", synergy_srv_lib->library_base_address, synergy_srv_lib->library_size);
-    rootconsole->ConsolePrint("engine_srv_lib [%X] size [%X]", engine_srv_lib->library_base_address, engine_srv_lib->library_size);
-    rootconsole->ConsolePrint("dedicated_srv_lib [%X] size [%X]", dedicated_srv_lib->library_base_address, dedicated_srv_lib->library_size);
-    rootconsole->ConsolePrint("vphysics_srv_lib [%X] size [%X]", vphysics_srv_lib->library_base_address, vphysics_srv_lib->library_size);
-    rootconsole->ConsolePrint("sdktools_lib [%X] size [%X]", sdktools_lib->library_base_address, sdktools_lib->library_size);
+    rootconsole->ConsolePrint("server_srv_lib [%X] end [%X]", server_srv_lib->start_address, server_srv_lib->end_address);
+    rootconsole->ConsolePrint("synergy_srv_lib [%X] end [%X]", synergy_srv_lib->start_address, synergy_srv_lib->end_address);
+    rootconsole->ConsolePrint("engine_srv_lib [%X] end [%X]", engine_srv_lib->start_address, engine_srv_lib->end_address);
+    rootconsole->ConsolePrint("dedicated_srv_lib [%X] end [%X]", dedicated_srv_lib->start_address, dedicated_srv_lib->end_address);
+    rootconsole->ConsolePrint("vphysics_srv_lib [%X] end [%X]", vphysics_srv_lib->start_address, vphysics_srv_lib->end_address);
+    rootconsole->ConsolePrint("sdktools_lib [%X] end [%X]", sdktools_lib->start_address, sdktools_lib->end_address);
 
-    server_srv = server_srv_lib->library_base_address;
-    synergy_srv = synergy_srv_lib->library_base_address;
-    engine_srv = engine_srv_lib->library_base_address;
-    dedicated_srv = dedicated_srv_lib->library_base_address;
-    vphysics_srv = vphysics_srv_lib->library_base_address;
-    sdktools = sdktools_lib->library_base_address;
+    server_srv = server_srv_lib->start_address;
+    synergy_srv = synergy_srv_lib->start_address;
+    engine_srv = engine_srv_lib->start_address;
+    dedicated_srv = dedicated_srv_lib->start_address;
+    vphysics_srv = vphysics_srv_lib->start_address;
+    sdktools = sdktools_lib->start_address;
 
-    server_srv_size = server_srv_lib->library_size;
-    synergy_srv_size = synergy_srv_lib->library_size;
-    engine_srv_size = engine_srv_lib->library_size;
-    dedicated_srv_size = dedicated_srv_lib->library_size;
-    vphysics_srv_size = vphysics_srv_lib->library_size;
-    sdktools_size = sdktools_lib->library_size;
+    server_srv_end = server_srv_lib->end_address;
+    synergy_srv_end = synergy_srv_lib->end_address;
+    engine_srv_end = engine_srv_lib->end_address;
+    dedicated_srv_end = dedicated_srv_lib->end_address;
+    vphysics_srv_end = vphysics_srv_lib->end_address;
+    sdktools_end = sdktools_lib->end_address;
 
-    sdktools_passed = IsAllowedToPatchSdkTools(sdktools, sdktools_size);
+    sdktools_passed = IsAllowedToPatchSdkTools(sdktools, sdktools_end);
 
     save_frames = 0;
     savegame = false;
@@ -308,6 +308,10 @@ void ApplyPatches()
     uint32_t patch_player_restore = server_srv + 0x00BDD1EC;
     memset((void*)patch_player_restore, 0x90, 0x26);
 
+    //player vehicle restoring patch
+    uint32_t removebad_restorecode = server_srv + 0x00BDD00D;
+    memset((void*)removebad_restorecode, 0x90, 2);
+
     uint32_t fix_save_transition = server_srv + 0x00BE597F;
     *(uint8_t*)(fix_save_transition) = 0xEB;
 
@@ -323,23 +327,23 @@ void ApplyPatches()
 
 void HookFunctions()
 {
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.Autosave_Silent, (void*)HooksSynergy::AutosaveHook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.RestorePlayer, (void*)HooksSynergy::RestorePlayerHook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.Autosave_Silent, (void*)HooksSynergy::AutosaveHook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.RestorePlayer, (void*)HooksSynergy::RestorePlayerHook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
 
-    HookFunction(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
+    HookFunction(vphysics_srv, vphysics_srv_end, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 
-    HookFunction(engine_srv, engine_srv_size, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
-    HookFunction(engine_srv, engine_srv_size, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
+    HookFunction(engine_srv, engine_srv_end, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
+    HookFunction(engine_srv, engine_srv_end, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
 
-    HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormalDirect, (void*)HooksUtil::UTIL_RemoveHookFailsafe);
-    HookFunction(server_srv, server_srv_size, (void*)functions.RemoveNormal, (void*)HooksUtil::UTIL_RemoveBaseHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.RemoveInsta, (void*)HooksUtil::HookInstaKill);
-    HookFunction(server_srv, server_srv_size, (void*)functions.ClearAllEntities, (void*)HooksUtil::GlobalEntityListClear);
-    HookFunction(server_srv, server_srv_size, (void*)functions.SpawnPlayer, (void*)HooksUtil::PlayerSpawnHook);
-    HookFunction(server_srv, server_srv_size, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.RemoveNormalDirect, (void*)HooksUtil::UTIL_RemoveHookFailsafe);
+    HookFunction(server_srv, server_srv_end, (void*)functions.RemoveNormal, (void*)HooksUtil::UTIL_RemoveBaseHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.RemoveInsta, (void*)HooksUtil::HookInstaKill);
+    HookFunction(server_srv, server_srv_end, (void*)functions.ClearAllEntities, (void*)HooksUtil::GlobalEntityListClear);
+    HookFunction(server_srv, server_srv_end, (void*)functions.SpawnPlayer, (void*)HooksUtil::PlayerSpawnHook);
+    HookFunction(server_srv, server_srv_end, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
 }
 
 uint32_t HooksUtil::LevelChangedSnapHook(uint32_t arg0)
@@ -496,20 +500,17 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 {
     pOneArgProt pDynamicOneArgFunc;
-
     pOneArgProtFastCall pDynamicFastCallOneArgFunc;
     pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
 
     save_frames++;
-
     if(save_frames > 10000) save_frames = 10000;
-
     isTicking = true;
 
-    RemoveBadEnts();
+    UpdateCollisions(true);
 
+    RemoveBadEnts();
     SetServerSleepStatus();
-    EnterVehicles(save_player_vehicles_list);
     ReplicateCheatsOnClient();
     CorrectPhysics();
 
@@ -537,6 +538,15 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(functions.ServiceEvents);
     pDynamicOneArgFunc(fields.g_EventQueue);
 
+    if(savegame && save_frames > 1500)
+    {
+        rootconsole->ConsolePrint("Autosave created!");
+        SaveGame_Extension();
+
+        savegame = false;
+    }
+
+    EnterVehicles(save_player_vehicles_list);
     UpdateCollisions(true);
 
     //PostSystems
@@ -547,17 +557,6 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     pDynamicFastCallTwoArgFunc(0x41, 0);
 
     UpdateCollisions(true);
-
-    if(savegame && save_frames > 1500)
-    {
-        rootconsole->ConsolePrint("Autosave created!");
-        SaveGame_Extension();
-
-        savegame = false;
-    }
-
-    UpdateCollisions(true);
-
     return 0;
 }
 

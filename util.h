@@ -173,8 +173,8 @@ typedef struct _Vector {
 typedef struct _Library {
 	void* library_linkmap;
 	char* library_signature;
-	uint32_t library_base_address;
-	uint32_t library_size;
+	uint32_t start_address = 0;
+	uint32_t end_address = 0;
 } Library;
 
 typedef struct _Value {
@@ -239,12 +239,12 @@ extern uint32_t server_srv;
 extern uint32_t server;
 extern uint32_t sdktools;
 
-extern uint32_t engine_srv_size;
-extern uint32_t dedicated_srv_size;
-extern uint32_t vphysics_srv_size;
-extern uint32_t server_size;
-extern uint32_t server_srv_size;
-extern uint32_t sdktools_size;
+extern uint32_t engine_srv_end;
+extern uint32_t dedicated_srv_end;
+extern uint32_t vphysics_srv_end;
+extern uint32_t server_end;
+extern uint32_t server_srv_end;
+extern uint32_t sdktools_end;
 
 extern bool isTicking;
 extern bool server_sleeping;
@@ -268,7 +268,8 @@ uint32_t FindSignature(uint32_t block_start_start, uint32_t block_end_end, Signa
 Library* FindLibrary(char* lib_name, bool less_intense_search);
 Library* LoadLibrary(char* library_full_path);
 void ClearLoadedLibraries();
-Library* getlibrary(char* file_line);
+char* getlibrary(char* file_line);
+bool IsOurLibraryPath(char* abs_path);
 void AllowWriteToMappedMemory();
 void ForceMemoryAccess();
 void RestoreMemoryProtections();
@@ -302,6 +303,7 @@ void InsertToArrayList(uint32_t* list, uint32_t value);
 bool IsValueInArrayList(uint32_t* list, uint32_t value);
 void TeleportPlayersToTransition();
 void RemoveHl2Ragdolls();
+int ReleaseLeakedMemory(ValueList leakList, bool destroy);
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

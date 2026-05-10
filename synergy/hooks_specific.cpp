@@ -33,14 +33,14 @@ void ApplyPatchesSpecific()
 
 void HookFunctionsSpecific()
 {
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
 
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
-    HookFunction(server_srv, server_srv_size, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
+    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
 }
 
 uint32_t NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

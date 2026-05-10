@@ -10,7 +10,7 @@ synergy_game_offsets synergy_offsets;
 synergy_game_functions synergy_functions;
 
 uint32_t synergy_srv;
-uint32_t synergy_srv_size;
+uint32_t synergy_srv_end;
 
 bool sdktools_passed;
 
@@ -44,12 +44,12 @@ void InitCore()
     snprintf((char*)our_libraries[5], 1024, "%s", "/extensions/sdktools.ext.2.sdk2013.so");
 }
 
-bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size)
+bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_end)
 {
     uint32_t lib_integrity_chk_addr = lib_base + 0x00057919;
     uint32_t str_len = 11;
 
-    bool integrity_chk = (lib_integrity_chk_addr + str_len) <= (lib_base + lib_size);
+    bool integrity_chk = (lib_integrity_chk_addr + str_len) <= (lib_end);
 
     if(integrity_chk)
     {
@@ -88,54 +88,6 @@ uint32_t GetCBaseEntity(uint32_t EHandle)
     }
 
     return 0;
-}
-
-int ReleaseLeakedMemory(ValueList leakList, bool destroy)
-{
-    if(!leakList)
-        return 0;
-    
-    Value* leak = *leakList;
-    char listName[256];
-    snprintf(listName, 256, "Unknown List");
-
-    if(!leak)
-    {
-        if(destroy)
-        {
-            free(leakList);
-            leakList = NULL;
-            return 0;
-        }
-
-        rootconsole->ConsolePrint("[%s] Attempted to free leaks from an empty leaked resources list!", listName);
-        return 0;
-    }
-
-    int total_items = ValueListItems(leakList, NULL);
-
-    while(leak)
-    {
-        Value* detachedValue = leak->nextVal;
-
-        //rootconsole->ConsolePrint("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
-        free(leak->value);
-        free(leak);
-
-        leak = detachedValue;
-    }
-
-    *leakList = NULL;
-
-    rootconsole->ConsolePrint("FREED [%d] memory allocations", total_items);
-
-    if(destroy)
-    {
-        free(leakList);
-        leakList = NULL;
-    }
-
-    return total_items;
 }
 
 void ReleaseLeakedPackedEntities(uint32_t snapManager)
