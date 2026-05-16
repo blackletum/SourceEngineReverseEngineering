@@ -11,36 +11,36 @@ void ApplyPatchesSpecific()
     uint32_t offset = 0;
 
     //CBaseEntity* corruption fix
-    uint32_t antlion_guard_fix_one = server_srv + 0x00A2B5F4;
+    uint32_t antlion_guard_fix_one = server_srv->start_address + 0x00A2B5F4;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - antlion_guard_fix_one - 5;
     *(uint32_t*)(antlion_guard_fix_one+1) = offset;
 
     //CBaseEntity* corruption fix
-    uint32_t antlion_guard_fix_two = server_srv + 0x00A2B610;
+    uint32_t antlion_guard_fix_two = server_srv->start_address + 0x00A2B610;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - antlion_guard_fix_two - 5;
     *(uint32_t*)(antlion_guard_fix_two+1) = offset;
 
     //CBaseEntity* corruption fix
-    uint32_t tripmine_fix_one = server_srv + 0x00D11E75;
+    uint32_t tripmine_fix_one = server_srv->start_address + 0x00D11E75;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - tripmine_fix_one - 5;
     *(uint32_t*)(tripmine_fix_one+1) = offset;
 
     //CBaseEntity* corruption fix
-    uint32_t combineball_fix = server_srv + 0x00BA6675;
+    uint32_t combineball_fix = server_srv->start_address + 0x00BA6675;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - combineball_fix - 5;
     *(uint32_t*)(combineball_fix+1) = offset;
 }
 
 void HookFunctionsSpecific()
 {
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook);
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook);
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
 
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
-    HookFunction(server_srv, server_srv_end, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
 }
 
 uint32_t NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

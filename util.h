@@ -170,11 +170,19 @@ typedef struct _Vector {
 	float z = 0;
 } Vector;
 
+typedef struct _MemoryRegion {
+	uint32_t start;
+	uint32_t end;
+	uint32_t protections;
+	struct _MemoryRegion* nextRegion;
+} MemoryRegion;
+
 typedef struct _Library {
 	void* library_linkmap;
 	char* library_signature;
-	uint32_t start_address = 0;
-	uint32_t end_address = 0;
+	MemoryRegion* region;
+	uint32_t start_address;
+	uint32_t end_address;
 } Library;
 
 typedef struct _Value {
@@ -228,23 +236,15 @@ extern int min_collision_frames;
 
 extern uint32_t hook_exclude_list_offset[512];
 extern uint32_t hook_exclude_list_base[512];
-extern uint32_t memory_prots_save_list[512];
 extern uint32_t our_libraries[512];
 extern uint32_t loaded_libraries[512];
 
-extern uint32_t engine_srv;
-extern uint32_t dedicated_srv;
-extern uint32_t vphysics_srv;
-extern uint32_t server_srv;
-extern uint32_t server;
-extern uint32_t sdktools;
-
-extern uint32_t engine_srv_end;
-extern uint32_t dedicated_srv_end;
-extern uint32_t vphysics_srv_end;
-extern uint32_t server_end;
-extern uint32_t server_srv_end;
-extern uint32_t sdktools_end;
+extern Library* engine_srv;
+extern Library* dedicated_srv;
+extern Library* vphysics_srv;
+extern Library* server_srv;
+extern Library* server;
+extern Library* sdktools;
 
 extern bool isTicking;
 extern bool server_sleeping;
@@ -260,7 +260,7 @@ void DeinitUtil();
 void InitUtil();
 void* copy_val(void* val, size_t copy_size);
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
-void HookFunction(uint32_t start_address, uint32_t end_address, void* target_pointer, void* hook_pointer);
+void HookFunction(Library* binary, void* target_pointer, void* hook_pointer);
 void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signatures[32], int start_signatures_size, Signature end_signatures[32], int end_signatures_size, Signature args_signatures[32], Signature stack_machine_code[32], int stack_arguments_size, Signature no_operation_signatures[32], int no_operation_signatures_size, uint32_t estimated_block_size_min, uint32_t estimated_block_size_max, int expected_arguments, void* hook_pointer);
 bool ApplyBlockHook(uint32_t block_start_start, uint32_t block_end_end, Signature args_signatures[32], Signature stack_machine_code[32], int stack_arguments_size, Signature no_operation_signatures[32], int no_operation_signatures_size, int expected_arguments, void* hook_pointer);
 uint32_t ApplyNoOperation(uint32_t block_start_start, uint32_t block_end_end, Signature no_operation_signatures[32], int no_operation_signatures_size);

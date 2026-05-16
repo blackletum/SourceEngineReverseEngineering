@@ -24,23 +24,15 @@ int correct_cheats_frames;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
-uint32_t memory_prots_save_list[512] = {};
 uint32_t our_libraries[512] = {};
 uint32_t loaded_libraries[512] = {};
 
-uint32_t engine_srv;
-uint32_t dedicated_srv;
-uint32_t vphysics_srv;
-uint32_t server_srv;
-uint32_t server;
-uint32_t sdktools;
-
-uint32_t engine_srv_end;
-uint32_t dedicated_srv_end;
-uint32_t vphysics_srv_end;
-uint32_t server_srv_end;
-uint32_t server_end;
-uint32_t sdktools_end;
+Library* engine_srv;
+Library* dedicated_srv;
+Library* vphysics_srv;
+Library* server_srv;
+Library* server;
+Library* sdktools;
 
 bool isTicking;
 bool server_sleeping;
@@ -54,9 +46,9 @@ ValueList ivp_list;
 
 void DeinitUtil()
 {
-    HookFunction(dedicated_srv, dedicated_srv_end, (void*)HooksUtil::MallocHookLarge, (void*)malloc);
-    HookFunction(dedicated_srv, dedicated_srv_end, (void*)HooksUtil::PackedStoreDestructorHook, (void*)functions.PackedStoreDestructor);
-    HookFunction(dedicated_srv, dedicated_srv_end, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook, (void*)functions.CanSatisfyVpkCacheInternal);
+    HookFunction(dedicated_srv, (void*)HooksUtil::MallocHookLarge, (void*)malloc);
+    HookFunction(dedicated_srv, (void*)HooksUtil::PackedStoreDestructorHook, (void*)functions.PackedStoreDestructor);
+    HookFunction(dedicated_srv, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook, (void*)functions.CanSatisfyVpkCacheInternal);
 }
 
 void InitUtil()
@@ -83,31 +75,31 @@ void InitUtil()
 
 void HookFunctionsUtil()
 {
-    HookFunction(vphysics_srv, vphysics_srv_end, (void*)functions.recheck_ov_element, (void*)HooksUtil::recheck_ov_element_hook);
-    HookFunction(vphysics_srv, vphysics_srv_end, (void*)functions.IVP_Real_Object_Destructor, (void*)HooksUtil::IVP_Real_Object_Destructor_Hook);
+    HookFunction(vphysics_srv, (void*)functions.recheck_ov_element, (void*)HooksUtil::recheck_ov_element_hook);
+    HookFunction(vphysics_srv, (void*)functions.IVP_Real_Object_Destructor, (void*)HooksUtil::IVP_Real_Object_Destructor_Hook);
 
-    HookFunction(engine_srv, engine_srv_end, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
+    HookFunction(engine_srv, (void*)functions.SendNetMsg, (void*)HooksUtil::SendNetMsgHook);
 
-    HookFunction(server_srv, server_srv_end, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
-    HookFunction(server_srv, server_srv_end, (void*)functions.AcceptInput, (void*)HooksUtil::AcceptInputHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.UpdateOnRemoveBase, (void*)HooksUtil::UpdateOnRemove);
-    HookFunction(server_srv, server_srv_end, (void*)functions.VphysicsSetObject, (void*)HooksUtil::VPhysicsSetObjectHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.SetOwnerEntity, (void*)HooksUtil::SetOwnerEntityHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.MakeDormant, (void*)HooksUtil::EmptyCall);
-    HookFunction(server_srv, server_srv_end, (void*)functions.GetEnemy, (void*)HooksUtil::GetEnemyHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.GetEnemy2, (void*)HooksUtil::GetEnemyHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
-    HookFunction(server_srv, server_srv_end, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
+    HookFunction(server_srv, (void*)functions.PhysSimEnt, (void*)HooksUtil::PhysSimEnt);
+    HookFunction(server_srv, (void*)functions.AcceptInput, (void*)HooksUtil::AcceptInputHook);
+    HookFunction(server_srv, (void*)functions.UpdateOnRemoveBase, (void*)HooksUtil::UpdateOnRemove);
+    HookFunction(server_srv, (void*)functions.VphysicsSetObject, (void*)HooksUtil::VPhysicsSetObjectHook);
+    HookFunction(server_srv, (void*)functions.SetOwnerEntity, (void*)HooksUtil::SetOwnerEntityHook);
+    HookFunction(server_srv, (void*)functions.DispatchAnimEvents, (void*)HooksUtil::DispatchAnimEventsHook);
+    HookFunction(server_srv, (void*)functions.CalcAbsolutePosition, (void*)HooksUtil::CalcAbsolutePositionHook);
+    HookFunction(server_srv, (void*)functions.VPhysicsUpdate, (void*)HooksUtil::VPhysicsUpdateHook);
+    HookFunction(server_srv, (void*)functions.AiSelectSchedule, (void*)HooksUtil::AiSelectScheduleHook);
+    HookFunction(server_srv, (void*)functions.MakeDormant, (void*)HooksUtil::EmptyCall);
+    HookFunction(server_srv, (void*)functions.GetEnemy, (void*)HooksUtil::GetEnemyHook);
+    HookFunction(server_srv, (void*)functions.GetEnemy2, (void*)HooksUtil::GetEnemyHook);
+    HookFunction(server_srv, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
+    HookFunction(server_srv, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
 
-    HookFunction(server_srv, server_srv_end, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
+    HookFunction(server_srv, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
-    HookFunction(dedicated_srv, dedicated_srv_end, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
-    HookFunction(dedicated_srv, dedicated_srv_end, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
-    HookFunction(dedicated_srv, dedicated_srv_end, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
+    HookFunction(dedicated_srv, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
+    HookFunction(dedicated_srv, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
+    HookFunction(dedicated_srv, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
 void UpdateEntityPosition(uint32_t object, float x, float y, float z)
@@ -836,10 +828,10 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 
     if(VerifyEntity(arg0, true, true) == false)
     {
-        uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv;
-        uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv;
-        uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv;
-        uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
+        uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv->start_address;
+        uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv->start_address;
+        uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start_address;
+        uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start_address;
     
         rootconsole->ConsolePrint("UpdateOnRemove: Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
         exit(EXIT_FAILURE);
@@ -1304,7 +1296,7 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
     }
 }
 
-void HookFunction(uint32_t start_address, uint32_t end_address, void* target_pointer, void* hook_pointer)
+void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 {
     if(!target_pointer || !hook_pointer)
     {
@@ -1312,38 +1304,23 @@ void HookFunction(uint32_t start_address, uint32_t end_address, void* target_poi
         return;
     }
 
-    uint32_t request_end_exclusive = (end_address == 0xFFFFFFFFu) ? 0xFFFFFFFFu : (end_address + 1);
+    MemoryRegion* region_start = binary->region;
 
-    for(int i = 0; i < 512 && i + 2 < 512; i += 3)
+    while(region_start)
     {
-        uint32_t segment_start = memory_prots_save_list[i];
-        uint32_t segment_end_exclusive = memory_prots_save_list[i+1];
-        uint32_t segment_protections = memory_prots_save_list[i+2];
+        uint32_t region_start_address = region_start->start;
+        uint32_t region_end_address = region_start->end;
+        uint32_t region_protections = region_start->protections;
 
-        if(segment_start == 0 || segment_end_exclusive == 0)
-            continue;
+        uint32_t search_address = region_start_address;
 
-        if((segment_protections & PROT_READ) == 0)
-            continue;
-
-        if(segment_start < start_address)
-            segment_start = start_address;
-
-        if(request_end_exclusive < segment_end_exclusive)
-            segment_end_exclusive = request_end_exclusive;
-
-        if(segment_start >= segment_end_exclusive)
-            continue;
-
-        uint32_t search_address = segment_start;
-
-        while(search_address + 3 < segment_end_exclusive)
+        while(search_address + 3 < region_end_address)
         {
             uint32_t four_byte_addr = *(uint32_t*)(search_address);
 
             if(four_byte_addr == (uint32_t)target_pointer)
             {
-                if(IsAddressExcluded(start_address, search_address))
+                if(IsAddressExcluded(binary->start_address, search_address))
                 {
                     rootconsole->ConsolePrint("(abs) Skipped patch at [%X]", search_address);
                     search_address++;
@@ -1358,14 +1335,14 @@ void HookFunction(uint32_t start_address, uint32_t end_address, void* target_poi
 
             uint8_t byte = *(uint8_t*)(search_address);
 
-            if((byte == 0xE8 || byte == 0xE9) && search_address + 4 < segment_end_exclusive)
+            if(byte == 0xE8 || byte == 0xE9)
             {
                 uint32_t call_address = *(uint32_t*)(search_address + 1);
                 uint32_t chk = search_address + call_address + 5;
 
                 if(chk == (uint32_t)target_pointer)
                 {
-                    if(IsAddressExcluded(start_address, search_address))
+                    if(IsAddressExcluded(binary->start_address, search_address))
                     {
                         rootconsole->ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
                         search_address++;
@@ -1381,14 +1358,14 @@ void HookFunction(uint32_t start_address, uint32_t end_address, void* target_poi
 
                     if(chk == (uint32_t)target_pointer)
                     {
-                        if(IsAddressExcluded(start_address, search_address))
+                        if(IsAddressExcluded(binary->start_address, search_address))
                         {
                             rootconsole->ConsolePrint("(signed) Skipped patch at [%X]", search_address);
                             search_address++;
                             continue;
                         }
 
-                        rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - start_address);
+                        rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start_address);
                         uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                         *(uint32_t*)(search_address+1) = offset;
                     }
@@ -1397,6 +1374,8 @@ void HookFunction(uint32_t start_address, uint32_t end_address, void* target_poi
 
             search_address++;
         }
+
+        region_start = region_start->nextRegion;
     }
 }
 
@@ -1429,6 +1408,16 @@ void ClearLoadedLibraries()
             dlclose(delete_this->library_linkmap);
             free(delete_this->library_signature);
 
+            MemoryRegion* region_start = delete_this->region;
+
+            while(region_start)
+            {
+                MemoryRegion* nextRegion = region_start->nextRegion;
+                free(region_start);
+
+                region_start = nextRegion;
+            }
+
             free(delete_this);
 
             loaded_libraries[i] = 0;
@@ -1456,7 +1445,9 @@ Library* LoadLibrary(char* library_full_path)
                     new_lib->library_linkmap = (void*)library_lm;
                     new_lib->library_signature = (char*)copy_val(library_full_path, strlen(library_full_path)+1);
 
-                    new_lib->start_address = 0;
+                    new_lib->region = NULL;
+
+                    new_lib->start_address = library_lm->l_addr;
                     new_lib->end_address = 0;
 
                     loaded_libraries[i] = (uint32_t)new_lib;
@@ -1523,11 +1514,6 @@ char* getlibrary(char* file_line)
 
 void AllowWriteToMappedMemory()
 {
-    for(int i = 0; i < 512; i++)
-    {
-        memory_prots_save_list[i] = 0;
-    }
-
     FILE* smaps_file = fopen("/proc/self/smaps", "r");    
 
     if(!smaps_file)
@@ -1581,7 +1567,7 @@ void AllowWriteToMappedMemory()
 
         if(start_address_parsed && end_address_parsed && protections)
         {
-            int save_protections = PROT_NONE;
+            uint32_t save_protections = PROT_NONE;
 
             if(strstr(protections, "r") != 0)
                 save_protections = PROT_READ;
@@ -1590,78 +1576,118 @@ void AllowWriteToMappedMemory()
             if(strstr(protections, "x") != 0)
                 save_protections = save_protections | PROT_EXEC;
 
-            for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
+            currentLibrary->end_address = end_address_parsed;
+
+            MemoryRegion* new_region = (MemoryRegion*)malloc(sizeof(MemoryRegion));
+            new_region->start = start_address_parsed;
+            new_region->end = end_address_parsed;
+            new_region->protections = save_protections;
+            new_region->nextRegion = NULL;
+
+            rootconsole->ConsolePrint("alloced!");
+
+            MemoryRegion* lib_region = currentLibrary->region;
+
+            if(lib_region == NULL)
             {
-                if(memory_prots_save_list[i] == 0 && memory_prots_save_list[i+1] == 0 && memory_prots_save_list[i+2] == 0)
+                currentLibrary->region = new_region;
+                free(file_line_cpy);
+                continue;
+            }
+
+            while(lib_region)
+            {
+                if(lib_region->nextRegion == NULL)
                 {
-                    memory_prots_save_list[i] = start_address_parsed;
-                    memory_prots_save_list[i+1] = end_address_parsed;
-                    memory_prots_save_list[i+2] = (uint32_t)save_protections;
-                    //rootconsole->ConsolePrint("Saved [%X] [%X] [%s]", end_address_parsed, start_address_parsed, currentLibrary->library_signature);
+                    lib_region->nextRegion = new_region;
                     break;
                 }
-            }
 
-            if(currentLibrary->start_address == 0)
-            {
-                currentLibrary->start_address = start_address_parsed;
+                lib_region = lib_region->nextRegion;
             }
-
-            currentLibrary->end_address = end_address_parsed;
         }
 
         free(file_line_cpy);
     }
 
     free(file_line);
+    free(current_abs_path);
     fclose(smaps_file);
 
+
+    rootconsole->ConsolePrint("AAAAAAAAS");
     ForceMemoryAccess();
+
+    rootconsole->ConsolePrint("MEMORY ACCESS!");
 }
 
 void ForceMemoryAccess()
 {
-    for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
+    for(int i = 0; i < 512; i++)
     {
-        if(memory_prots_save_list[i] == 0 && memory_prots_save_list[i+1] == 0 && memory_prots_save_list[i+2] == 0) continue;
-        
-        size_t pagesize = sysconf(_SC_PAGE_SIZE);
-        uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
-        uint32_t protect_length = memory_prots_save_list[i+1] - pagestart;
-
-        if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+        if(loaded_libraries[i] != 0)
         {
-            //rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+            Library* current_lib = (Library*)loaded_libraries[i];
+            MemoryRegion* region_start = current_lib->region;
 
-            //SELINUX shite
+            while(region_start)
+            {
+                uint32_t region_start_address = region_start->start;
+                uint32_t region_end_address = region_start->end;
+                uint32_t region_protections = region_start->protections;
 
-            //perror("mprotect");
-            //exit(EXIT_FAILURE);
-        }
-        else
-        {
-            //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+                size_t pagesize = sysconf(_SC_PAGE_SIZE);
+                uint32_t pagestart = region_start_address & -pagesize;
+                uint32_t protect_length = region_end_address - pagestart;
+
+                if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+                {
+                    //rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+
+                    //SELINUX shite
+
+                    //perror("mprotect");
+                    //exit(EXIT_FAILURE);
+                }
+                else
+                {
+                    rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", region_end_address, region_start_address);
+                }
+
+                region_start = region_start->nextRegion;
+            }
         }
     }
 }
 
 void RestoreMemoryProtections()
 {
-    for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
+    for(int i = 0; i < 512; i++)
     {
-        size_t pagesize = sysconf(_SC_PAGE_SIZE);
-        uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
-        uint32_t protect_length = memory_prots_save_list[i+1] - pagestart;
-
-        if(mprotect((void*)pagestart, protect_length, memory_prots_save_list[i+2]) == -1)
+        if(loaded_libraries[i] != 0)
         {
-            perror("mprotect");
-            exit(EXIT_FAILURE);
-        }
+            Library* current_lib = (Library*)loaded_libraries[i];
+            MemoryRegion* region_start = current_lib->region;
 
-        memory_prots_save_list[i] = 0;
-        memory_prots_save_list[i+1] = 0;
-        memory_prots_save_list[i+2] = 0;
+            while(region_start)
+            {
+                uint32_t region_start_address = region_start->start;
+                uint32_t region_end_address = region_start->end;
+                uint32_t region_protections = region_start->protections;
+
+                size_t pagesize = sysconf(_SC_PAGE_SIZE);
+                uint32_t pagestart = region_start_address & -pagesize;
+                uint32_t protect_length = region_end_address - pagestart;
+
+                if(mprotect((void*)pagestart, protect_length, region_protections) == -1)
+                {
+                    perror("mprotect");
+                    exit(EXIT_FAILURE);
+                }
+
+                region_start = region_start->nextRegion;
+            }
+        }
     }
 }
 

@@ -9,8 +9,7 @@ synergy_game_fields synergy_fields;
 synergy_game_offsets synergy_offsets;
 synergy_game_functions synergy_functions;
 
-uint32_t synergy_srv;
-uint32_t synergy_srv_end;
+Library* synergy_srv;
 
 bool sdktools_passed;
 
@@ -44,12 +43,12 @@ void InitCore()
     snprintf((char*)our_libraries[5], 1024, "%s", "/extensions/sdktools.ext.2.sdk2013.so");
 }
 
-bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_end)
+bool IsAllowedToPatchSdkTools(Library* lib)
 {
-    uint32_t lib_integrity_chk_addr = lib_base + 0x00057919;
+    uint32_t lib_integrity_chk_addr = lib->start_address + 0x00057919;
     uint32_t str_len = 11;
 
-    bool integrity_chk = (lib_integrity_chk_addr + str_len) <= (lib_end);
+    bool integrity_chk = (lib_integrity_chk_addr + str_len) <= (lib->end_address);
 
     if(integrity_chk)
     {
@@ -67,10 +66,10 @@ bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_end)
 
 void PopulateHookExclusionLists()
 {
-    hook_exclude_list_base[0] = server_srv;
+    hook_exclude_list_base[0] = server_srv->start_address;
     hook_exclude_list_offset[0] = 0x008A0E2F;
 
-    hook_exclude_list_base[1] = vphysics_srv;
+    hook_exclude_list_base[1] = vphysics_srv->start_address;
     hook_exclude_list_offset[1] = 0x0011D336;
 }
 
@@ -179,10 +178,10 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
         return;
     }
 
-    uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv;
-    uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv;
-    uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv;
-    uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
+    uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv->start_address;
+    uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv->start_address;
+    uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start_address;
+    uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start_address;
 
     rootconsole->ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
     if(crash_server) exit(EXIT_FAILURE);
