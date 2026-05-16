@@ -323,7 +323,7 @@ void HookFunctions()
     HookFunction(server_srv, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
     HookFunction(server_srv, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
 
-    HookFunction(vphysics_srv, (void*)(vphysics_srv + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
+    HookFunction(vphysics_srv, (void*)(vphysics_srv->start_address + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 
     HookFunction(engine_srv, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
     HookFunction(engine_srv, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
@@ -624,7 +624,7 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 
     //rootconsole->ConsolePrint("Allowed usage!");
     
-    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv + 0x000DC6F0);
+    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv->start_address + 0x000DC6F0);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 

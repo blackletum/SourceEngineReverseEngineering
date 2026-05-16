@@ -24,23 +24,19 @@ ValueList save_player_vehicles_list;
 
 void InitCore()
 {
-    our_libraries[0] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[0], 1024, "%s", "/synergy/bin/server_srv.so");
+    static const char* library_paths[] = {
+        "/synergy/bin/server_srv.so",
+        "/bin/engine_srv.so",
+        "/bin/dedicated_srv.so",
+        "/bin/vphysics_srv.so",
+        "/synergy/bin/synergy_srv.so",
+        "/extensions/sdktools.ext.2.sdk2013.so"
+    };
 
-    our_libraries[1] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[1], 1024, "%s", "/bin/engine_srv.so");
-
-    our_libraries[2] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[2], 1024, "%s", "/bin/dedicated_srv.so");
-
-    our_libraries[3] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[3], 1024, "%s", "/bin/vphysics_srv.so");
-
-    our_libraries[4] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[4], 1024, "%s", "/synergy/bin/synergy_srv.so");
-
-    our_libraries[5] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[5], 1024, "%s", "/extensions/sdktools.ext.2.sdk2013.so");
+    for(size_t i = 0; i < (sizeof(library_paths) / sizeof(library_paths[0])); i++)
+    {
+        our_libraries[i] = (uint32_t)library_paths[i];
+    }
 }
 
 bool IsAllowedToPatchSdkTools(Library* lib)
