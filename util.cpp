@@ -1584,8 +1584,6 @@ void AllowWriteToMappedMemory()
             new_region->protections = save_protections;
             new_region->nextRegion = NULL;
 
-            rootconsole->ConsolePrint("alloced!");
-
             MemoryRegion* lib_region = currentLibrary->region;
 
             if(lib_region == NULL)
@@ -1614,11 +1612,7 @@ void AllowWriteToMappedMemory()
     free(current_abs_path);
     fclose(smaps_file);
 
-
-    rootconsole->ConsolePrint("AAAAAAAAS");
     ForceMemoryAccess();
-
-    rootconsole->ConsolePrint("MEMORY ACCESS!");
 }
 
 void ForceMemoryAccess()
@@ -1651,7 +1645,7 @@ void ForceMemoryAccess()
                 }
                 else
                 {
-                    rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", region_end_address, region_start_address);
+                    //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", region_end_address, region_start_address);
                 }
 
                 region_start = region_start->nextRegion;
