@@ -99,7 +99,7 @@ void HookFunctionsUtil()
 
     HookFunction(dedicated_srv, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
-    HookFunction(dedicated_srv, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
+    //HookFunction(dedicated_srv, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
 void UpdateEntityPosition(uint32_t object, float x, float y, float z)

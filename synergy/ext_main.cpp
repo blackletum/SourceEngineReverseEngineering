@@ -125,6 +125,7 @@ bool InitExtension()
     synergy_offsets.leavevehicle_offset = 0x648;
     synergy_offsets.entervehicle_offset = 0x644;
     synergy_offsets.dropship_container_offset = 0x1030;
+    synergy_offsets.metropolice_manhack_offset = 0x11C4;
 
     functions.SendNetMsg = (pThreeArgProt)(engine_srv->start_address + 0x002D0EB0);
     functions.ClientCommand = (pFourArgProt)(engine_srv->start_address + 0x0030E300);
@@ -195,6 +196,8 @@ bool InitExtension()
     synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv->start_address + 0x00851A40);
     synergy_functions.PrepForLevelTransition = (pOneArgProt)(server_srv->start_address + 0x0078B160);
     synergy_functions.Restore = (pTwoArgProt)(server_srv->start_address + 0x00BE01A0);
+    synergy_functions.ReleaseManhack = (pOneArgProtFastCall)(server_srv->start_address + 0x00B0ECD0);
+    synergy_functions.CombineBallGunDrop = (pThreeArgProt)(server_srv->start_address + 0x00BA7BE0);
 
     PopulateHookExclusionLists();
 
@@ -490,8 +493,7 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 {
     pOneArgProt pDynamicOneArgFunc;
-    pOneArgProtFastCall pDynamicFastCallOneArgFunc;
-    pTwoArgProtFastCall pDynamicFastCallTwoArgFunc;
+    pTwoArgProtFastCall pDynamicTwoArgFastCallFunc;
 
     save_frames++;
     if(save_frames > 10000) save_frames = 10000;
@@ -515,8 +517,8 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     functions.CleanupDeleteList(0);
 
     //Presystems
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
-    pDynamicFastCallTwoArgFunc(0x3D, 0);
+    pDynamicTwoArgFastCallFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
+    pDynamicTwoArgFastCallFunc(0x3D, 0);
 
     functions.CleanupDeleteList(0);
 
@@ -540,11 +542,11 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     UpdateCollisions(true);
 
     //PostSystems
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
-    pDynamicFastCallTwoArgFunc(0x2D, 0);
+    pDynamicTwoArgFastCallFunc = (pTwoArgProtFastCall)(functions.InvokeMethodReverseOrderFastCall);
+    pDynamicTwoArgFastCallFunc(0x2D, 0);
 
-    pDynamicFastCallTwoArgFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
-    pDynamicFastCallTwoArgFunc(0x41, 0);
+    pDynamicTwoArgFastCallFunc = (pTwoArgProtFastCall)(functions.InvokePerFrameMethodFastCall);
+    pDynamicTwoArgFastCallFunc(0x41, 0);
 
     UpdateCollisions(true);
     return 0;

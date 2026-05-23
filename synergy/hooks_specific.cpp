@@ -41,6 +41,48 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
     HookFunction(server_srv, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.ReleaseManhack, (void*)NativeHooks::ReleaseManhackHook);
+    HookFunction(server_srv, (void*)synergy_functions.CombineBallGunDrop, (void*)NativeHooks::CombineBallGunDropHook);
+}
+
+uint32_t NativeHooks::CombineBallGunDropHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgProt;
+
+    uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
+
+    if(!IsEntityValid(arg0) || !vphysics_object)
+    {
+        rootconsole->ConsolePrint("Entity failed - combine ball!");
+        return 0;
+    }
+
+    pDynamicThreeArgProt = (pThreeArgProt)(synergy_functions.CombineBallGunDrop);
+    return pDynamicThreeArgProt(arg0, arg1, arg2);
+}
+
+uint32_t NativeHooks::ReleaseManhackHook(uint32_t arg0)
+{
+    pOneArgProtFastCall pDynamicOneArgFastCall;
+
+    pDynamicOneArgFastCall = (pOneArgProtFastCall)(synergy_functions.ReleaseManhack);
+    uint32_t returnVal = pDynamicOneArgFastCall(arg0);
+
+    uint32_t refhandle = *(uint32_t*)(arg0+synergy_offsets.metropolice_manhack_offset);
+    uint32_t object = GetCBaseEntity(refhandle);
+
+    if(!IsEntityValid(object))
+    {
+        rootconsole->ConsolePrint("Manhack failed!");
+
+        uint32_t new_object = functions.CreateEntityByName((uint32_t)"npc_manhack", -1);
+        functions.DispatchSpawn(new_object);
+
+        uint32_t refhandle_new = *(uint32_t*)(new_object+offsets.refhandle_offset);
+        *(uint32_t*)(arg0+synergy_offsets.metropolice_manhack_offset) = refhandle_new; 
+    }
+
+    return returnVal;
 }
 
 uint32_t NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

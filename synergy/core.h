@@ -19,6 +19,7 @@ typedef struct _synergy_game_offsets {
     uint32_t leavevehicle_offset = 0;
     uint32_t entervehicle_offset = 0;
     uint32_t dropship_container_offset = 0;
+    uint32_t metropolice_manhack_offset = 0;
 } synergy_game_offsets;
 
 typedef struct _synergy_game_functions {
@@ -38,6 +39,8 @@ typedef struct _synergy_game_functions {
     pFourArgProt CSoundControllerImp_SoundChangeVolume = 0;
     pOneArgProt PrepForLevelTransition = 0;
     pTwoArgProt Restore = 0;
+    pOneArgProtFastCall ReleaseManhack = 0;
+    pThreeArgProt CombineBallGunDrop = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

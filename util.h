@@ -18,8 +18,8 @@ typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_
 typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
 typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtRegParm)(uint32_t, uint32_t);
+
 typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
-typedef uint32_t (__attribute__((thiscall)) *pOneArgProtThisCall)(uint32_t);
 typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
 typedef void (*Error)(char const *pMsg, ...);
