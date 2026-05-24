@@ -1,4 +1,5 @@
 #include "extension.h"
+#include "hang_watchdog.h"
 
 extern bool InitExtension();
 extern void DeinitExtension();
@@ -8,10 +9,14 @@ SMEXT_LINK(&g_ServerUtils);
 
 void ServerUtils::SDK_OnAllLoaded()
 {
-    InitExtension();
+    if (InitExtension())
+    {
+        InitHangWatchdog();
+    }
 }
 
 void ServerUtils::SDK_OnUnload()
 {
+    DeinitHangWatchdog();
     DeinitExtension();
 }

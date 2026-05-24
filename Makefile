@@ -24,7 +24,7 @@ PROJECT = sample
 #Uncomment for Metamod: Source enabled extension
 #USEMETA = true
 
-OBJECTS = smsdk_ext.cpp extension.cpp
+OBJECTS = smsdk_ext.cpp extension.cpp hang_watchdog.cpp
 
 ##############################################
 ### CONFIGURE ANY OTHER FLAGS/OPTIONS HERE ###

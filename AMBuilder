@@ -6,6 +6,7 @@ projectName = 'server_utils'
 # smsdk_ext.cpp will be automatically added later
 sourceFiles = [
   'extension.cpp',
+  'hang_watchdog.cpp',
   'util.cpp',
 
   'synergy/core.cpp',

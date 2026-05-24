@@ -1,4 +1,5 @@
 #include "extension.h"
+#include "hang_watchdog.h"
 #include "util.h"
 
 #include <link.h>
@@ -846,6 +847,8 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
+
+    TouchMainThreadHeartbeat();
 
     char* clsname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
