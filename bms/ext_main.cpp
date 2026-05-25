@@ -9,9 +9,10 @@
 
 void DeinitExtension()
 {
-    AllowWriteToMappedMemory();
-    DeinitUtil();
+    ForceMemoryAccess();
+    RestoreMemorySnapshots();
     RestoreMemoryProtections();
+    ClearLoadedLibraries();
     
     rootconsole->ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
 }

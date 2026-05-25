@@ -174,6 +174,8 @@ typedef struct _MemoryRegion {
 	uint32_t start;
 	uint32_t end;
 	uint32_t protections;
+	uint8_t* snapshot;
+	size_t snapshot_size;
 	struct _MemoryRegion* nextRegion;
 } MemoryRegion;
 
@@ -256,7 +258,6 @@ extern ValueList players_connect_commands_list;
 uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname);
 void UpdateCollisionByIVP(uint32_t ivp_real_object);
 void CorrectPhysics();
-void DeinitUtil();
 void InitUtil();
 void* copy_val(void* val, size_t copy_size);
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
@@ -272,6 +273,7 @@ char* getlibrary(char* file_line);
 bool IsOurLibraryPath(char* abs_path);
 void AllowWriteToMappedMemory();
 void ForceMemoryAccess();
+void RestoreMemorySnapshots();
 void RestoreMemoryProtections();
 void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);

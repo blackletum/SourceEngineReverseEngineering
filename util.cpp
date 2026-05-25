@@ -45,13 +45,6 @@ ValueList leakedResourcesVpkSystem;
 ValueList players_connect_commands_list;
 ValueList ivp_list;
 
-void DeinitUtil()
-{
-    HookFunction(dedicated_srv, (void*)HooksUtil::MallocHookLarge, (void*)malloc);
-    HookFunction(dedicated_srv, (void*)HooksUtil::PackedStoreDestructorHook, (void*)functions.PackedStoreDestructor);
-    HookFunction(dedicated_srv, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook, (void*)functions.CanSatisfyVpkCacheInternal);
-}
-
 void InitUtil()
 {
     loaded_extension = false;
@@ -1410,6 +1403,7 @@ void ClearLoadedLibraries()
             while(region_start)
             {
                 MemoryRegion* nextRegion = region_start->nextRegion;
+                free(region_start->snapshot);
                 free(region_start);
 
                 region_start = nextRegion;
@@ -1579,27 +1573,20 @@ void AllowWriteToMappedMemory()
             new_region->start = start_address_parsed;
             new_region->end = end_address_parsed;
             new_region->protections = save_protections;
-            new_region->nextRegion = NULL;
+            new_region->snapshot_size = end_address_parsed - start_address_parsed;
+            new_region->snapshot = (uint8_t*)malloc(new_region->snapshot_size);
 
-            MemoryRegion* lib_region = currentLibrary->region;
-
-            if(lib_region == NULL)
+            if(new_region->snapshot)
             {
-                currentLibrary->region = new_region;
-                free(file_line_cpy);
-                continue;
+                memcpy(new_region->snapshot, (void*)new_region->start, new_region->snapshot_size);
             }
-
-            while(lib_region)
+            else
             {
-                if(lib_region->nextRegion == NULL)
-                {
-                    lib_region->nextRegion = new_region;
-                    break;
-                }
-
-                lib_region = lib_region->nextRegion;
+                rootconsole->ConsolePrint("Failed to snapshot memory region [%X-%X]", new_region->start, new_region->end);
+                exit(EXIT_FAILURE);
             }
+            new_region->nextRegion = currentLibrary->region;
+            currentLibrary->region = new_region;
         }
 
         free(file_line_cpy);
@@ -1643,6 +1630,28 @@ void ForceMemoryAccess()
                 else
                 {
                     //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", region_end_address, region_start_address);
+                }
+
+                region_start = region_start->nextRegion;
+            }
+        }
+    }
+}
+
+void RestoreMemorySnapshots()
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(loaded_libraries[i] != 0)
+        {
+            Library* current_lib = (Library*)loaded_libraries[i];
+            MemoryRegion* region_start = current_lib->region;
+
+            while(region_start)
+            {
+                if(region_start->snapshot && region_start->snapshot_size > 0)
+                {
+                    memcpy((void*)region_start->start, region_start->snapshot, region_start->snapshot_size);
                 }
 
                 region_start = region_start->nextRegion;
