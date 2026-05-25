@@ -115,23 +115,17 @@ void UpdateEntityPosition(uint32_t object, float x, float y, float z)
 
         new_position.x = x;
         new_position.y = y;
-        new_position.z = z;
-
-        uint32_t vphysics_object = *(uint32_t*)(object+offsets.vphysics_object_offset);
-    
-        if(vphysics_object)
-        {
-            //SetPosition
-            pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.setposition_vphysics_offset)  );
-            pDynamicFourArgFunc(vphysics_object, (uint32_t)&new_position, (uint32_t)&empty_vector, 1);
-        }
+        new_position.z = z + 8.0f;
 
         //rootconsole->ConsolePrint("updated abs pos to %f %f %f", new_position.x, new_position.y, new_position.z);
 
-        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetAbsOrigin);
-        pDynamicTwoArgFunc(object, (uint32_t)&new_position);
+        float* origin_player = (float*)(object+offsets.origin_offset);
+        memcpy(origin_player, &new_position, sizeof(float) * 3);
 
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetLocalOrigin);
+        pDynamicTwoArgFunc(object, (uint32_t)&new_position);
+
+        pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetAbsOrigin);
         pDynamicTwoArgFunc(object, (uint32_t)&new_position);
     }
 }
