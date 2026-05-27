@@ -1,6 +1,7 @@
 #ifdef SE_SDK2013
 
 #include "extension.h"
+#include "hang_watchdog.h"
 #include "util.h"
 
 #include "synergy/core.h"
@@ -9,9 +10,14 @@
 
 void DeinitExtension()
 {
+    
     ForceMemoryAccess();
+
     RestoreMemorySnapshots();
+    RestoreExecutableMemorySnapshots();
+
     RestoreMemoryProtections();
+    
     ClearLoadedLibraries();
 
     rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded  ----------------------");
@@ -495,6 +501,8 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 {
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProtFastCall pDynamicTwoArgFastCallFunc;
+
+    TouchMainThreadHeartbeat();
 
     save_frames++;
     if(save_frames > 10000) save_frames = 10000;

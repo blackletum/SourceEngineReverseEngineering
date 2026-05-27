@@ -1,5 +1,4 @@
 #include "extension.h"
-#include "hang_watchdog.h"
 #include "util.h"
 
 #include <link.h>
@@ -44,6 +43,7 @@ uint32_t current_vpk_buffer_ref;
 ValueList leakedResourcesVpkSystem;
 ValueList players_connect_commands_list;
 ValueList ivp_list;
+ValueList hook_function_patch_notes;
 
 void InitUtil()
 {
@@ -63,6 +63,7 @@ void InitUtil()
     players_connect_commands_list = AllocateValuesList();
     leakedResourcesVpkSystem = AllocateValuesList();
     ivp_list = AllocateValuesList();
+    hook_function_patch_notes = AllocateValuesList();
 
     HookFunctionsUtil();
 }
@@ -112,8 +113,8 @@ void UpdateEntityPosition(uint32_t object, float x, float y, float z)
 
         //rootconsole->ConsolePrint("updated abs pos to %f %f %f", new_position.x, new_position.y, new_position.z);
 
-        float* origin_player = (float*)(object+offsets.origin_offset);
-        memcpy(origin_player, &new_position, sizeof(float) * 3);
+        float* origin = (float*)(object+offsets.origin_offset);
+        memcpy(origin, &new_position, sizeof(float) * 3);
 
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetLocalOrigin);
         pDynamicTwoArgFunc(object, (uint32_t)&new_position);
@@ -835,8 +836,6 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    TouchMainThreadHeartbeat();
-
     char* clsname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
 
     if(IsMarkedForDeletion(arg0+offsets.iserver_offset))
@@ -1286,6 +1285,28 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
     }
 }
 
+void NoteHookFunctionPatch(uint32_t address, uint32_t length)
+{
+    if(!hook_function_patch_notes)
+        return;
+
+    HookPatchRecord* patch = (HookPatchRecord*)malloc(sizeof(HookPatchRecord));
+    if(!patch)
+        return;
+
+    patch->address = address;
+    patch->length = length;
+
+    Value* patch_value = CreateNewValue((void*)patch);
+    if(!patch_value)
+    {
+        free(patch);
+        return;
+    }
+
+    InsertToValuesList(hook_function_patch_notes, patch_value, NULL, true, false);
+}
+
 void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 {
     if(!target_pointer || !hook_pointer)
@@ -1318,6 +1339,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                 }
 
                 *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
+                NoteHookFunctionPatch(search_address, sizeof(uint32_t));
 
                 search_address++;
                 continue;
@@ -1341,6 +1363,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 
                     uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                     *(uint32_t*)(search_address+1) = offset;
+                    NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
                 }
                 else
                 {
@@ -1358,6 +1381,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                         rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start_address);
                         uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                         *(uint32_t*)(search_address+1) = offset;
+                        NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
                     }
                 }
             }
@@ -1569,22 +1593,24 @@ void AllowWriteToMappedMemory()
 
             currentLibrary->end_address = end_address_parsed;
 
+            size_t pagesize = sysconf(_SC_PAGE_SIZE);
+            uint32_t pagestart = start_address_parsed & -pagesize;
+            uint32_t protect_length = end_address_parsed - pagestart;
+
+            if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+            {
+                free(file_line_cpy);
+                continue;
+            }
+
             MemoryRegion* new_region = (MemoryRegion*)malloc(sizeof(MemoryRegion));
             new_region->start = start_address_parsed;
             new_region->end = end_address_parsed;
             new_region->protections = save_protections;
             new_region->snapshot_size = end_address_parsed - start_address_parsed;
             new_region->snapshot = (uint8_t*)malloc(new_region->snapshot_size);
+            memcpy(new_region->snapshot, (void*)new_region->start, new_region->snapshot_size);
 
-            if(new_region->snapshot)
-            {
-                memcpy(new_region->snapshot, (void*)new_region->start, new_region->snapshot_size);
-            }
-            else
-            {
-                rootconsole->ConsolePrint("Failed to snapshot memory region [%X-%X]", new_region->start, new_region->end);
-                exit(EXIT_FAILURE);
-            }
             new_region->nextRegion = currentLibrary->region;
             currentLibrary->region = new_region;
         }
@@ -1595,8 +1621,24 @@ void AllowWriteToMappedMemory()
     free(file_line);
     free(current_abs_path);
     fclose(smaps_file);
+}
 
-    ForceMemoryAccess();
+void CopyMemorySnapshots()
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(loaded_libraries[i] != 0)
+        {
+            Library* current_lib = (Library*)loaded_libraries[i];
+            MemoryRegion* region_start = current_lib->region;
+
+            while(region_start)
+            {
+                memcpy(region_start->snapshot, (void*)region_start->start, region_start->snapshot_size);
+                region_start = region_start->nextRegion;
+            }
+        }
+    }
 }
 
 void ForceMemoryAccess()
@@ -1640,22 +1682,93 @@ void ForceMemoryAccess()
 
 void RestoreMemorySnapshots()
 {
-    for(int i = 0; i < 512; i++)
-    {
-        if(loaded_libraries[i] != 0)
-        {
-            Library* current_lib = (Library*)loaded_libraries[i];
-            MemoryRegion* region_start = current_lib->region;
+    if(!hook_function_patch_notes || !*hook_function_patch_notes)
+        return;
 
-            while(region_start)
+    Value* patch_note = *hook_function_patch_notes;
+
+    while(patch_note)
+    {
+        HookPatchRecord* patch = (HookPatchRecord*)patch_note->value;
+
+        if(patch && patch->address != 0 && patch->length > 0)
+        {
+            for(int i = 0; i < 512; i++)
             {
-                if(region_start->snapshot && region_start->snapshot_size > 0)
+                if(loaded_libraries[i] == 0)
+                    continue;
+
+                Library* current_lib = (Library*)loaded_libraries[i];
+                MemoryRegion* region_start = current_lib->region;
+                bool restored_patch = false;
+
+                while(region_start)
                 {
-                    memcpy((void*)region_start->start, region_start->snapshot, region_start->snapshot_size);
+                    if(region_start->snapshot && region_start->snapshot_size > 0)
+                    {
+                        if(patch->address >= region_start->start && patch->address < region_start->end)
+                        {
+                            size_t restore_len = (size_t)patch->length;
+                            size_t max_len = (size_t)(region_start->end - patch->address);
+                            size_t snapshot_offset = (size_t)(patch->address - region_start->start);
+
+                            if(restore_len > max_len)
+                                restore_len = max_len;
+
+                            if(snapshot_offset + restore_len <= region_start->snapshot_size)
+                            {
+                                rootconsole->ConsolePrint("COPY SHIT!");
+                                memcpy((void*)patch->address, region_start->snapshot + snapshot_offset, restore_len);
+                                rootconsole->ConsolePrint("done");
+                            }
+
+                            restored_patch = true;
+                            break;
+                        }
+                    }
+
+                    region_start = region_start->nextRegion;
                 }
 
-                region_start = region_start->nextRegion;
+                if(restored_patch)
+                    break;
             }
+        }
+
+        patch_note = patch_note->nextVal;
+    }
+}
+
+void RestoreExecutableMemorySnapshots()
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(loaded_libraries[i] == 0)
+            continue;
+
+        Library* current_lib = (Library*)loaded_libraries[i];
+        MemoryRegion* region_start = current_lib->region;
+
+        while(region_start)
+        {
+            if(region_start->snapshot && region_start->snapshot_size > 0)
+            {
+                if((region_start->protections & PROT_EXEC) != 0)
+                {
+                    size_t restore_len = region_start->snapshot_size;
+                    size_t region_len = (size_t)(region_start->end - region_start->start);
+
+                    if(restore_len > region_len)
+                        restore_len = region_len;
+
+                    if(restore_len > 0)
+                    {
+                        memcpy((void*)region_start->start, region_start->snapshot, restore_len);
+                    }
+                }
+            }
+
+            region_start = region_start->nextRegion;
         }
     }
 }

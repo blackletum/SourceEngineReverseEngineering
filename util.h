@@ -217,6 +217,11 @@ typedef struct _EntityOrigin {
 	float z;
 } EntityOrigin;
 
+typedef struct _HookPatchRecord {
+	uint32_t address;
+	uint32_t length;
+} HookPatchRecord;
+
 extern void ExtensionUpdateOnRemove(uint32_t arg0);
 extern void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);
 extern uint32_t GetCBaseEntity(uint32_t EHandle);
@@ -254,6 +259,7 @@ extern uint32_t global_vpk_cache_buffer;
 extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList players_connect_commands_list;
+extern ValueList hook_function_patch_notes;
 
 uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname);
 void UpdateCollisionByIVP(uint32_t ivp_real_object);
@@ -261,6 +267,7 @@ void CorrectPhysics();
 void InitUtil();
 void* copy_val(void* val, size_t copy_size);
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
+void NoteHookFunctionPatch(uint32_t address, uint32_t length);
 void HookFunction(Library* binary, void* target_pointer, void* hook_pointer);
 void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signatures[32], int start_signatures_size, Signature end_signatures[32], int end_signatures_size, Signature args_signatures[32], Signature stack_machine_code[32], int stack_arguments_size, Signature no_operation_signatures[32], int no_operation_signatures_size, uint32_t estimated_block_size_min, uint32_t estimated_block_size_max, int expected_arguments, void* hook_pointer);
 bool ApplyBlockHook(uint32_t block_start_start, uint32_t block_end_end, Signature args_signatures[32], Signature stack_machine_code[32], int stack_arguments_size, Signature no_operation_signatures[32], int no_operation_signatures_size, int expected_arguments, void* hook_pointer);
@@ -272,8 +279,10 @@ void ClearLoadedLibraries();
 char* getlibrary(char* file_line);
 bool IsOurLibraryPath(char* abs_path);
 void AllowWriteToMappedMemory();
+void CopyMemorySnapshots();
 void ForceMemoryAccess();
 void RestoreMemorySnapshots();
+void RestoreExecutableMemorySnapshots();
 void RestoreMemoryProtections();
 void ZeroVector(uint32_t vector);
 bool IsVectorNaN(uint32_t base);

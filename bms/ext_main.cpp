@@ -9,10 +9,13 @@
 
 void DeinitExtension()
 {
+    rootconsole->ConsolePrint("force access");
     ForceMemoryAccess();
+    rootconsole->ConsolePrint("restoore snaps");
     RestoreMemorySnapshots();
+    rootconsole->ConsolePrint("restoore prots");
     RestoreMemoryProtections();
-    ClearLoadedLibraries();
+    //ClearLoadedLibraries();
     
     rootconsole->ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
 }
@@ -297,6 +300,8 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 {
     pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
+
+    TouchMainThreadHeartbeat();
 
     isTicking = true;
 
