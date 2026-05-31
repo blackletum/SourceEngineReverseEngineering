@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"ServerUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension to fix issues with dedicated server"
-#define SMEXT_CONF_VERSION		"Version: 529 - Black Mesa Winter Patch - Synergy 25.3"
+#define SMEXT_CONF_VERSION		"Version: 530 - Black Mesa Winter Patch - Synergy 25.3"
 #define SMEXT_CONF_AUTHOR		"ReservedRegister"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
 #define SMEXT_CONF_LOGTAG		"SERVER_UTILS"
@@ -76,6 +76,6 @@
 //#define SMEXT_ENABLE_TEXTPARSERS
 //#define SMEXT_ENABLE_USERMSGS
 //#define SMEXT_ENABLE_TRANSLATOR
-#define SMEXT_ENABLE_ROOTCONSOLEMENU
+//#define SMEXT_ENABLE_ROOTCONSOLEMENU
 
 #endif // _INCLUDE_SOURCEMOD_EXTENSION_CONFIG_H_

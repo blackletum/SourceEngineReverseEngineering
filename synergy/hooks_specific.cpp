@@ -59,7 +59,7 @@ uint32_t NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook(uint32_t arg0
 
         if(!IsEntityValid(object))
         {
-            ConsolePrintVprintf("Follow failed!");
+            ConsolePrint("Follow failed!");
             return 0;
         }
     }
@@ -74,10 +74,10 @@ uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryPoint_Hook(uint32_t arg0, ui
 
     if(IsEntityValid(object))
     {
-        synergy_functions.CAI_PassengerBehavior_GetEntryPoint(arg0, arg1, arg2, arg3);
+        return synergy_functions.CAI_PassengerBehavior_GetEntryPoint(arg0, arg1, arg2, arg3);
     }
 
-    ConsolePrintVprintf("Bad Entity - GetEntryPoint");
+    ConsolePrint("Bad Entity - GetEntryPoint");
     return 0;
 }
 
@@ -88,7 +88,7 @@ uint32_t NativeHooks::CombineAnimEventHook(uint32_t arg0, uint32_t arg1)
 
     if(!IsEntityValid(activeweapon))
     {
-        ConsolePrintVprintf("Combine Anim failed!");
+        ConsolePrint("Combine Anim failed!");
         return 0;
     }
     
@@ -101,7 +101,7 @@ uint32_t NativeHooks::CombineBallGunDropHook(uint32_t arg0, uint32_t arg1, uint3
 
     if(!IsEntityValid(arg0) || !vphysics_object)
     {
-        ConsolePrintVprintf("Entity failed - combine ball!");
+        ConsolePrint("Entity failed - combine ball!");
         return 0;
     }
 
@@ -117,7 +117,7 @@ uint32_t NativeHooks::ReleaseManhackHook(uint32_t arg0)
 
     if(!IsEntityValid(object))
     {
-        ConsolePrintVprintf("Manhack failed!");
+        ConsolePrint("Manhack failed!");
 
         uint32_t new_object = functions.CreateEntityByName((uint32_t)"npc_manhack", -1);
         functions.DispatchSpawn(new_object);
@@ -136,7 +136,7 @@ uint32_t NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook(uint32_t arg0, 
         return synergy_functions.CSoundControllerImp_SoundChangeVolume(arg0, arg1, arg2, arg3);
     }
 
-    ConsolePrintVprintf("Prevented crash in helicopter sound system");
+    ConsolePrint("Prevented crash in helicopter sound system");
     return 0;
 }
 
@@ -149,7 +149,7 @@ uint32_t NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook(uint32_t arg0)
         return synergy_functions.CNPC_RollerMine_InputJoltVehicle(arg0);
     }
 
-    ConsolePrintVprintf("Failed to service jolt on vehicle");
+    ConsolePrint("Failed to service jolt on vehicle");
     return 0;
 }
 
@@ -159,7 +159,7 @@ uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
 
     if(returnVal == 0)
     {
-        //ConsolePrintVprintf("UTIL_GetPlayerMP failed!");
+        //ConsolePrint("UTIL_GetPlayerMP failed!");
 
         uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
@@ -182,7 +182,7 @@ uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateCondition
         return synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions(arg0);
     }
 
-    ConsolePrintVprintf("Bad Entity - GatherVehicleStateConditions");
+    ConsolePrint("Bad Entity - GatherVehicleStateConditions");
     return 0;
 }
 
@@ -196,7 +196,7 @@ uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook(uint32_t arg0, u
         return synergy_functions.CAI_PassengerBehavior_GetEntryTarget(arg0, arg1, arg2);
     }
 
-    ConsolePrintVprintf("Bad Entity - GetEntryTarget");
+    ConsolePrint("Bad Entity - GetEntryTarget");
     return 0;
 }
 
@@ -210,7 +210,7 @@ uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook(uint
         return synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence(arg0, arg1);
     }
 
-    ConsolePrintVprintf("Bad Entity - FindEntrySequence");
+    ConsolePrint("Bad Entity - FindEntrySequence");
     return 0;
 }
 
@@ -224,7 +224,7 @@ uint32_t NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook(uint32_t arg0
         return synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint(arg0, arg1);
     }
 
-    ConsolePrintVprintf("Bad Entity - ReserveEntryPoint");
+    ConsolePrint("Bad Entity - ReserveEntryPoint");
     return 0;
 }
 

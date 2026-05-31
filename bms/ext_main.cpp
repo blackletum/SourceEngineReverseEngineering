@@ -9,22 +9,22 @@
 
 void DeinitExtension()
 {
-    ConsolePrintVprintf("force access");
+    ConsolePrint("force access");
     ForceMemoryAccess();
-    ConsolePrintVprintf("restoore snaps");
+    ConsolePrint("restoore snaps");
     RestoreMemorySnapshots();
-    ConsolePrintVprintf("restoore prots");
+    ConsolePrint("restoore prots");
     RestoreMemoryProtections();
     //ClearLoadedLibraries();
     
-    ConsolePrintVprintf("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
+    ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
 }
 
 bool InitExtension()
 {
     if(loaded_extension)
     {
-        ConsolePrintVprintf("Attempted to load extension twice!");
+        ConsolePrint("Attempted to load extension twice!");
         return false;
     }
 
@@ -53,7 +53,7 @@ bool InitExtension()
     {
         RestoreMemoryProtections();
         ClearLoadedLibraries();
-        ConsolePrintVprintf("----------------------  Failed to load Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
+        ConsolePrint("----------------------  Failed to load Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
         return false;
     }
 
@@ -152,8 +152,8 @@ bool InitExtension()
 
     RestoreMemoryProtections();
 
-    ConsolePrintVprintf("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
-    ConsolePrintVprintf("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
+    ConsolePrint("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
+    ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
     loaded_extension = true;
 
     return true;
@@ -239,13 +239,13 @@ uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t
 
         if(IsEntityValid(arg0) == 0)
         {
-            ConsolePrintVprintf("Runtime error - failed to maintain entity integrity! (Ragdoll breaking)");
+            ConsolePrint("Runtime error - failed to maintain entity integrity! (Ragdoll breaking)");
             exit(EXIT_FAILURE);
             return 0;
         }
     }
 
-    ConsolePrintVprintf("Failed to ragdoll break!");
+    ConsolePrint("Failed to ragdoll break!");
     return 0;
 }
 
@@ -266,7 +266,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_
         }
         else if(ragdoll_breaking_gib_counter >= 4)
         {
-            ConsolePrintVprintf("Ignored gib from ragdoll breaker!");
+            ConsolePrint("Ignored gib from ragdoll breaker!");
             HandleSpecificEntityRemoval(new_object, true, true, true, true);
     
             if(IsEntityValid(last_ragdoll_gib))
@@ -274,7 +274,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_
                 return last_ragdoll_gib;
             }
     
-            ConsolePrintVprintf("First gib was removed!!! - Critical Error");
+            ConsolePrint("First gib was removed!!! - Critical Error");
             exit(EXIT_FAILURE);
             return 0;
         }
@@ -314,7 +314,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     if(server_sleeping)
     {
-        //ConsolePrintVprintf("No players exist on server skipping simulation!");
+        //ConsolePrint("No players exist on server skipping simulation!");
         return 0;
     }
 
@@ -353,7 +353,7 @@ uint32_t HooksBlackMesa::TestGroundMove(uint32_t arg0, uint32_t arg1, uint32_t a
 
         if((inf_val_chk != 0) && ((inf_val_chk / 2) == inf_val_chk))
         {
-            ConsolePrintVprintf("+Inf detected!");
+            ConsolePrint("+Inf detected!");
             return 0;
         }
     }
@@ -419,7 +419,7 @@ uint32_t HooksUtil::SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(classname && strcmp(classname, "npc_nihilanth") == 0)
     {
-        ConsolePrintVprintf("\nBlocked SetEnemy for npc_nihilanth\n");
+        ConsolePrint("\nBlocked SetEnemy for npc_nihilanth\n");
         return 0;
     }
 

@@ -58,7 +58,7 @@ void CheckForLocation()
 
     if(strcmp((char*)current_map, "bm_c2a3a") != 0)
     {
-        //ConsolePrintVprintf("Location fix disabled!");
+        //ConsolePrint("Location fix disabled!");
         return;
     }
 
@@ -68,7 +68,7 @@ void CheckForLocation()
     {
         bool in_area = false;
         uint32_t player_abs = player+0x294;
-        //ConsolePrintVprintf("[%f] [%f] [%f]", *(float*)(player_abs), *(float*)(player_abs+0x4), *(float*)(player_abs+0x8));
+        //ConsolePrint("[%f] [%f] [%f]", *(float*)(player_abs), *(float*)(player_abs+0x4), *(float*)(player_abs+0x8));
 
         Vector* trigger_vecMinsAbs = (Vector*)(malloc(sizeof(Vector)));
         trigger_vecMinsAbs->x = 1314.0;
@@ -90,7 +90,7 @@ void CheckForLocation()
                     uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
 
                     functions.SetSolidFlags(collision_property, 4);
-                    //ConsolePrintVprintf("bad area!");
+                    //ConsolePrint("bad area!");
                     in_area = true;
                 }
             }
@@ -129,7 +129,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
         {
             if(isTicking && slow)
             {
-                ConsolePrintVprintf("Tried killing player but was protected & respawned!");
+                ConsolePrint("Tried killing player but was protected & respawned!");
                 UpdateEntityPosition(object, 0, 0, 0);
                 return;
             }
@@ -146,7 +146,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
     uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv;
     uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv;
 
-    ConsolePrintVprintf("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
+    ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
     if(crash_server) exit(EXIT_FAILURE);
 }
 

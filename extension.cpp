@@ -9,14 +9,12 @@ SMEXT_LINK(&g_ServerUtils);
 
 void ServerUtils::SDK_OnAllLoaded()
 {
-    if (InitExtension())
-    {
-        //InitHangWatchdog();
-    }
+    InitExtension();
+    InitHangWatchdog();
 }
 
 void ServerUtils::SDK_OnUnload()
 {
-    DeinitHangWatchdog();
     DeinitExtension();
+    DeinitHangWatchdog();
 }

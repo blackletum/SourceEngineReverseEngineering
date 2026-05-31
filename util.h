@@ -240,7 +240,7 @@ extern uint32_t transitioned_clients[512];
 
 extern bool loaded_extension;
 
-void ConsolePrintVprintf(const char *pMsg, ...);
+void ConsolePrint(const char *pMsg, ...);
 
 extern bool firstplayer_hasjoined;
 extern bool player_collision_rules_changed;

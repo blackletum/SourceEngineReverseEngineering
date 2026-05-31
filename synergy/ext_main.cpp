@@ -1,8 +1,8 @@
 #ifdef SE_SDK2013
 
 #include "extension.h"
-#include "hang_watchdog.h"
 #include "util.h"
+#include "hang_watchdog.h"
 
 #include "synergy/core.h"
 #include "synergy/ext_main.h"
@@ -12,22 +12,25 @@ void DeinitExtension()
 {
     TakeRegionMemorySnapshot(false);
 
-    ConsolePrintVprintf("RESTORING");
     RestoreMemorySnapshots();
-    RestoreExecutableMemorySnapshots();
+
+    //dont restore this due to issues with fully working unloading!
+    //unloading will only be supported for server quiting!
+
+    //RestoreExecutableMemorySnapshots();
 
     RestoreMemoryProtections();
     
     ClearLoadedLibraries();
 
-    ConsolePrintVprintf("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded  ----------------------");
+    ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded  ----------------------");
 }
 
 bool InitExtension()
 {
     if(loaded_extension)
     {
-        ConsolePrintVprintf("Attempted to load extension twice!");
+        ConsolePrint("Attempted to load extension twice!");
         return false;
     }
 
@@ -62,16 +65,16 @@ bool InitExtension()
     {
         RestoreMemoryProtections();
         ClearLoadedLibraries();
-        ConsolePrintVprintf("----------------------  Failed to load Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
+        ConsolePrint("----------------------  Failed to load Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
         return false;
     }
 
-    ConsolePrintVprintf("server_srv_lib [%X] end [%X]", server_srv->start_address, server_srv->end_address);
-    ConsolePrintVprintf("synergy_srv_lib [%X] end [%X]", synergy_srv->start_address, synergy_srv->end_address);
-    ConsolePrintVprintf("engine_srv_lib [%X] end [%X]", engine_srv->start_address, engine_srv->end_address);
-    ConsolePrintVprintf("dedicated_srv_lib [%X] end [%X]", dedicated_srv->start_address, dedicated_srv->end_address);
-    ConsolePrintVprintf("vphysics_srv_lib [%X] end [%X]", vphysics_srv->start_address, vphysics_srv->end_address);
-    ConsolePrintVprintf("sdktools_lib [%X] end [%X]", sdktools->start_address, sdktools->end_address);
+    ConsolePrint("server_srv_lib [%X] end [%X]", server_srv->start_address, server_srv->end_address);
+    ConsolePrint("synergy_srv_lib [%X] end [%X]", synergy_srv->start_address, synergy_srv->end_address);
+    ConsolePrint("engine_srv_lib [%X] end [%X]", engine_srv->start_address, engine_srv->end_address);
+    ConsolePrint("dedicated_srv_lib [%X] end [%X]", dedicated_srv->start_address, dedicated_srv->end_address);
+    ConsolePrint("vphysics_srv_lib [%X] end [%X]", vphysics_srv->start_address, vphysics_srv->end_address);
+    ConsolePrint("sdktools_lib [%X] end [%X]", sdktools->start_address, sdktools->end_address);
 
     sdktools_passed = IsAllowedToPatchSdkTools(sdktools);
 
@@ -225,8 +228,8 @@ bool InitExtension()
 
     RestoreMemoryProtections();
 
-    ConsolePrintVprintf("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
-    ConsolePrintVprintf("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded  ----------------------");
+    ConsolePrint("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
+    ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded  ----------------------");
     loaded_extension = true;
 
     return true;
@@ -339,7 +342,7 @@ void ApplyPatches()
 
     uint32_t script_think_patch = server_srv->start_address + 0x00832200;
     *(uint8_t*)(script_think_patch) = 0xE9;
-    *(uint32_t*)(script_think_patch) = 0xD2;
+    *(uint32_t*)(script_think_patch+1) = 0xCD;
 }
 
 void HookFunctions()
@@ -373,7 +376,7 @@ uint32_t HooksUtil::LevelChangedSnapHook(uint32_t arg0)
 
 uint32_t HooksSynergy::ContentResetHook(uint32_t arg0)
 {
-    ConsolePrintVprintf("%s", arg0);
+    ConsolePrint("%s", arg0);
     
     functions.UnloadAllModels(fields.g_ModelLoader);
     return synergy_functions.ContentReset(arg0);
@@ -387,7 +390,7 @@ uint32_t HooksSynergy::PrepForLevelTransitionHook(uint32_t arg0)
     InsertToArrayList(transitioned_clients, refHandle);
     memcpy(transitioning_player, abs_origin_player, sizeof(float) * 3);
 
-    //ConsolePrintVprintf("player detected with %f.2 %f.2 %f.2", transitioning_player[0], transitioning_player[1], transitioning_player[2]);
+    //ConsolePrint("player detected with %f.2 %f.2 %f.2", transitioning_player[0], transitioning_player[1], transitioning_player[2]);
 
     return synergy_functions.PrepForLevelTransition(arg0);
 }
@@ -396,7 +399,7 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
 {
     pFourArgProt pDynamicFourArgFunc;
 
-    ConsolePrintVprintf("Manual Save on Transition!");
+    ConsolePrint("Manual Save on Transition!");
 
     MakePlayersLeaveVehicles();
     FixCars();
@@ -426,8 +429,10 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
 uint32_t HooksSynergy::CombineDropshipSpawnHook(uint32_t arg0)
 {
     uint32_t returnVal = synergy_functions.CombineDropshipSpawn(arg0);
+
     *(uint8_t*)(synergy_fields.m_sbStaticPoseParamsLoadedDropship) = 0;
     synergy_functions.PopulatePoseParametersDropship(arg0);
+
     return returnVal;
 }
 
@@ -446,7 +451,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
 
         if(studio_hdr)
         {
-            ConsolePrintVprintf("Dropship gun patched! x1");
+            ConsolePrint("Dropship gun patched! x1");
             return synergy_functions.LookupPoseParameterDropship(container_object, studio_hdr, arg2);
         }
 
@@ -458,7 +463,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
 
         if(final_studio)
         {
-            ConsolePrintVprintf("Locked studio for dropship!");
+            ConsolePrint("Locked studio for dropship!");
 
             //CBaseAnimating::LockStudioHdr
             pDynamicOneArgFunc = (pOneArgProt)(server_srv->start_address + 0x0056AFB0);
@@ -471,12 +476,12 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
 
         if(studio_hdr)
         {
-            ConsolePrintVprintf("Dropship gun patched! x2");
+            ConsolePrint("Dropship gun patched! x2");
             return synergy_functions.LookupPoseParameterDropship(container_object, studio_hdr, arg2);
         }
     }
 
-    ConsolePrintVprintf("Failed to patch dropship gun!");
+    ConsolePrint("Failed to patch dropship gun!");
     return synergy_functions.LookupPoseParameterDropship(arg0, arg1, arg2);
 }
 
@@ -484,7 +489,7 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 {
     if(disable_player_restore)
     {
-        ConsolePrintVprintf("Blocked RestorePlayer!");
+        ConsolePrint("Blocked RestorePlayer!");
         return 0;
     }
 
@@ -499,9 +504,6 @@ uint32_t HooksSynergy::RestorePlayerHook(uint32_t arg0, uint32_t arg1)
 
 uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 {
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProtFastCall pDynamicTwoArgFastCallFunc;
-
     TouchMainThreadHeartbeat();
 
     save_frames++;
@@ -519,7 +521,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     if(server_sleeping)
     {
-        //ConsolePrintVprintf("No players exist on server skipping simulation!");
+        //ConsolePrint("No players exist on server skipping simulation!");
         return 0;
     }
 
@@ -534,7 +536,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     if(savegame && save_frames > 1500)
     {
-        ConsolePrintVprintf("Autosave created!");
+        ConsolePrint("Autosave created!");
         SaveGame_Extension();
 
         savegame = false;
@@ -565,7 +567,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
     }
 
     SaveGame_Extension();
-    ConsolePrintVprintf("Skipped Restore! (loaded current game back from save)");
+    ConsolePrint("Skipped Restore! (loaded current game back from save)");
 
     disable_player_restore = true;
 
@@ -584,12 +586,12 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     if(deleted_ents > 0)
     {
-        ConsolePrintVprintf("Failed to save game");
+        ConsolePrint("Failed to save game");
         exit(EXIT_FAILURE);
         return 0;
     }
 
-    ConsolePrintVprintf("Saving game!");
+    ConsolePrint("Saving game!");
 
     savegame_internal = true;
 
@@ -599,7 +601,7 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     if(savegame_autosave)
     {
-        ConsolePrintVprintf("Blocked autosave.sav!");
+        ConsolePrint("Blocked autosave.sav!");
         return 0;
     }
 
@@ -612,11 +614,11 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 
     if(save_frames < 80)
     {
-        ConsolePrintVprintf("Prevented vehicle exit!");
+        ConsolePrint("Prevented vehicle exit!");
         return 0;
     }
 
-    //ConsolePrintVprintf("Allowed usage!");
+    //ConsolePrint("Allowed usage!");
     
     pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv->start_address + 0x000DC6F0);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -678,10 +680,10 @@ uint32_t HooksUtil::CEntityFactoryDictionary_CreateHook(uint32_t arg0, uint32_t 
             if(strcmp((const char*)arg1, "prop_vehicle_mp") == 0)
             {
                 *(uint8_t*)(cbase_entity+0x836) = 1;
-                ConsolePrintVprintf("Vehicle Created: [%s]", arg1);
+                ConsolePrint("Vehicle Created: [%s]", arg1);
             }
 
-            //ConsolePrintVprintf("Entity Created: [%s]", *(uint32_t*)(cbase_entity+offsets.classname_offset));
+            //ConsolePrint("Entity Created: [%s]", *(uint32_t*)(cbase_entity+offsets.classname_offset));
         }
     }
 
@@ -713,7 +715,7 @@ uint32_t HooksUtil::GetEnemyHook(uint32_t arg0)
     {
         if((uint32_t)__builtin_return_address(0) == (server_srv->start_address + 0x004BBE8B))
         {
-            ConsolePrintVprintf("GetEnemy returned NULL");
+            ConsolePrint("GetEnemy returned NULL");
 
             uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 

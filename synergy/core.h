@@ -44,7 +44,7 @@ typedef struct _synergy_game_functions {
     pThreeArgProt CombineBallGunDrop = 0;
     pOneArgProt ContentReset = 0;
     pTwoArgProt CombineAnimEvent = 0;
-    pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition;
+    pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;
