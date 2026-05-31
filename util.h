@@ -160,7 +160,7 @@ typedef struct _game_functions {
 	pOneArgProt GetEnemy2 = 0;
 	pThreeArgProt SetEnemy = 0;
 	pOneArgProtFastCall UnloadAllModels = 0;
-	pOneArgProt FindPickerEntity;
+	pOneArgProt FindPickerEntity = 0;
 } game_functions;
 
 typedef struct _Signature {
