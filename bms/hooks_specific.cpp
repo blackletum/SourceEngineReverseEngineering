@@ -48,7 +48,7 @@ uint32_t NativeHooks::ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint32_t
         }
     }
 
-    rootconsole->ConsolePrint("ShouldHitEntity failed!");
+    ConsolePrintVprintf("ShouldHitEntity failed!");
     return 0;
 }
 
@@ -75,7 +75,7 @@ uint32_t NativeHooks::LaunchMortarHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    rootconsole->ConsolePrint("Gonarch was invalid!");
+    ConsolePrintVprintf("Gonarch was invalid!");
     return 0;
 }
 
@@ -95,7 +95,7 @@ uint32_t NativeHooks::InputSetCSMVolumeHook(uint32_t arg0, uint32_t arg1)
         }
     }
 
-    rootconsole->ConsolePrint("Entity was NULL");
+    ConsolePrintVprintf("Entity was NULL");
     return 0;
 }
 
@@ -150,7 +150,7 @@ uint32_t NativeHooks::EnumElementHook(uint32_t arg0, uint32_t arg1)
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    //rootconsole->ConsolePrint("Attempted to use a dead object!");
+    //ConsolePrintVprintf("Attempted to use a dead object!");
     return 0;
 }
 
@@ -170,7 +170,7 @@ uint32_t NativeHooks::TakeDamageHook(uint32_t arg0, uint32_t arg1)
         }
     }
 
-    rootconsole->ConsolePrint("Fixed crash in take damage function");
+    ConsolePrintVprintf("Fixed crash in take damage function");
     return 0;
 }
 

@@ -45,6 +45,15 @@ ValueList players_connect_commands_list;
 ValueList ivp_list;
 ValueList hook_function_patch_notes;
 
+void ConsolePrintVprintf(const char *pMsg, ...)
+{
+    va_list marker;
+    va_start(marker, pMsg);
+    vprintf(pMsg, marker);
+    va_end(marker);
+    printf("\n");
+}
+
 void InitUtil()
 {
     loaded_extension = false;
@@ -89,12 +98,24 @@ void HookFunctionsUtil()
     HookFunction(server_srv, (void*)functions.GetEnemy2, (void*)HooksUtil::GetEnemyHook);
     HookFunction(server_srv, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
     HookFunction(server_srv, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
+    HookFunction(server_srv, (void*)functions.FindPickerEntity, (void*)HooksUtil::FindPickerEntityHook);
 
     HookFunction(server_srv, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
     HookFunction(dedicated_srv, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
     //HookFunction(dedicated_srv, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
+}
+
+uint32_t HooksUtil::FindPickerEntityHook(uint32_t arg0)
+{
+    if(arg0)
+    {
+        functions.FindPickerEntity(arg0);
+    }
+
+    ConsolePrintVprintf("FindPickerEntity failed!");
+    return 0;
 }
 
 void UpdateEntityPosition(uint32_t object, float x, float y, float z)
@@ -111,7 +132,7 @@ void UpdateEntityPosition(uint32_t object, float x, float y, float z)
         new_position.y = y;
         new_position.z = z + 8.0f;
 
-        //rootconsole->ConsolePrint("updated abs pos to %f %f %f", new_position.x, new_position.y, new_position.z);
+        //ConsolePrintVprintf("updated abs pos to %f %f %f", new_position.x, new_position.y, new_position.z);
 
         float* origin = (float*)(object+offsets.origin_offset);
         memcpy(origin, &new_position, sizeof(float) * 3);
@@ -155,7 +176,7 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
         if(player_edict)
         {
             int userid = functions.GetPlayerUserId(0, player_edict);
-            //rootconsole->ConsolePrint("USERID: [%d]", userid);
+            //ConsolePrintVprintf("USERID: [%d]", userid);
 
             if(userid != -1 && userid != 0)
             {
@@ -172,7 +193,7 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                         if(earliest_clients != connected_clients)
                         {
                             //if(!(!increment_frames && !send_commands))
-                                //rootconsole->ConsolePrint("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
+                                //ConsolePrintVprintf("Clients are not ready to send commands yet %d %d", earliest_clients, connected_clients);
                             found_player = true;
                             break;
                         }
@@ -180,13 +201,13 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                         if(frames < 1)
                         {
                             faking_cheats = true;
-                            rootconsole->ConsolePrint("cheats faked! set to true");
+                            ConsolePrintVprintf("cheats faked! set to true");
                         }
                         
                         if(frames == 1 && send_commands)
                         {
                             SendClientCommands(player_edict);
-                            rootconsole->ConsolePrint("client commands sent");
+                            ConsolePrintVprintf("client commands sent");
                         }
     
                         if(frames > 1000) frames = 1000;
@@ -227,7 +248,7 @@ void SendClientConnectCommands(bool increment_frames, bool send_commands)
                     }
                     else
                     {
-                        rootconsole->ConsolePrint("Removed dead player!");
+                        ConsolePrintVprintf("Removed dead player!");
                     }
     
                     Value* nextValue = first_connect_player->nextVal->nextVal;
@@ -347,7 +368,7 @@ void ReplicateCheatsOnClient()
     if(!faking_cheats)
     {
         if(correct_cheats_frames <= 50) CorrectCheats();
-        if(correct_cheats_frames == 0) rootconsole->ConsolePrint("Corrected cheats! [%d]", incorrect_cheats_frames);
+        if(correct_cheats_frames == 0) ConsolePrintVprintf("Corrected cheats! [%d]", incorrect_cheats_frames);
 
         incorrect_cheats_frames = 0;
         correct_cheats_frames++;
@@ -356,7 +377,7 @@ void ReplicateCheatsOnClient()
     {
         if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT && incorrect_cheats_frames <= CLIENT_CHEATS_FRAME_LIMIT+50)
         {
-            rootconsole->ConsolePrint("Over the limit!");
+            ConsolePrintVprintf("Over the limit!");
             CorrectCheats();
         }
         
@@ -383,7 +404,7 @@ bool IsVphysicsEntityBad(uint32_t ent)
             pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.getposition_vphysics_offset)  );
             pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
 
-            //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
+            //ConsolePrintVprintf("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
 
             if(!IsEntityPositionReasonable((uint32_t)&current_origin))
             {
@@ -417,18 +438,18 @@ void CorrectVphysicsEntity(uint32_t ent)
             pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+offsets.getposition_vphysics_offset)  );
             pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
 
-            //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
+            //ConsolePrintVprintf("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
 
             if(!IsEntityPositionReasonable((uint32_t)&current_origin))
             {
                 bad_origin = true;
-                rootconsole->ConsolePrint("Corrected vphysics origin!");
+                ConsolePrintVprintf("Corrected vphysics origin!");
             }
 
             if(!IsEntityPositionReasonable((uint32_t)&current_angles))
             {
                 bad_angles = true;
-                rootconsole->ConsolePrint("Corrected vphysics angles!");
+                ConsolePrintVprintf("Corrected vphysics angles!");
             }
 
             if(bad_origin && bad_angles)
@@ -519,7 +540,7 @@ uint32_t HooksUtil::AiSelectScheduleHook(uint32_t arg0)
 
         if(!IsEntityValid(object))
         {
-            rootconsole->ConsolePrint("\nGame engine failed to cleanup death!\n");
+            ConsolePrintVprintf("\nGame engine failed to cleanup death!\n");
 
             pDynamicOneArgFunc = (pOneArgProt)(functions.AiCleanupOnDeath);
             pDynamicOneArgFunc(arg0);
@@ -541,7 +562,7 @@ uint32_t HooksUtil::EngineErrorHook(char const *pMsg, ...)
     va_list marker;
     va_start(marker, pMsg);
     vprintf( pMsg, marker );
-    //rootconsole->ConsolePrint(pMsg, marker);
+    //ConsolePrintVprintf(pMsg, marker);
     va_end(marker);
 
     return 0;
@@ -555,7 +576,7 @@ uint32_t HooksUtil::IVP_Real_Object_Destructor_Hook(uint32_t arg0)
 
     if(entity)
     {
-        rootconsole->ConsolePrint("Removed entity because REAL OBJECT WAS REMOVED!");
+        ConsolePrintVprintf("Removed entity because REAL OBJECT WAS REMOVED!");
         HandleSpecificEntityRemoval(entity, true, true, true, true);
     }
 
@@ -591,7 +612,7 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         {
             if(incorrect_cheats_frames >= CLIENT_CHEATS_FRAME_LIMIT)
             {
-                rootconsole->ConsolePrint("Blocked!");
+                ConsolePrintVprintf("Blocked!");
                 return 0;
             }
         }
@@ -602,11 +623,11 @@ uint32_t HooksUtil::SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
         if(IsAllowedToFakeUserId(current_userid) == false)
         {
-            rootconsole->ConsolePrint("Blocked userid [%d]", current_userid);
+            ConsolePrintVprintf("Blocked userid [%d]", current_userid);
             return 0;
         }
 
-        rootconsole->ConsolePrint("Cheats have been faked!");
+        ConsolePrintVprintf("Cheats have been faked!");
     }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(functions.SendNetMsg);
@@ -626,12 +647,12 @@ uint32_t HooksUtil::CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1,
 
         if(allocated_vpk_buffer && global_vpk_cache_buffer == allocated_vpk_buffer)
         {
-            //rootconsole->ConsolePrint("Removed global vpk buffer from VPK tree!");
+            //ConsolePrintVprintf("Removed global vpk buffer from VPK tree!");
             *(uint32_t*)(current_vpk_buffer_ref+0x10) = 0;
         }
         else
         {
-            rootconsole->ConsolePrint("Failed to remove global vpk buffer!!!");
+            ConsolePrintVprintf("Failed to remove global vpk buffer!!!");
             exit(1);
         }
 
@@ -641,21 +662,20 @@ uint32_t HooksUtil::CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1,
     return returnVal;
 }
 
-uint32_t HooksUtil::VpkCacheBufferAllocHook(uint32_t arg0)
+uint32_t HooksUtil::VpkCacheBufferAllocHook(uint32_t mutex, uint32_t buffer)
 {
-    uint32_t ebp = 0;
-    asm volatile ("movl %%ebp, %0" : "=r" (ebp));
+    //ConsolePrintVprintf("packed store ref %X", mutex);
 
-    uint32_t arg0_return = *(uint32_t*)(ebp-4);
-    uint32_t packed_store_ref = arg0_return-0x228;
-
-    uint32_t vpk_buffer = *(uint32_t*)(arg0+0x10);
+    uint32_t vpk_buffer = *(uint32_t*)(buffer+0x10);
 
     if(vpk_buffer == 0)
     {
-        current_vpk_buffer_ref = arg0;
+        //ConsolePrintVprintf("INTENSE STRESS!");
+        current_vpk_buffer_ref = buffer;
         return global_vpk_cache_buffer;
     }
+
+    ConsolePrintVprintf("SEEEEEEEEEEEEEX SEEEEEEEEEX SEEEEEEEEEX SEEEEEEEEX");
 
     bool saved_reference = false;
 
@@ -666,7 +686,7 @@ uint32_t HooksUtil::VpkCacheBufferAllocHook(uint32_t arg0)
         VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(a_leak->value);
         uint32_t packed_object = the_leak->packed_ref;
 
-        if(packed_object == packed_store_ref)
+        if(packed_object == mutex)
         {
             saved_reference = true;
 
@@ -677,7 +697,7 @@ uint32_t HooksUtil::VpkCacheBufferAllocHook(uint32_t arg0)
 
             if(added)
             {
-                rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, vpk_buffer);
+                ConsolePrintVprintf("[VPK Hook] " HOOK_MSG, vpk_buffer);
             }
 
             break;
@@ -694,13 +714,13 @@ uint32_t HooksUtil::VpkCacheBufferAllocHook(uint32_t arg0)
         Value* original_vpk_buffer = CreateNewValue((void*)vpk_buffer);
         InsertToValuesList(empty_list, original_vpk_buffer, NULL, false, false);
 
-        omg_leaks->packed_ref = packed_store_ref;
+        omg_leaks->packed_ref = mutex;
         omg_leaks->leaked_refs = empty_list;
 
         Value* leaked_resource = CreateNewValue((void*)omg_leaks);
         InsertToValuesList(leakedResourcesVpkSystem, leaked_resource, NULL, false, false);
 
-        rootconsole->ConsolePrint("[VPK Hook First] " HOOK_MSG, vpk_buffer);
+        ConsolePrintVprintf("[VPK Hook First] " HOOK_MSG, vpk_buffer);
     }
 
     return vpk_buffer;
@@ -713,6 +733,8 @@ uint32_t HooksUtil::PackedStoreDestructorHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(functions.PackedStoreDestructor);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    ConsolePrintVprintf("REMOVING OBJECT %x", arg0);
 
     Value* a_leak = *leakedResourcesVpkSystem;
 
@@ -727,7 +749,7 @@ uint32_t HooksUtil::PackedStoreDestructorHook(uint32_t arg0)
             
             int removed_items = DeleteAllValuesInList(vpk_leak_list, true, NULL);
 
-            rootconsole->ConsolePrint("[VPK Hook] released [%d] memory leaks!", removed_items);
+            ConsolePrintVprintf("[VPK Hook] released [%d] memory leaks!", removed_items);
 
             bool success = RemoveFromValuesList(leakedResourcesVpkSystem, the_leak, NULL);
 
@@ -736,7 +758,7 @@ uint32_t HooksUtil::PackedStoreDestructorHook(uint32_t arg0)
 
             if(!success)
             {
-                rootconsole->ConsolePrint("[VPK Hook] Expected to remove leak but failed!");
+                ConsolePrintVprintf("[VPK Hook] Expected to remove leak but failed!");
                 exit(EXIT_FAILURE);
             }
 
@@ -755,7 +777,7 @@ uint32_t HooksUtil::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
 
     if(arg1 != 0 && !IsEntityValid(arg1))
     {
-        rootconsole->ConsolePrint("Invalid entity in SetOwnerEntity! replaced with worldspawn");
+        ConsolePrintVprintf("Invalid entity in SetOwnerEntity! replaced with worldspawn");
 
         pDynamicTwoArgFunc = (pTwoArgProt)(functions.SetOwnerEntity);
         return pDynamicTwoArgFunc(arg0, functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"worldspawn"));
@@ -775,7 +797,7 @@ uint32_t HooksUtil::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    rootconsole->ConsolePrint("Failed to service DispatchAnimEvents");
+    ConsolePrintVprintf("Failed to service DispatchAnimEvents");
     return 0;
 }
 
@@ -789,7 +811,7 @@ uint32_t HooksUtil::CalcAbsolutePositionHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    //rootconsole->ConsolePrint("Attempted to use a dead object!");
+    //ConsolePrintVprintf("Attempted to use a dead object!");
     return 0;
 }
 
@@ -799,7 +821,7 @@ uint32_t HooksUtil::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
 
     if(IsVphysicsEntityBad(arg0))
     {
-        rootconsole->ConsolePrint("Removed BAD physics entity!");
+        ConsolePrintVprintf("Removed BAD physics entity!");
         HandleSpecificEntityRemoval(arg0, true, true, true, true);
     }
 
@@ -822,7 +844,7 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
         uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start_address;
         uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start_address;
     
-        rootconsole->ConsolePrint("UpdateOnRemove: Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
+        ConsolePrintVprintf("UpdateOnRemove: Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
         exit(EXIT_FAILURE);
     }
 
@@ -840,7 +862,7 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 
     if(IsMarkedForDeletion(arg0+offsets.iserver_offset))
     {
-        rootconsole->ConsolePrint("Simulation ignored for [%s]", clsname);
+        ConsolePrintVprintf("Simulation ignored for [%s]", clsname);
         return 0;
     }
 
@@ -856,7 +878,7 @@ uint32_t HooksUtil::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
 
         if(vphysics_object)
         {
-            rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
+            ConsolePrintVprintf("Attempting override existing vphysics object!!!!");
             return 0;
         }
 
@@ -865,7 +887,7 @@ uint32_t HooksUtil::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
         return 0;
     }
 
-    rootconsole->ConsolePrint("Entity was invalid failed to set vphysics object!");
+    ConsolePrintVprintf("Entity was invalid failed to set vphysics object!");
     return 0;
 }
 
@@ -881,7 +903,7 @@ uint32_t HooksUtil::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2,
 
     if(failure)
     {
-        //rootconsole->ConsolePrint("AcceptInput blocked on marked entity");
+        //ConsolePrintVprintf("AcceptInput blocked on marked entity");
         return 0;
     }
 
@@ -917,7 +939,7 @@ uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname)
             {
                 if(ent_found)
                 {
-                    rootconsole->ConsolePrint("IVP used in more than one entity!");
+                    ConsolePrintVprintf("IVP used in more than one entity!");
                     exit(1);
                 }
 
@@ -934,7 +956,7 @@ uint32_t FindEntityByIVP(uint32_t ivp_real_object, const char* search_classname)
         {
             if(strcmp(classname, search_classname) == 0)
             {
-                //rootconsole->ConsolePrint("Found [%s] by IVP", search_classname);
+                //ConsolePrintVprintf("Found [%s] by IVP", search_classname);
                 return ent_found;
             }
             else
@@ -951,7 +973,7 @@ void CorrectPhysics()
     
     if(deferMindist)
     {
-        rootconsole->ConsolePrint("defered!");
+        ConsolePrintVprintf("defered!");
         *(uint8_t*)(fields.deferMindist) = 0;
     }
 }
@@ -980,12 +1002,12 @@ void LogVpkMemoryLeaks()
 
         running_total_of_leaks = running_total_of_leaks + leaked_vpk_refs;
 
-        rootconsole->ConsolePrint("Found [%d] leaked refs in object [%p]", leaked_vpk_refs, the_leak->packed_ref);
+        ConsolePrintVprintf("Found [%d] leaked refs in object [%p]", leaked_vpk_refs, the_leak->packed_ref);
 
         firstLeak = firstLeak->nextVal;
     }
 
-    rootconsole->ConsolePrint("Total VPK leaks [%d]", running_total_of_leaks);
+    ConsolePrintVprintf("Total VPK leaks [%d]", running_total_of_leaks);
 }
 
 void* copy_val(void* val, size_t copy_size)
@@ -1087,7 +1109,7 @@ bool ApplyBlockHook(uint32_t block_start_start, uint32_t block_end_end, Signatur
 
             if(block_start_no_operation)
             {
-                rootconsole->ConsolePrint("Found the argument signature! %d", block_size);
+                ConsolePrintVprintf("Found the argument signature! %d", block_size);
 
                 //SET STACK MEMORY FROM ARRAY USING CORRECT INDEX
                 //APPLY HOOK POINTER
@@ -1106,7 +1128,7 @@ bool ApplyBlockHook(uint32_t block_start_start, uint32_t block_end_end, Signatur
         }
         else
         {
-            rootconsole->ConsolePrint("Failed to find argument signature %d", i);
+            ConsolePrintVprintf("Failed to find argument signature %d", i);
         }
     }
 
@@ -1144,7 +1166,7 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
 
             if(start_signature_signature_counter >= start_signatures_size)
             {
-                rootconsole->ConsolePrint("No more start signatures left!");
+                ConsolePrintVprintf("No more start signatures left!");
                 break;
             }
 
@@ -1154,7 +1176,7 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
             {
                 if(IsAddressExcluded(base_address, block_start_start))
                 {
-                    rootconsole->ConsolePrint("Skipped block hook at [%X]", block_start_start);
+                    ConsolePrintVprintf("Skipped block hook at [%X]", block_start_start);
 
                     search_address = block_start_start+1;
                     found_something = false;
@@ -1210,7 +1232,7 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
             // Handle whenever it runs out of end signatures to check
             if(end_signature_signature_counter >= end_signatures_size)
             {
-                //rootconsole->ConsolePrint("No more end signatures left!");
+                //ConsolePrintVprintf("No more end signatures left!");
 
                 next_block:
 
@@ -1235,17 +1257,17 @@ void HookMemoryBlock(uint32_t base_address, uint32_t size, Signature start_signa
 
                 uint32_t block_size = search_address - block_start_start;
 
-                //rootconsole->ConsolePrint("\nFound signature base and end %p %p", block_start_start, search_address);
+                //ConsolePrintVprintf("\nFound signature base and end %p %p", block_start_start, search_address);
 
                 if(!(block_size >= estimated_block_size_min && block_size <= estimated_block_size_max))
                 {
-                    //rootconsole->ConsolePrint("Out of bounds block size real [%d] min [%d] max [%d]", block_size, estimated_block_size_min, estimated_block_size_max);
+                    //ConsolePrintVprintf("Out of bounds block size real [%d] min [%d] max [%d]", block_size, estimated_block_size_min, estimated_block_size_max);
                     goto found_nothing;
                 }
 
                 if(ApplyBlockHook(block_start_start, search_address, args_signatures, stack_machine_code, stack_arguments_size, no_operation_signatures, no_operation_signatures_size, expected_arguments, hook_pointer))
                 {
-                    rootconsole->ConsolePrint("\nFound signature base and end %p %p", block_start_start, search_address);
+                    ConsolePrintVprintf("\nFound signature base and end %p %p", block_start_start, search_address);
                     goto next_block;
                 }
 
@@ -1298,12 +1320,6 @@ void NoteHookFunctionPatch(uint32_t address, uint32_t length)
     patch->length = length;
 
     Value* patch_value = CreateNewValue((void*)patch);
-    if(!patch_value)
-    {
-        free(patch);
-        return;
-    }
-
     InsertToValuesList(hook_function_patch_notes, patch_value, NULL, true, false);
 }
 
@@ -1311,7 +1327,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 {
     if(!target_pointer || !hook_pointer)
     {
-        rootconsole->ConsolePrint("Failed to hook function due to target pointer or hook pointer being NULL");
+        ConsolePrintVprintf("Failed to hook function due to target pointer or hook pointer being NULL");
         return;
     }
 
@@ -1333,7 +1349,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
             {
                 if(IsAddressExcluded(binary->start_address, search_address))
                 {
-                    rootconsole->ConsolePrint("(abs) Skipped patch at [%X]", search_address);
+                    ConsolePrintVprintf("(abs) Skipped patch at [%X]", search_address);
                     search_address++;
                     continue;
                 }
@@ -1356,7 +1372,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                 {
                     if(IsAddressExcluded(binary->start_address, search_address))
                     {
-                        rootconsole->ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
+                        ConsolePrintVprintf("(unsigned) Skipped patch at [%X]", search_address);
                         search_address++;
                         continue;
                     }
@@ -1373,12 +1389,12 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                     {
                         if(IsAddressExcluded(binary->start_address, search_address))
                         {
-                            rootconsole->ConsolePrint("(signed) Skipped patch at [%X]", search_address);
+                            ConsolePrintVprintf("(signed) Skipped patch at [%X]", search_address);
                             search_address++;
                             continue;
                         }
 
-                        rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start_address);
+                        ConsolePrintVprintf("(signed) Hooked address: [%X]", search_address - binary->start_address);
                         uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                         *(uint32_t*)(search_address+1) = offset;
                         NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
@@ -1411,6 +1427,39 @@ Library* FindLibrary(char* lib_name, bool less_intense_search)
     return NULL;
 }
 
+MemoryRegion* AllocateMemoryRegion(uint32_t start, uint32_t end, uint32_t protections)
+{
+    MemoryRegion* region = (MemoryRegion*)malloc(sizeof(MemoryRegion));
+
+    if(!region)
+    {
+        return NULL;
+    }
+
+    region->start = start;
+    region->end = end;
+    region->protections = protections;
+    region->snapshot_size = end - start;
+    region->snapshot = (uint8_t*)malloc(region->snapshot_size);
+    region->nextRegion = NULL;
+
+    memcpy(region->snapshot, (void*)region->start, region->snapshot_size);
+    return region;
+}
+
+void ReleaseMemoryRegion(MemoryRegion* region)
+{
+    while(region)
+    {
+        MemoryRegion* nextRegion = region->nextRegion;
+
+        free(region->snapshot);
+        free(region);
+
+        region = nextRegion;
+    }
+}
+
 void ClearLoadedLibraries()
 {
     for(int i = 0; i < 512; i++)
@@ -1422,20 +1471,36 @@ void ClearLoadedLibraries()
             dlclose(delete_this->library_linkmap);
             free(delete_this->library_signature);
 
-            MemoryRegion* region_start = delete_this->region;
+            ReleaseMemoryRegion(delete_this->region);
+            ReleaseMemoryRegion(delete_this->original_memory);
+
+            free(delete_this);
+
+            loaded_libraries[i] = 0;
+        }
+    }
+}
+
+void ClearLoadedLibraryRegions()
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(loaded_libraries[i] != 0)
+        {
+            Library* lib = (Library*)loaded_libraries[i];
+            MemoryRegion* region_start = lib->region;
 
             while(region_start)
             {
                 MemoryRegion* nextRegion = region_start->nextRegion;
+
                 free(region_start->snapshot);
                 free(region_start);
 
                 region_start = nextRegion;
             }
 
-            free(delete_this);
-
-            loaded_libraries[i] = 0;
+            lib->region = NULL;
         }
     }
 }
@@ -1461,18 +1526,19 @@ Library* LoadLibrary(char* library_full_path)
                     new_lib->library_signature = (char*)copy_val(library_full_path, strlen(library_full_path)+1);
 
                     new_lib->region = NULL;
+                    new_lib->original_memory = NULL;
 
                     new_lib->start_address = library_lm->l_addr;
                     new_lib->end_address = 0;
 
                     loaded_libraries[i] = (uint32_t)new_lib;
                     
-                    rootconsole->ConsolePrint("Loaded [%s]", library_full_path);
+                    ConsolePrintVprintf("Loaded [%s]", library_full_path);
                     return new_lib;
                 }
             }
 
-            rootconsole->ConsolePrint("Failed to save library to list!");
+            ConsolePrintVprintf("Failed to save library to list!");
             exit(EXIT_FAILURE);
         }
     }
@@ -1527,15 +1593,17 @@ char* getlibrary(char* file_line)
     return NULL;
 }
 
-void AllowWriteToMappedMemory()
+void TakeRegionMemorySnapshot(bool original_memory)
 {
     FILE* smaps_file = fopen("/proc/self/smaps", "r");    
 
     if(!smaps_file)
     {
-        rootconsole->ConsolePrint("Error opening smaps");
+        ConsolePrintVprintf("Error opening smaps");
         return;
     }
+
+    ClearLoadedLibraryRegions();
 
     char* file_line = (char*) malloc(1024);
     char* current_abs_path = (char*) malloc(1024);
@@ -1557,7 +1625,7 @@ void AllowWriteToMappedMemory()
             if(IsOurLibraryPath(current_abs_path))
             {
                 currentLibrary = LoadLibrary(current_abs_path);
-                //rootconsole->ConsolePrint("%s", currentLibrary->library_signature);
+                //ConsolePrintVprintf("%s", currentLibrary->library_signature);
             }
         }
 
@@ -1603,16 +1671,18 @@ void AllowWriteToMappedMemory()
                 continue;
             }
 
-            MemoryRegion* new_region = (MemoryRegion*)malloc(sizeof(MemoryRegion));
-            new_region->start = start_address_parsed;
-            new_region->end = end_address_parsed;
-            new_region->protections = save_protections;
-            new_region->snapshot_size = end_address_parsed - start_address_parsed;
-            new_region->snapshot = (uint8_t*)malloc(new_region->snapshot_size);
-            memcpy(new_region->snapshot, (void*)new_region->start, new_region->snapshot_size);
+            MemoryRegion* new_region = AllocateMemoryRegion(start_address_parsed, end_address_parsed, save_protections);
 
             new_region->nextRegion = currentLibrary->region;
             currentLibrary->region = new_region;
+
+            if(original_memory)
+            {
+                MemoryRegion* new_region_original = AllocateMemoryRegion(start_address_parsed, end_address_parsed, save_protections);
+
+                new_region_original->nextRegion = currentLibrary->original_memory;
+                currentLibrary->original_memory = new_region_original;
+            }
         }
 
         free(file_line_cpy);
@@ -1621,24 +1691,6 @@ void AllowWriteToMappedMemory()
     free(file_line);
     free(current_abs_path);
     fclose(smaps_file);
-}
-
-void CopyMemorySnapshots()
-{
-    for(int i = 0; i < 512; i++)
-    {
-        if(loaded_libraries[i] != 0)
-        {
-            Library* current_lib = (Library*)loaded_libraries[i];
-            MemoryRegion* region_start = current_lib->region;
-
-            while(region_start)
-            {
-                memcpy(region_start->snapshot, (void*)region_start->start, region_start->snapshot_size);
-                region_start = region_start->nextRegion;
-            }
-        }
-    }
 }
 
 void ForceMemoryAccess()
@@ -1662,7 +1714,7 @@ void ForceMemoryAccess()
 
                 if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
                 {
-                    //rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+                    //ConsolePrintVprintf("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
 
                     //SELINUX shite
 
@@ -1671,7 +1723,7 @@ void ForceMemoryAccess()
                 }
                 else
                 {
-                    //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", region_end_address, region_start_address);
+                    //ConsolePrintVprintf("Passed protection change: [%X] [%X]", region_end_address, region_start_address);
                 }
 
                 region_start = region_start->nextRegion;
@@ -1699,32 +1751,17 @@ void RestoreMemorySnapshots()
                     continue;
 
                 Library* current_lib = (Library*)loaded_libraries[i];
-                MemoryRegion* region_start = current_lib->region;
+                MemoryRegion* region_start = current_lib->original_memory;
                 bool restored_patch = false;
 
                 while(region_start)
                 {
-                    if(region_start->snapshot && region_start->snapshot_size > 0)
+                    if(patch->address >= region_start->start && patch->address < region_start->end)
                     {
-                        if(patch->address >= region_start->start && patch->address < region_start->end)
-                        {
-                            size_t restore_len = (size_t)patch->length;
-                            size_t max_len = (size_t)(region_start->end - patch->address);
-                            size_t snapshot_offset = (size_t)(patch->address - region_start->start);
-
-                            if(restore_len > max_len)
-                                restore_len = max_len;
-
-                            if(snapshot_offset + restore_len <= region_start->snapshot_size)
-                            {
-                                rootconsole->ConsolePrint("COPY SHIT!");
-                                memcpy((void*)patch->address, region_start->snapshot + snapshot_offset, restore_len);
-                                rootconsole->ConsolePrint("done");
-                            }
-
-                            restored_patch = true;
-                            break;
-                        }
+                        size_t snapshot_offset = (size_t)(patch->address - region_start->start);
+                        memcpy((void*)patch->address, region_start->snapshot + snapshot_offset, patch->length);
+                        restored_patch = true;
+                        break;
                     }
 
                     region_start = region_start->nextRegion;
@@ -1747,25 +1784,13 @@ void RestoreExecutableMemorySnapshots()
             continue;
 
         Library* current_lib = (Library*)loaded_libraries[i];
-        MemoryRegion* region_start = current_lib->region;
+        MemoryRegion* region_start = current_lib->original_memory;
 
         while(region_start)
         {
-            if(region_start->snapshot && region_start->snapshot_size > 0)
+            if((region_start->protections & PROT_EXEC) != 0)
             {
-                if((region_start->protections & PROT_EXEC) != 0)
-                {
-                    size_t restore_len = region_start->snapshot_size;
-                    size_t region_len = (size_t)(region_start->end - region_start->start);
-
-                    if(restore_len > region_len)
-                        restore_len = region_len;
-
-                    if(restore_len > 0)
-                    {
-                        memcpy((void*)region_start->start, region_start->snapshot, restore_len);
-                    }
-                }
+                memcpy((void*)region_start->start, region_start->snapshot, region_start->snapshot_size);
             }
 
             region_start = region_start->nextRegion;
@@ -2011,7 +2036,7 @@ void DisablePlayerWorldSpawnCollision()
                 functions.EnableEntityCollisions(player, worldspawn);
             }
 
-            //rootconsole->ConsolePrint("%f %f %f", player_velocity_x, player_velocity_y, player_velocity_z);
+            //ConsolePrintVprintf("%f %f %f", player_velocity_x, player_velocity_y, player_velocity_z);
 
             //if(!player_worldspawn_collision_disabled)
             //{
@@ -2037,7 +2062,7 @@ void DisablePlayerCollisions()
             {
                 if(IsEntityValid(other_players) && other_players != current_player)
                 {
-                    //rootconsole->ConsolePrint("Disable player collisions!");
+                    //ConsolePrintVprintf("Disable player collisions!");
                     functions.DisableEntityCollisions(current_player, other_players);
                 }
             }
@@ -2084,9 +2109,9 @@ void RemoveBadEnts()
                 char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
                 
                 if(classname)
-                    rootconsole->ConsolePrint("Removed bad ent! [%s]", classname);
+                    ConsolePrintVprintf("Removed bad ent! [%s]", classname);
                 else
-                    rootconsole->ConsolePrint("Removed bad ent!");
+                    ConsolePrintVprintf("Removed bad ent!");
                 
                 HandleSpecificEntityRemoval(ent, true, true, true, true);
             }
@@ -2113,13 +2138,13 @@ bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player)
         {
             if(classname && strcmp(classname, "player") == 0)
             {
-                rootconsole->ConsolePrint("Allowed player entity without validation");
+                ConsolePrintVprintf("Allowed player entity without validation");
                 object_verify = entity_object;
             }
         }
         else if(!validate)
         {
-            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
+            ConsolePrintVprintf("Warning: Entity delete request granted without validation!");
             object_verify = entity_object;
         }
     }
@@ -2500,7 +2525,7 @@ void RemoveHl2Ragdolls()
     {
         if(IsEntityValid(entity))
         {
-            rootconsole->ConsolePrint("Removed hl2mp_ragdoll entity!");
+            ConsolePrintVprintf("Removed hl2mp_ragdoll entity!");
             HandleSpecificEntityRemoval(entity, true, true, true, true);
         }
     }
@@ -2520,12 +2545,12 @@ void TeleportPlayersToTransition()
             {
                 if(transitioning_player[0] == 0 && transitioning_player[1] == 0 && transitioning_player[2] == 0)
                 {
-                    rootconsole->ConsolePrint("Transition position not set, cannot teleport player!");
+                    ConsolePrintVprintf("Transition position not set, cannot teleport player!");
                     continue;
                 }
 
                 UpdateEntityPosition(entity, transitioning_player[0], transitioning_player[1], transitioning_player[2]);
-                rootconsole->ConsolePrint("Teleported player to transition!");
+                ConsolePrintVprintf("Teleported player to transition!");
             }
         }
     }
@@ -2549,7 +2574,7 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
             return 0;
         }
 
-        rootconsole->ConsolePrint("[%s] Attempted to free leaks from an empty leaked resources list!", listName);
+        ConsolePrintVprintf("[%s] Attempted to free leaks from an empty leaked resources list!", listName);
         return 0;
     }
 
@@ -2559,7 +2584,7 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
     {
         Value* detachedValue = leak->nextVal;
 
-        //rootconsole->ConsolePrint("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
+        //ConsolePrintVprintf("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
         free(leak->value);
         free(leak);
 
@@ -2568,7 +2593,7 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy)
 
     *leakList = NULL;
 
-    rootconsole->ConsolePrint("FREED [%d] memory allocations", total_items);
+    ConsolePrintVprintf("FREED [%d] memory allocations", total_items);
 
     if(destroy)
     {

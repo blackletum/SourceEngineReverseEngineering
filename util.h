@@ -41,7 +41,7 @@ public:
 	static uint32_t CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
 	static uint32_t SendNetMsgHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-	static uint32_t VpkCacheBufferAllocHook(uint32_t arg0);
+	static uint32_t VpkCacheBufferAllocHook(uint32_t mutex, uint32_t buffer);
 	static uint32_t SetOwnerEntityHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CalcAbsolutePositionHook(uint32_t arg0);
@@ -63,6 +63,7 @@ public:
 	static uint32_t GetEnemyHook(uint32_t arg0);
 	static uint32_t SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t LevelChangedSnapHook(uint32_t arg0);
+	static uint32_t FindPickerEntityHook(uint32_t arg0);
 };
 
 typedef struct _game_fields {
@@ -73,6 +74,7 @@ typedef struct _game_fields {
 	uint32_t modelinfo = 0;
 	uint32_t g_EventQueue = 0;
 	uint32_t g_DeleteList = 0;
+	uint32_t g_ModelLoader = 0;
 } game_fields;
 
 typedef struct _game_offsets {
@@ -157,6 +159,8 @@ typedef struct _game_functions {
 	pOneArgProt GetEnemy = 0;
 	pOneArgProt GetEnemy2 = 0;
 	pThreeArgProt SetEnemy = 0;
+	pOneArgProtFastCall UnloadAllModels = 0;
+	pOneArgProt FindPickerEntity;
 } game_functions;
 
 typedef struct _Signature {
@@ -182,6 +186,7 @@ typedef struct _MemoryRegion {
 typedef struct _Library {
 	void* library_linkmap;
 	char* library_signature;
+	MemoryRegion* original_memory;
 	MemoryRegion* region;
 	uint32_t start_address;
 	uint32_t end_address;
@@ -235,6 +240,8 @@ extern uint32_t transitioned_clients[512];
 
 extern bool loaded_extension;
 
+void ConsolePrintVprintf(const char *pMsg, ...);
+
 extern bool firstplayer_hasjoined;
 extern bool player_collision_rules_changed;
 extern bool player_worldspawn_collision_disabled;
@@ -275,11 +282,13 @@ uint32_t ApplyNoOperation(uint32_t block_start_start, uint32_t block_end_end, Si
 uint32_t FindSignature(uint32_t block_start_start, uint32_t block_end_end, Signature signature_main);
 Library* FindLibrary(char* lib_name, bool less_intense_search);
 Library* LoadLibrary(char* library_full_path);
+MemoryRegion* AllocateMemoryRegion(uint32_t start, uint32_t end, uint32_t protections);
+void ReleaseMemoryRegion(MemoryRegion* region);
+void ClearLoadedLibraryRegions();
 void ClearLoadedLibraries();
 char* getlibrary(char* file_line);
 bool IsOurLibraryPath(char* abs_path);
-void AllowWriteToMappedMemory();
-void CopyMemorySnapshots();
+void TakeRegionMemorySnapshot(bool original_memory);
 void ForceMemoryAccess();
 void RestoreMemorySnapshots();
 void RestoreExecutableMemorySnapshots();

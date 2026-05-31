@@ -1,5 +1,6 @@
 #include "extension.h"
 #include "hang_watchdog.h"
+#include "util.h"
 
 #include <execinfo.h>
 #include <fcntl.h>
@@ -74,7 +75,7 @@ static void InstallMainThreadStackHandler()
 
     if (sigaction(SIGUSR2, &action, &g_previous_stack_action) != 0)
     {
-        rootconsole->ConsolePrint("Failed to install SIGUSR2 stack handler");
+        ConsolePrintVprintf("Failed to install SIGUSR2 stack handler");
         return;
     }
 
@@ -110,7 +111,7 @@ static void* AsyncWorkerMain(void* data)
         {
             if (!hang_reported)
             {
-                rootconsole->ConsolePrint("Watchdog: main thread unresponsive for %d seconds, dumping stack trace to %s", kMainThreadHangSeconds, kStackTraceOutputPath);
+                ConsolePrintVprintf("Watchdog: main thread unresponsive for %d seconds, dumping stack trace to %s", kMainThreadHangSeconds, kStackTraceOutputPath);
                 pthread_kill(g_main_thread, SIGUSR2);
                 hang_reported = true;
             }
@@ -140,7 +141,7 @@ void InitHangWatchdog()
     int create_result = pthread_create(&g_async_thread, NULL, &AsyncWorkerMain, NULL);
     if (create_result != 0)
     {
-        rootconsole->ConsolePrint("Failed to create async worker thread: %d", create_result);
+        ConsolePrintVprintf("Failed to create async worker thread: %d", create_result);
         UninstallMainThreadStackHandler();
         return;
     }
@@ -148,14 +149,14 @@ void InitHangWatchdog()
     int detach_result = pthread_detach(g_async_thread);
     if (detach_result != 0)
     {
-        rootconsole->ConsolePrint("Failed to detach async worker thread: %d", detach_result);
+        ConsolePrintVprintf("Failed to detach async worker thread: %d", detach_result);
         pthread_cancel(g_async_thread);
         UninstallMainThreadStackHandler();
         return;
     }
 
     g_async_thread_started = true;
-    rootconsole->ConsolePrint("Started detached async worker thread");
+    ConsolePrintVprintf("Started detached async worker thread");
 }
 
 void DeinitHangWatchdog()
@@ -165,7 +166,7 @@ void DeinitHangWatchdog()
         int cancel_result = pthread_cancel(g_async_thread);
         if (cancel_result != 0)
         {
-            rootconsole->ConsolePrint("Failed to cancel async worker thread: %d", cancel_result);
+            ConsolePrintVprintf("Failed to cancel async worker thread: %d", cancel_result);
         }
 
         g_async_thread_started = false;

@@ -52,7 +52,7 @@ bool IsAllowedToPatchSdkTools(Library* lib)
 
         if(strcmp(ext_ver, "1.10.0.6503") == 0)
         {
-            rootconsole->ConsolePrint("\nSDKTools Memory Integrity Passed!\n");
+            ConsolePrintVprintf("\nSDKTools Memory Integrity Passed!\n");
             return true;
         }
     }
@@ -93,7 +93,7 @@ void ReleaseLeakedPackedEntities(uint32_t snapManager)
 
     for(int i = 0; i < 2048; i++)
     {
-        //rootconsole->ConsolePrint("trying [%d] ent", i);
+        //ConsolePrintVprintf("trying [%d] ent", i);
         uint32_t computed_ref = *(uint32_t*)(snapManager+i*4+0x70);
 
         if(computed_ref != 0)
@@ -106,7 +106,7 @@ void ReleaseLeakedPackedEntities(uint32_t snapManager)
         }
     }
 
-    rootconsole->ConsolePrint("Purged [%d] packed ents!", freed_leaks);
+    ConsolePrintVprintf("Purged [%d] packed ents!", freed_leaks);
 }
 
 void ExtensionUpdateOnRemove(uint32_t arg0)
@@ -117,7 +117,7 @@ void ExtensionUpdateOnRemove(uint32_t arg0)
 
     if(strcmp(classname, "player") == 0)
     {
-        rootconsole->ConsolePrint("left vehicle before player leaves!");
+        ConsolePrintVprintf("left vehicle before player leaves!");
 
         //LeaveVehicle
         pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(arg0))+synergy_offsets.leavevehicle_offset) );
@@ -140,7 +140,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
         {
             if(isTicking && slow)
             {
-                rootconsole->ConsolePrint("Tried killing player but was protected & respawned!");
+                ConsolePrintVprintf("Tried killing player but was protected & respawned!");
     
                 //LeaveVehicle
                 pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(object))+synergy_offsets.leavevehicle_offset) );
@@ -163,7 +163,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
     
         if(savegame_autosave || savegame_internal)
         {
-            rootconsole->ConsolePrint("WARNING: Removing [%s] while a save file is being made!", classname);
+            ConsolePrintVprintf("WARNING: Removing [%s] while a save file is being made!", classname);
             functions.RemoveInsta(object);
             return;
         }
@@ -179,7 +179,7 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
     uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start_address;
     uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start_address;
 
-    rootconsole->ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
+    ConsolePrintVprintf("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
     if(crash_server) exit(EXIT_FAILURE);
 }
 
@@ -227,12 +227,12 @@ void FixCars()
     
             if(fixed_model)
             {
-                rootconsole->ConsolePrint("FIXED_MODEL_NAME: [%s]", model);
+                ConsolePrintVprintf("FIXED_MODEL_NAME: [%s]", model);
             }
     
             if(fixed_script)
             {
-                rootconsole->ConsolePrint("FIXED_SCRIPT_NAME: [%s]", script);
+                ConsolePrintVprintf("FIXED_SCRIPT_NAME: [%s]", script);
             }
         }
     }
@@ -279,7 +279,7 @@ uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle)
             return -1;
     }
 
-    rootconsole->ConsolePrint("Failed to get passenger index!");
+    ConsolePrintVprintf("Failed to get passenger index!");
     return 0;
 }
 
@@ -347,7 +347,7 @@ void EnterVehicles(ValueList vehi_list)
             uint32_t steam_id_copy_one = (uint32_t)first_player->nextVal->nextVal->nextVal->value;
             uint32_t steam_id_copy_two = (uint32_t)first_player->nextVal->nextVal->nextVal->nextVal->value;
 
-            rootconsole->ConsolePrint("Vehicle Entered! passenger [%d]", passenger);
+            ConsolePrintVprintf("Vehicle Entered! passenger [%d]", passenger);
 
             *(uint32_t*)(vehicle+0x0C) = steam_id_copy_one;
             *(uint32_t*)(vehicle+0x10) = steam_id_copy_two;

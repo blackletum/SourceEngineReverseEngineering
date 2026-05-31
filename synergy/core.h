@@ -34,6 +34,7 @@ typedef struct _synergy_game_functions {
     pTwoArgProt CAI_PassengerBehaviorCompanion_FindEntrySequence = 0;
     pThreeArgProt CAI_PassengerBehavior_GetEntryTarget = 0;
     pOneArgProt CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions = 0;
+    pFourArgProt CAI_PassengerBehavior_GetEntryPoint = 0;
     pTwoArgProt UTIL_GetPlayerMP = 0;
     pOneArgProt CNPC_RollerMine_InputJoltVehicle = 0;
     pFourArgProt CSoundControllerImp_SoundChangeVolume = 0;
@@ -41,6 +42,9 @@ typedef struct _synergy_game_functions {
     pTwoArgProt Restore = 0;
     pOneArgProtFastCall ReleaseManhack = 0;
     pThreeArgProt CombineBallGunDrop = 0;
+    pOneArgProt ContentReset = 0;
+    pTwoArgProt CombineAnimEvent = 0;
+    pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

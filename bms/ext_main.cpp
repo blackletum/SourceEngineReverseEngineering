@@ -9,22 +9,22 @@
 
 void DeinitExtension()
 {
-    rootconsole->ConsolePrint("force access");
+    ConsolePrintVprintf("force access");
     ForceMemoryAccess();
-    rootconsole->ConsolePrint("restoore snaps");
+    ConsolePrintVprintf("restoore snaps");
     RestoreMemorySnapshots();
-    rootconsole->ConsolePrint("restoore prots");
+    ConsolePrintVprintf("restoore prots");
     RestoreMemoryProtections();
     //ClearLoadedLibraries();
     
-    rootconsole->ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
+    ConsolePrintVprintf("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " unloaded!" "  ----------------------");
 }
 
 bool InitExtension()
 {
     if(loaded_extension)
     {
-        rootconsole->ConsolePrint("Attempted to load extension twice!");
+        ConsolePrintVprintf("Attempted to load extension twice!");
         return false;
     }
 
@@ -53,7 +53,7 @@ bool InitExtension()
     {
         RestoreMemoryProtections();
         ClearLoadedLibraries();
-        rootconsole->ConsolePrint("----------------------  Failed to load Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
+        ConsolePrintVprintf("----------------------  Failed to load Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION "  ----------------------");
         return false;
     }
 
@@ -152,8 +152,8 @@ bool InitExtension()
 
     RestoreMemoryProtections();
 
-    rootconsole->ConsolePrint("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
-    rootconsole->ConsolePrint("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
+    ConsolePrintVprintf("\n\nServer Map: [%s]\n\n", fields.sv+offsets.current_map_offset);
+    ConsolePrintVprintf("----------------------  Black Mesa " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
     loaded_extension = true;
 
     return true;
@@ -239,13 +239,13 @@ uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t
 
         if(IsEntityValid(arg0) == 0)
         {
-            rootconsole->ConsolePrint("Runtime error - failed to maintain entity integrity! (Ragdoll breaking)");
+            ConsolePrintVprintf("Runtime error - failed to maintain entity integrity! (Ragdoll breaking)");
             exit(EXIT_FAILURE);
             return 0;
         }
     }
 
-    rootconsole->ConsolePrint("Failed to ragdoll break!");
+    ConsolePrintVprintf("Failed to ragdoll break!");
     return 0;
 }
 
@@ -266,7 +266,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_
         }
         else if(ragdoll_breaking_gib_counter >= 4)
         {
-            rootconsole->ConsolePrint("Ignored gib from ragdoll breaker!");
+            ConsolePrintVprintf("Ignored gib from ragdoll breaker!");
             HandleSpecificEntityRemoval(new_object, true, true, true, true);
     
             if(IsEntityValid(last_ragdoll_gib))
@@ -274,7 +274,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_
                 return last_ragdoll_gib;
             }
     
-            rootconsole->ConsolePrint("First gib was removed!!! - Critical Error");
+            ConsolePrintVprintf("First gib was removed!!! - Critical Error");
             exit(EXIT_FAILURE);
             return 0;
         }
@@ -314,7 +314,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     if(server_sleeping)
     {
-        //rootconsole->ConsolePrint("No players exist on server skipping simulation!");
+        //ConsolePrintVprintf("No players exist on server skipping simulation!");
         return 0;
     }
 
@@ -353,7 +353,7 @@ uint32_t HooksBlackMesa::TestGroundMove(uint32_t arg0, uint32_t arg1, uint32_t a
 
         if((inf_val_chk != 0) && ((inf_val_chk / 2) == inf_val_chk))
         {
-            rootconsole->ConsolePrint("+Inf detected!");
+            ConsolePrintVprintf("+Inf detected!");
             return 0;
         }
     }
@@ -419,7 +419,7 @@ uint32_t HooksUtil::SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(classname && strcmp(classname, "npc_nihilanth") == 0)
     {
-        rootconsole->ConsolePrint("\nBlocked SetEnemy for npc_nihilanth\n");
+        ConsolePrintVprintf("\nBlocked SetEnemy for npc_nihilanth\n");
         return 0;
     }
 

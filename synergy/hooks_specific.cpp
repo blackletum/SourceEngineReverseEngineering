@@ -36,6 +36,7 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryPoint_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
 
     HookFunction(server_srv, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
@@ -43,37 +44,80 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.UTIL_GetPlayerMP, (void*)NativeHooks::UTIL_GetPlayerMP_Hook);
     HookFunction(server_srv, (void*)synergy_functions.ReleaseManhack, (void*)NativeHooks::ReleaseManhackHook);
     HookFunction(server_srv, (void*)synergy_functions.CombineBallGunDrop, (void*)NativeHooks::CombineBallGunDropHook);
+    HookFunction(server_srv, (void*)synergy_functions.CombineAnimEvent, (void*)NativeHooks::CombineAnimEventHook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_FollowBehavior_UpdateFollowPosition, (void*)NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook);
+}
+
+uint32_t NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook(uint32_t arg0)
+{
+    uint32_t an_object = *(uint32_t*)(arg0+0x0D8);
+
+    if(an_object)
+    {
+        uint32_t refhandle_chk = *(uint32_t*)(an_object+4);
+        uint32_t object = GetCBaseEntity(refhandle_chk);
+
+        if(!IsEntityValid(object))
+        {
+            ConsolePrintVprintf("Follow failed!");
+            return 0;
+        }
+    }
+
+    return synergy_functions.CAI_FollowBehavior_UpdateFollowPosition(arg0);
+}
+
+uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryPoint_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    uint32_t refhandle = *(uint32_t*)(arg0+0x44);
+    uint32_t object = GetCBaseEntity(refhandle);
+
+    if(IsEntityValid(object))
+    {
+        synergy_functions.CAI_PassengerBehavior_GetEntryPoint(arg0, arg1, arg2, arg3);
+    }
+
+    ConsolePrintVprintf("Bad Entity - GetEntryPoint");
+    return 0;
+}
+
+uint32_t NativeHooks::CombineAnimEventHook(uint32_t arg0, uint32_t arg1)
+{
+    uint32_t activeweapon_handle = *(uint32_t*)(arg0+offsets.activeweapon_offset);
+    uint32_t activeweapon = GetCBaseEntity(activeweapon_handle);
+
+    if(!IsEntityValid(activeweapon))
+    {
+        ConsolePrintVprintf("Combine Anim failed!");
+        return 0;
+    }
+    
+    return synergy_functions.CombineAnimEvent(arg0, arg1);
 }
 
 uint32_t NativeHooks::CombineBallGunDropHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pThreeArgProt pDynamicThreeArgProt;
-
     uint32_t vphysics_object = *(uint32_t*)(arg0+offsets.vphysics_object_offset);
 
     if(!IsEntityValid(arg0) || !vphysics_object)
     {
-        rootconsole->ConsolePrint("Entity failed - combine ball!");
+        ConsolePrintVprintf("Entity failed - combine ball!");
         return 0;
     }
 
-    pDynamicThreeArgProt = (pThreeArgProt)(synergy_functions.CombineBallGunDrop);
-    return pDynamicThreeArgProt(arg0, arg1, arg2);
+    return synergy_functions.CombineBallGunDrop(arg0, arg1, arg2);
 }
 
 uint32_t NativeHooks::ReleaseManhackHook(uint32_t arg0)
 {
-    pOneArgProtFastCall pDynamicOneArgFastCall;
-
-    pDynamicOneArgFastCall = (pOneArgProtFastCall)(synergy_functions.ReleaseManhack);
-    uint32_t returnVal = pDynamicOneArgFastCall(arg0);
+    uint32_t returnVal = synergy_functions.ReleaseManhack(arg0);
 
     uint32_t refhandle = *(uint32_t*)(arg0+synergy_offsets.metropolice_manhack_offset);
     uint32_t object = GetCBaseEntity(refhandle);
 
     if(!IsEntityValid(object))
     {
-        rootconsole->ConsolePrint("Manhack failed!");
+        ConsolePrintVprintf("Manhack failed!");
 
         uint32_t new_object = functions.CreateEntityByName((uint32_t)"npc_manhack", -1);
         functions.DispatchSpawn(new_object);
@@ -87,44 +131,35 @@ uint32_t NativeHooks::ReleaseManhackHook(uint32_t arg0)
 
 uint32_t NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
-    pFourArgProt pDynamicFourArgFunc;
-
     if(arg1)
     {
-        pDynamicFourArgFunc = (pFourArgProt)(synergy_functions.CSoundControllerImp_SoundChangeVolume);
-        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+        return synergy_functions.CSoundControllerImp_SoundChangeVolume(arg0, arg1, arg2, arg3);
     }
 
-    rootconsole->ConsolePrint("Prevented crash in helicopter sound system");
+    ConsolePrintVprintf("Prevented crash in helicopter sound system");
     return 0;
 }
 
 uint32_t NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook(uint32_t arg0)
 {
-    pOneArgProt pDynamicOneArgFunc;
-
     uint32_t ent_check = GetCBaseEntity(*(uint32_t*)(arg0+0x0F64));
 
     if(IsEntityValid(ent_check))
     {
-        pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.CNPC_RollerMine_InputJoltVehicle);
-        return pDynamicOneArgFunc(arg0);
+        return synergy_functions.CNPC_RollerMine_InputJoltVehicle(arg0);
     }
 
-    rootconsole->ConsolePrint("Failed to service jolt on vehicle");
+    ConsolePrintVprintf("Failed to service jolt on vehicle");
     return 0;
 }
 
 uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
 {
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.UTIL_GetPlayerMP);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
+    uint32_t returnVal = synergy_functions.UTIL_GetPlayerMP(arg0, arg1);
 
     if(returnVal == 0)
     {
-        //rootconsole->ConsolePrint("UTIL_GetPlayerMP failed!");
+        //ConsolePrintVprintf("UTIL_GetPlayerMP failed!");
 
         uint32_t player = functions.FindEntityByClassname(fields.gEntList, 0, (uint32_t)"player");
 
@@ -139,69 +174,57 @@ uint32_t NativeHooks::UTIL_GetPlayerMP_Hook(uint32_t arg0, uint32_t arg1)
 
 uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook(uint32_t arg0)
 {
-    pOneArgProt pDynamicOneArgFunc;
-
     uint32_t refhandle = *(uint32_t*)(arg0+0x44);
     uint32_t object = GetCBaseEntity(refhandle);
 
     if(IsEntityValid(object))
     {
-        pDynamicOneArgFunc = (pOneArgProt)(synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions);
-        return pDynamicOneArgFunc(arg0);
+        return synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions(arg0);
     }
 
-    rootconsole->ConsolePrint("Bad Entity - GatherVehicleStateConditions");
+    ConsolePrintVprintf("Bad Entity - GatherVehicleStateConditions");
     return 0;
 }
 
 uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pThreeArgProt pDynamicThreeArgFunc;
-
     uint32_t refhandle = *(uint32_t*)(arg0+0x44);
     uint32_t object = GetCBaseEntity(refhandle);
 
     if(IsEntityValid(object))
     {
-        pDynamicThreeArgFunc = (pThreeArgProt)(synergy_functions.CAI_PassengerBehavior_GetEntryTarget);
-        return pDynamicThreeArgFunc(arg0, arg1, arg2);
+        return synergy_functions.CAI_PassengerBehavior_GetEntryTarget(arg0, arg1, arg2);
     }
 
-    rootconsole->ConsolePrint("Bad Entity - GetEntryTarget");
+    ConsolePrintVprintf("Bad Entity - GetEntryTarget");
     return 0;
 }
 
 uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_FindEntrySequence_Hook(uint32_t arg0, uint32_t arg1)
 {
-    pTwoArgProt pDynamicTwoArgFunc;
-
     uint32_t refhandle = *(uint32_t*)(arg0+0x44);
     uint32_t object = GetCBaseEntity(refhandle);
 
     if(IsEntityValid(object))
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence);
-        return pDynamicTwoArgFunc(arg0, arg1);
+        return synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence(arg0, arg1);
     }
 
-    rootconsole->ConsolePrint("Bad Entity - FindEntrySequence");
+    ConsolePrintVprintf("Bad Entity - FindEntrySequence");
     return 0;
 }
 
 uint32_t NativeHooks::CAI_PassengerBehavior_ReserveEntryPoint_Hook(uint32_t arg0, uint32_t arg1)
 {
-    pTwoArgProt pDynamicTwoArgFunc;
-
     uint32_t refhandle = *(uint32_t*)(arg0+0x44);
     uint32_t object = GetCBaseEntity(refhandle);
 
     if(IsEntityValid(object))
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint);
-        return pDynamicTwoArgFunc(arg0, arg1);
+        return synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint(arg0, arg1);
     }
 
-    rootconsole->ConsolePrint("Bad Entity - ReserveEntryPoint");
+    ConsolePrintVprintf("Bad Entity - ReserveEntryPoint");
     return 0;
 }
 

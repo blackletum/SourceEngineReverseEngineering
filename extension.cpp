@@ -11,7 +11,7 @@ void ServerUtils::SDK_OnAllLoaded()
 {
     if (InitExtension())
     {
-        InitHangWatchdog();
+        //InitHangWatchdog();
     }
 }
 
