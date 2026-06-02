@@ -4,6 +4,8 @@
 #include "util.h"
 #include "hang_watchdog.h"
 
+#include <cstdarg>
+
 #include "synergy/core.h"
 #include "synergy/ext_main.h"
 #include "synergy/hooks_specific.h"
@@ -212,7 +214,7 @@ bool InitExtension()
     synergy_functions.Restore = (pTwoArgProt)(server_srv->start_address + 0x00BE01A0);
     synergy_functions.ReleaseManhack = (pOneArgProtFastCall)(server_srv->start_address + 0x00B0ECD0);
     synergy_functions.CombineBallGunDrop = (pThreeArgProt)(server_srv->start_address + 0x00BA7BE0);
-    synergy_functions.ContentReset = (pOneArgProt)(synergy_srv->start_address + 0x00087140);
+    synergy_functions.ContentReset = (pVargArgProt)(synergy_srv->start_address + 0x00087140);
     synergy_functions.CombineAnimEvent = (pTwoArgProt)(server_srv->start_address + 0x00AA2270);
     synergy_functions.CAI_FollowBehavior_UpdateFollowPosition = (pOneArgProtFastCall)(server_srv->start_address + 0x004A2A10);
 
@@ -374,12 +376,16 @@ uint32_t HooksUtil::LevelChangedSnapHook(uint32_t arg0)
     return functions.LevelChangedSnap(arg0);
 }
 
-uint32_t HooksSynergy::ContentResetHook(uint32_t arg0)
+uint32_t HooksSynergy::ContentResetHook(char *format, ...)
 {
-    ConsolePrint("%s", arg0);
-    
+    va_list marker;
+    va_start(marker, format);
+    vprintf(format, marker);
+    va_end(marker);
+
     functions.UnloadAllModels(fields.g_ModelLoader);
-    return synergy_functions.ContentReset(arg0);
+
+    return 0;
 }
 
 uint32_t HooksSynergy::PrepForLevelTransitionHook(uint32_t arg0)
@@ -532,7 +538,6 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     functions.CleanupDeleteList(0);
     functions.Physics_RunThinkFunctions(simulating);
     functions.CleanupDeleteList(0);
-    functions.ServiceEvents(fields.g_EventQueue);
 
     if(savegame && save_frames > 1500)
     {
@@ -549,6 +554,8 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
 
+    UpdateCollisions(true);
+    functions.ServiceEvents(fields.g_EventQueue);
     UpdateCollisions(true);
     return 0;
 }

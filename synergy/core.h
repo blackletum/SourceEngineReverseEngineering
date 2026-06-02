@@ -42,7 +42,7 @@ typedef struct _synergy_game_functions {
     pTwoArgProt Restore = 0;
     pOneArgProtFastCall ReleaseManhack = 0;
     pThreeArgProt CombineBallGunDrop = 0;
-    pOneArgProt ContentReset = 0;
+    pVargArgProt ContentReset = 0;
     pTwoArgProt CombineAnimEvent = 0;
     pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition = 0;
 } synergy_game_functions;
