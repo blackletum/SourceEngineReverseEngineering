@@ -382,6 +382,7 @@ uint32_t HooksSynergy::ContentResetHook(char *format, ...)
     va_start(marker, format);
     vprintf(format, marker);
     va_end(marker);
+    printf("\n");
 
     functions.UnloadAllModels(fields.g_ModelLoader);
 
