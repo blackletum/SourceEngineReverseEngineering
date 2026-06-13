@@ -186,6 +186,9 @@ bool InitExtension()
     functions.GetEnemy = (pOneArgProt)(server_srv->start_address + 0x0043B850);
     functions.GetEnemy2 = (pOneArgProt)(server_srv->start_address + 0x0043B8F0);
 
+    functions.UTIL_SetModel = (pTwoArgProt)(server_srv->start_address + 0x008A4A20);
+    functions.PrecacheModel = (pThreeArgProt)(engine_srv->start_address + 0x0030D080);
+
     
 
     functions.EngineError = (Error)( (server_srv->start_address + 0x00700FB3) + (*(uint32_t*)(server_srv->start_address + 0x00700FB3+1)) + 5);
@@ -368,6 +371,55 @@ void HookFunctions()
     HookFunction(server_srv, (void*)functions.ClearAllEntities, (void*)HooksUtil::GlobalEntityListClear);
     HookFunction(server_srv, (void*)functions.SpawnPlayer, (void*)HooksUtil::PlayerSpawnHook);
     HookFunction(server_srv, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
+
+    HookFunction(server_srv, (void*)functions.UTIL_SetModel, (void*)HooksUtil::UTIL_SetModelHook);
+    HookFunction(engine_srv, (void*)functions.PrecacheModel, (void*)HooksUtil::PrecacheModelHook);
+}
+
+uint32_t HooksUtil::PrecacheModelHook(uint32_t this_arg, uint32_t mdlname, uint32_t preload)
+{
+    uint32_t current_map = fields.sv+offsets.current_map_offset;
+
+    if(strcmp((char*)mdlname, "models/props_junk/flare.mdl") == 0)
+    {
+        if
+        (
+            strncasecmp((char*)current_map, "d1_", 3) == 0
+            ||
+            strncasecmp((char*)current_map, "d2_", 3) == 0
+            ||
+            strncasecmp((char*)current_map, "d3_", 3) == 0
+        )
+        {
+            ConsolePrint("flare hl2 ENGINE PRECACHE");
+            return functions.PrecacheModel(this_arg, (uint32_t)"models/items/flare.mdl", true);
+        }
+    }
+
+     return functions.PrecacheModel(this_arg, mdlname, preload);
+}
+
+uint32_t HooksUtil::UTIL_SetModelHook(uint32_t this_arg, uint32_t mdlname)
+{
+    uint32_t current_map = fields.sv+offsets.current_map_offset;
+
+    if(strcmp((char*)mdlname, "models/props_junk/flare.mdl") == 0)
+    {
+        if
+        (
+            strncasecmp((char*)current_map, "d1_", 3) == 0
+            ||
+            strncasecmp((char*)current_map, "d2_", 3) == 0
+            ||
+            strncasecmp((char*)current_map, "d3_", 3) == 0
+        )
+        {
+            ConsolePrint("flare hl2");
+            return functions.UTIL_SetModel(this_arg, (uint32_t)"models/items/flare.mdl");
+        }
+    }
+
+    return functions.UTIL_SetModel(this_arg, mdlname);
 }
 
 uint32_t HooksUtil::LevelChangedSnapHook(uint32_t arg0)
@@ -571,7 +623,9 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
 {
     if(saved_game_once)
     {
-        return synergy_functions.Restore(arg0, arg1);
+        uint32_t returnVal = synergy_functions.Restore(arg0, arg1);
+        SaveGame_Extension();
+        return returnVal;
     }
 
     SaveGame_Extension();

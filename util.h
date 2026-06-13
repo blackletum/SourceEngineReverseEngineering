@@ -65,6 +65,8 @@ public:
 	static uint32_t SetEnemyHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t LevelChangedSnapHook(uint32_t arg0);
 	static uint32_t FindPickerEntityHook(uint32_t arg0);
+	static uint32_t UTIL_SetModelHook(uint32_t this_arg, uint32_t mdlname);
+	static uint32_t PrecacheModelHook(uint32_t this_arg, uint32_t mdlname, uint32_t preload);
 };
 
 typedef struct _game_fields {
@@ -162,6 +164,8 @@ typedef struct _game_functions {
 	pThreeArgProt SetEnemy = 0;
 	pOneArgProtFastCall UnloadAllModels = 0;
 	pOneArgProt FindPickerEntity = 0;
+	pTwoArgProt UTIL_SetModel = 0;
+	pThreeArgProt PrecacheModel = 0;
 } game_functions;
 
 typedef struct _Signature {
