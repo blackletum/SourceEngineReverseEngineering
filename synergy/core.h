@@ -56,6 +56,7 @@ extern Library* synergy_srv;
 extern bool sdktools_passed;
 
 extern int save_frames;
+extern int restore_delay_frames;
 extern bool savegame;
 extern bool savegame_autosave;
 extern bool savegame_internal;

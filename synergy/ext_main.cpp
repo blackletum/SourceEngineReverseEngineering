@@ -81,6 +81,7 @@ bool InitExtension()
     sdktools_passed = IsAllowedToPatchSdkTools(sdktools);
 
     save_frames = 0;
+    restore_delay_frames = 0;
     savegame = false;
     savegame_internal = false;
     savegame_autosave = false;
@@ -566,7 +567,11 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     TouchMainThreadHeartbeat();
 
     save_frames++;
+    restore_delay_frames++;
+
     if(save_frames > 10000) save_frames = 10000;
+    if(restore_delay_frames > 10000) restore_delay_frames = 10000;
+
     isTicking = true;
 
     UpdateCollisions(true);
@@ -623,9 +628,16 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
 {
     if(saved_game_once)
     {
-        uint32_t returnVal = synergy_functions.Restore(arg0, arg1);
-        SaveGame_Extension();
-        return returnVal;
+        if(restore_delay_frames >= 50)
+        {
+            uint32_t returnVal = synergy_functions.Restore(arg0, arg1);
+            SaveGame_Extension();
+            restore_delay_frames = 0;
+            return returnVal;
+        }
+
+        ConsolePrint("Restore failed!");
+        return 0;
     }
 
     SaveGame_Extension();

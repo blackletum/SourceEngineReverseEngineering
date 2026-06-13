@@ -14,6 +14,7 @@ Library* synergy_srv;
 bool sdktools_passed;
 
 int save_frames;
+int restore_delay_frames;
 bool savegame;
 bool savegame_autosave;
 bool savegame_internal;
