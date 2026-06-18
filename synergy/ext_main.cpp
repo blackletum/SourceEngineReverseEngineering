@@ -294,10 +294,6 @@ void ApplyPatches()
     offset = (uint32_t)HooksUtil::EmptyCall - hook_post_systems - 5;
     *(uint32_t*)(hook_post_systems+1) = offset;
 
-    uint32_t hook_pre_systems = server_srv->start_address + 0x006B1EBB;
-    offset = (uint32_t)HooksUtil::EmptyCall - hook_pre_systems - 5;
-    *(uint32_t*)(hook_pre_systems+1) = offset;
-
     uint32_t hook_service_event_queue = server_srv->start_address + 0x006B1F2A;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_service_event_queue - 5;
     *(uint32_t*)(hook_service_event_queue+1) = offset;
@@ -576,12 +572,9 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     UpdateCollisions(true);
 
-    RemoveBadEnts();
     SetServerSleepStatus();
     ReplicateCheatsOnClient();
     CorrectPhysics();
-
-    UpdateCollisions(true);
 
     if(server_sleeping)
     {
@@ -591,11 +584,13 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    //Presystems
-    functions.InvokePerFrameMethodFastCall(0x3D, 0);
-    functions.CleanupDeleteList(0);
     functions.Physics_RunThinkFunctions(simulating);
+
     functions.CleanupDeleteList(0);
+
+    RemoveBadEnts();
+
+    UpdateCollisions(true);
 
     if(savegame && save_frames > 1500)
     {
@@ -606,15 +601,19 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     }
 
     EnterVehicles(save_player_vehicles_list);
-    UpdateCollisions(true);
+
+    functions.CleanupDeleteList(0);
 
     //PostSystems
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
+
     functions.ServiceEvents(fields.g_EventQueue);
-    UpdateCollisions(true);
+
+    functions.CleanupDeleteList(0);
+
     return 0;
 }
 
@@ -649,8 +648,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
 
     disable_player_restore = false;
 
-    savegame = true;
-    save_frames = 2000;
+    SaveGame_Extension();
     return returnVal;
 }
 

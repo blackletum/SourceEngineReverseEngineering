@@ -3,6 +3,7 @@
 
 #include <link.h>
 #include <sys/mman.h>
+#include <cstdio>
 
 game_fields fields;
 game_offsets offsets;
@@ -47,11 +48,14 @@ ValueList hook_function_patch_notes;
 
 void ConsolePrint(const char *pMsg, ...)
 {
+    char buffer[2048];
+    
     va_list marker;
     va_start(marker, pMsg);
-    vprintf(pMsg, marker);
+    vsnprintf(buffer, sizeof(buffer), pMsg, marker);
     va_end(marker);
-    printf("\n");
+    
+    rootconsole->ConsolePrint("%s", buffer);
 }
 
 void InitUtil()
@@ -2018,8 +2022,6 @@ void DisablePlayerCollisions()
 
 void RemoveBadEnts()
 {
-    functions.CleanupDeleteList(0);
-
     uint32_t ent = 0;
 
     while((ent = functions.FindEntityByClassname(fields.gEntList, ent, (uint32_t)"*")) != 0)
@@ -2063,8 +2065,6 @@ void RemoveBadEnts()
             }
         }
     }
-
-    functions.CleanupDeleteList(0);
 }
 
 bool VerifyEntity(uint32_t entity_object, bool validate, bool validate_player)
