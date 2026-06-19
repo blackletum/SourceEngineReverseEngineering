@@ -64,6 +64,7 @@ extern bool saved_game_once;
 extern bool disable_player_restore;
 
 extern ValueList save_player_vehicles_list;
+extern ValueList save_leak_list;
 
 void ExtensionUpdateOnRemove(uint32_t arg0);
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);

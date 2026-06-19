@@ -89,6 +89,7 @@ bool InitExtension()
     disable_player_restore = false;
 
     save_player_vehicles_list = AllocateValuesList();
+    save_leak_list = AllocateValuesList();
 
     fields.sv = engine_srv->start_address + 0x00402E58;
     fields.sv_cheats_cvar = engine_srv->start_address + 0x00402D70;
@@ -345,6 +346,10 @@ void ApplyPatches()
     uint32_t script_think_patch = server_srv->start_address + 0x00832200;
     *(uint8_t*)(script_think_patch) = 0xE9;
     *(uint32_t*)(script_think_patch+1) = 0xCD;
+
+    uint32_t save_leak = server_srv->start_address + 0x00818900;
+    offset = (uint32_t)HooksSynergy::SaveAllocLeakOne - save_leak - 5;
+    *(uint32_t*)(save_leak+1) = offset;
 }
 
 void HookFunctions()
@@ -371,6 +376,16 @@ void HookFunctions()
 
     HookFunction(server_srv, (void*)functions.UTIL_SetModel, (void*)HooksUtil::UTIL_SetModelHook);
     HookFunction(engine_srv, (void*)functions.PrecacheModel, (void*)HooksUtil::PrecacheModelHook);
+}
+
+uint32_t HooksSynergy::SaveAllocLeakOne(uint32_t size)
+{
+    uint32_t save_buffer = (uint32_t)malloc(size);
+
+    Value* new_leak = CreateNewValue((void*)save_buffer);
+    InsertToValuesList(save_leak_list, new_leak, NULL, false, false);
+
+    return save_buffer;
 }
 
 uint32_t HooksUtil::PrecacheModelHook(uint32_t this_arg, uint32_t mdlname, uint32_t preload)
@@ -592,7 +607,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     UpdateCollisions(true);
 
-    if(savegame && save_frames > 1500)
+    if(savegame)
     {
         ConsolePrint("Autosave created!");
         SaveGame_Extension();
@@ -670,6 +685,8 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     uint32_t returnVal = synergy_functions.SaveGameState(arg0, arg1, arg2, arg3);
 
     savegame_internal = false;
+
+    ReleaseLeakedMemory(save_leak_list, false);
 
     if(savegame_autosave)
     {
