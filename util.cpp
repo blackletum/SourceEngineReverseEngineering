@@ -104,7 +104,7 @@ void HookFunctionsUtil()
     HookFunction(server_srv, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
     HookFunction(server_srv, (void*)functions.FindPickerEntity, (void*)HooksUtil::FindPickerEntityHook);
 
-    //HookFunction(server_srv, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
+    HookFunction(server_srv, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
     HookFunction(dedicated_srv, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);

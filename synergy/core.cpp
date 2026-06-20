@@ -22,7 +22,6 @@ bool saved_game_once;
 bool disable_player_restore;
 
 ValueList save_player_vehicles_list;
-ValueList save_leak_list;
 
 void InitCore()
 {

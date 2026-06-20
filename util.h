@@ -78,6 +78,7 @@ typedef struct _game_fields {
 	uint32_t g_EventQueue = 0;
 	uint32_t g_DeleteList = 0;
 	uint32_t g_ModelLoader = 0;
+	uint32_t gpGlobals = 0;
 } game_fields;
 
 typedef struct _game_offsets {

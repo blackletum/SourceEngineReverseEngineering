@@ -45,6 +45,7 @@ typedef struct _synergy_game_functions {
     pVargArgProt ContentReset = 0;
     pTwoArgProt CombineAnimEvent = 0;
     pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition = 0;
+    pTwoArgProt SaveRestoreFinish = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;
@@ -64,7 +65,6 @@ extern bool saved_game_once;
 extern bool disable_player_restore;
 
 extern ValueList save_player_vehicles_list;
-extern ValueList save_leak_list;
 
 void ExtensionUpdateOnRemove(uint32_t arg0);
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);

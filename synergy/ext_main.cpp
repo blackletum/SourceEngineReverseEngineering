@@ -89,7 +89,6 @@ bool InitExtension()
     disable_player_restore = false;
 
     save_player_vehicles_list = AllocateValuesList();
-    save_leak_list = AllocateValuesList();
 
     fields.sv = engine_srv->start_address + 0x00402E58;
     fields.sv_cheats_cvar = engine_srv->start_address + 0x00402D70;
@@ -101,6 +100,7 @@ bool InitExtension()
     fields.modelinfo = server_srv->start_address + 0x00EC7580;
     fields.g_DeleteList = server_srv->start_address + 0x00EA95C0+0x0C;
     fields.g_ModelLoader = engine_srv->start_address + 0x003F861C;
+    fields.gpGlobals = server_srv->start_address + 0x00EC7574;
 
     fields.deferMindist = vphysics_srv->start_address + 0x001B3900;
 
@@ -222,6 +222,7 @@ bool InitExtension()
     synergy_functions.ContentReset = (pVargArgProt)(synergy_srv->start_address + 0x00087140);
     synergy_functions.CombineAnimEvent = (pTwoArgProt)(server_srv->start_address + 0x00AA2270);
     synergy_functions.CAI_FollowBehavior_UpdateFollowPosition = (pOneArgProtFastCall)(server_srv->start_address + 0x004A2A10);
+    synergy_functions.SaveRestoreFinish = (pTwoArgProt)(server_srv->start_address + 0x00BE6D50);
 
     PopulateHookExclusionLists();
 
@@ -346,10 +347,6 @@ void ApplyPatches()
     uint32_t script_think_patch = server_srv->start_address + 0x00832200;
     *(uint8_t*)(script_think_patch) = 0xE9;
     *(uint32_t*)(script_think_patch+1) = 0xCD;
-
-    uint32_t save_leak = server_srv->start_address + 0x00818900;
-    offset = (uint32_t)HooksSynergy::SaveAllocLeakOne - save_leak - 5;
-    *(uint32_t*)(save_leak+1) = offset;
 }
 
 void HookFunctions()
@@ -376,16 +373,21 @@ void HookFunctions()
 
     HookFunction(server_srv, (void*)functions.UTIL_SetModel, (void*)HooksUtil::UTIL_SetModelHook);
     HookFunction(engine_srv, (void*)functions.PrecacheModel, (void*)HooksUtil::PrecacheModelHook);
+
+    HookFunction(server_srv, (void*)synergy_functions.SaveRestoreFinish, (void*)HooksSynergy::SaveRestoreFinishHook);
 }
 
-uint32_t HooksSynergy::SaveAllocLeakOne(uint32_t size)
+uint32_t HooksSynergy::SaveRestoreFinishHook(uint32_t arg0, uint32_t arg1)
 {
-    uint32_t save_buffer = (uint32_t)malloc(size);
+    uint32_t save_buffer = *(uint32_t*)((*(uint32_t*)fields.gpGlobals)+0x2C);
+    uint32_t leak_buffer = save_buffer+0x594;
 
-    Value* new_leak = CreateNewValue((void*)save_buffer);
-    InsertToValuesList(save_leak_list, new_leak, NULL, false, false);
+    ConsolePrint("SaveRestoreFinish Leak %X", leak_buffer);
 
-    return save_buffer;
+    pOneArgProtFastCall HashTableDestructor = (pOneArgProtFastCall)(server_srv->start_address + 0x00BEC0C0);
+    HashTableDestructor(leak_buffer);
+
+    return synergy_functions.SaveRestoreFinish(arg0, arg1);
 }
 
 uint32_t HooksUtil::PrecacheModelHook(uint32_t this_arg, uint32_t mdlname, uint32_t preload)
@@ -685,8 +687,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     uint32_t returnVal = synergy_functions.SaveGameState(arg0, arg1, arg2, arg3);
 
     savegame_internal = false;
-
-    ReleaseLeakedMemory(save_leak_list, false);
 
     if(savegame_autosave)
     {
