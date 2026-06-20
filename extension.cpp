@@ -10,7 +10,7 @@ SMEXT_LINK(&g_ServerUtils);
 void ServerUtils::SDK_OnAllLoaded()
 {
     InitExtension();
-    //InitHangWatchdog();
+    InitHangWatchdog();
 }
 
 void ServerUtils::SDK_OnUnload()
