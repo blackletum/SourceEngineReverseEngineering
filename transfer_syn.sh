@@ -10,3 +10,4 @@ cp -v package/addons/sourcemod/extensions/server_utils.ext.2.sdk2013.so ../manua
 
 git add --all
 git commit -m "FILES"
+git push
