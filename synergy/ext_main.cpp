@@ -605,10 +605,6 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    RemoveBadEnts();
-
-    UpdateCollisions(true);
-
     if(savegame)
     {
         ConsolePrint("Autosave created!");
@@ -619,18 +615,19 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     EnterVehicles(save_player_vehicles_list);
 
-    functions.CleanupDeleteList(0);
+    RemoveBadEnts();
+
+    UpdateCollisions(true);
 
     //PostSystems
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
 
-    functions.CleanupDeleteList(0);
+    UpdateCollisions(true);
 
     functions.ServiceEvents(fields.g_EventQueue);
 
-    functions.CleanupDeleteList(0);
-
+    UpdateCollisions(true);
     return 0;
 }
 
