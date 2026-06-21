@@ -1299,63 +1299,70 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 
         uint32_t search_address = region_start_address;
 
-        while(search_address + 3 < region_end_address)
+        while(search_address < region_end_address)
         {
-            uint32_t four_byte_addr = *(uint32_t*)(search_address);
-
-            if(four_byte_addr == (uint32_t)target_pointer)
+            // 4-byte absolute pointer match — needs 4 bytes available
+            if(search_address + 3 < region_end_address)
             {
-                if(IsAddressExcluded(binary->start_address, search_address))
+                uint32_t four_byte_addr = *(uint32_t*)(search_address);
+
+                if(four_byte_addr == (uint32_t)target_pointer)
                 {
-                    ConsolePrint("(abs) Skipped patch at [%X]", search_address);
+                    if(IsAddressExcluded(binary->start_address, search_address))
+                    {
+                        ConsolePrint("(abs) Skipped patch at [%X]", search_address);
+                        search_address++;
+                        continue;
+                    }
+
+                    *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
+                    NoteHookFunctionPatch(search_address, sizeof(uint32_t));
+
                     search_address++;
                     continue;
                 }
-
-                *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
-                NoteHookFunctionPatch(search_address, sizeof(uint32_t));
-
-                search_address++;
-                continue;
             }
 
             uint8_t byte = *(uint8_t*)(search_address);
 
             if(byte == 0xE8 || byte == 0xE9)
             {
-                uint32_t call_address = *(uint32_t*)(search_address + 1);
-                uint32_t chk = search_address + call_address + 5;
-
-                if(chk == (uint32_t)target_pointer)
+                if(search_address + 4 < region_end_address)
                 {
-                    if(IsAddressExcluded(binary->start_address, search_address))
-                    {
-                        ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
-                        search_address++;
-                        continue;
-                    }
-
-                    uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
-                    *(uint32_t*)(search_address+1) = offset;
-                    NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
-                }
-                else
-                {
-                    chk = search_address + (int32_t)call_address + 5;
+                    uint32_t call_address = *(uint32_t*)(search_address + 1);
+                    uint32_t chk = search_address + call_address + 5;
 
                     if(chk == (uint32_t)target_pointer)
                     {
                         if(IsAddressExcluded(binary->start_address, search_address))
                         {
-                            ConsolePrint("(signed) Skipped patch at [%X]", search_address);
+                            ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
                             search_address++;
                             continue;
                         }
 
-                        ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start_address);
                         uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                         *(uint32_t*)(search_address+1) = offset;
                         NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
+                    }
+                    else
+                    {
+                        chk = search_address + (int32_t)call_address + 5;
+
+                        if(chk == (uint32_t)target_pointer)
+                        {
+                            if(IsAddressExcluded(binary->start_address, search_address))
+                            {
+                                ConsolePrint("(signed) Skipped patch at [%X]", search_address);
+                                search_address++;
+                                continue;
+                            }
+
+                            ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start_address);
+                            uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
+                            *(uint32_t*)(search_address+1) = offset;
+                            NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
+                        }
                     }
                 }
             }
@@ -1636,6 +1643,7 @@ void TakeRegionMemorySnapshot(bool original_memory)
                 new_region_original->nextRegion = currentLibrary->original_memory;
                 currentLibrary->original_memory = new_region_original;
             }
+
         }
 
         free(file_line_cpy);
