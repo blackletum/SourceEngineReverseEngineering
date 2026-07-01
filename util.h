@@ -23,6 +23,8 @@ typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtRegParm)(uint32_t, uin
 typedef uint32_t (__attribute__((fastcall)) *pOneArgProtFastCall)(uint32_t);
 typedef uint32_t (__attribute__((fastcall)) *pTwoArgProtFastCall)(uint32_t, uint32_t);
 
+typedef uint32_t (*SetModelScaleProt)(uint32_t, float, float);
+
 typedef void (*Error)(char const *pMsg, ...);
 
 class HooksUtil
@@ -108,6 +110,7 @@ typedef struct _game_offsets {
 	uint32_t getcbasentity_offset = 0;
 	uint32_t m_pGroup_offset = 0;
 	uint32_t enemy_offset = 0;
+	uint32_t modelscale_offset = 0;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -167,6 +170,7 @@ typedef struct _game_functions {
 	pOneArgProt FindPickerEntity = 0;
 	pTwoArgProt UTIL_SetModel = 0;
 	pThreeArgProt PrecacheModel = 0;
+	SetModelScaleProt SetModelScale = 0;
 } game_functions;
 
 typedef struct _Signature {
@@ -194,8 +198,8 @@ typedef struct _Library {
 	char* library_signature;
 	MemoryRegion* original_memory;
 	MemoryRegion* region;
-	uint32_t start_address;
-	uint32_t end_address;
+	uint32_t start;
+	uint32_t end;
 } Library;
 
 typedef struct _Value {

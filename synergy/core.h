@@ -20,6 +20,8 @@ typedef struct _synergy_game_offsets {
     uint32_t entervehicle_offset = 0;
     uint32_t dropship_container_offset = 0;
     uint32_t metropolice_manhack_offset = 0;
+    uint32_t manhack_m_pEyeGlow = 0;
+    uint32_t manhack_m_pLightGlow = 0;
 } synergy_game_offsets;
 
 typedef struct _synergy_game_functions {
@@ -46,6 +48,7 @@ typedef struct _synergy_game_functions {
     pTwoArgProt CombineAnimEvent = 0;
     pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition = 0;
     pTwoArgProt SaveRestoreFinish = 0;
+    pOneArgProtFastCall KillSpritesManhack = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

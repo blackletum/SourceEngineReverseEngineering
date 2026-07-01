@@ -71,12 +71,12 @@ bool InitExtension()
         return false;
     }
 
-    ConsolePrint("server_srv_lib [%X] end [%X]", server_srv->start_address, server_srv->end_address);
-    ConsolePrint("synergy_srv_lib [%X] end [%X]", synergy_srv->start_address, synergy_srv->end_address);
-    ConsolePrint("engine_srv_lib [%X] end [%X]", engine_srv->start_address, engine_srv->end_address);
-    ConsolePrint("dedicated_srv_lib [%X] end [%X]", dedicated_srv->start_address, dedicated_srv->end_address);
-    ConsolePrint("vphysics_srv_lib [%X] end [%X]", vphysics_srv->start_address, vphysics_srv->end_address);
-    ConsolePrint("sdktools_lib [%X] end [%X]", sdktools->start_address, sdktools->end_address);
+    ConsolePrint("server_srv_lib [%X] end [%X]", server_srv->start, server_srv->end);
+    ConsolePrint("synergy_srv_lib [%X] end [%X]", synergy_srv->start, synergy_srv->end);
+    ConsolePrint("engine_srv_lib [%X] end [%X]", engine_srv->start, engine_srv->end);
+    ConsolePrint("dedicated_srv_lib [%X] end [%X]", dedicated_srv->start, dedicated_srv->end);
+    ConsolePrint("vphysics_srv_lib [%X] end [%X]", vphysics_srv->start, vphysics_srv->end);
+    ConsolePrint("sdktools_lib [%X] end [%X]", sdktools->start, sdktools->end);
 
     sdktools_passed = IsAllowedToPatchSdkTools(sdktools);
 
@@ -90,19 +90,19 @@ bool InitExtension()
 
     save_player_vehicles_list = AllocateValuesList();
 
-    fields.sv = engine_srv->start_address + 0x00402E58;
-    fields.sv_cheats_cvar = engine_srv->start_address + 0x00402D70;
+    fields.sv = engine_srv->start + 0x00402E58;
+    fields.sv_cheats_cvar = engine_srv->start + 0x00402D70;
 
-    synergy_fields.m_sbStaticPoseParamsLoadedDropship = server_srv->start_address + 0x00F6E854;
+    synergy_fields.m_sbStaticPoseParamsLoadedDropship = server_srv->start + 0x00F6E854;
 
-    fields.gEntList = server_srv->start_address + 0x00EAB6DC;
-    fields.g_EventQueue = server_srv->start_address + 0x00EA2690;
-    fields.modelinfo = server_srv->start_address + 0x00EC7580;
-    fields.g_DeleteList = server_srv->start_address + 0x00EA95C0+0x0C;
-    fields.g_ModelLoader = engine_srv->start_address + 0x003F861C;
-    fields.gpGlobals = server_srv->start_address + 0x00EC7574;
+    fields.gEntList = server_srv->start + 0x00EAB6DC;
+    fields.g_EventQueue = server_srv->start + 0x00EA2690;
+    fields.modelinfo = server_srv->start + 0x00EC7580;
+    fields.g_DeleteList = server_srv->start + 0x00EA95C0+0x0C;
+    fields.g_ModelLoader = engine_srv->start + 0x003F861C;
+    fields.gpGlobals = server_srv->start + 0x00EC7574;
 
-    fields.deferMindist = vphysics_srv->start_address + 0x001B3900;
+    fields.deferMindist = vphysics_srv->start + 0x001B3900;
 
     offsets.classname_offset = 0x74;
     offsets.abs_origin_offset = 0x2A4;
@@ -130,6 +130,7 @@ bool InitExtension()
     offsets.getcbasentity_offset = 0x1C;
     offsets.m_pGroup_offset = 0x0D8;
     offsets.enemy_offset = 0x0A58;
+    offsets.modelscale_offset = 0x3C0;
 
     synergy_offsets.vehicle_model_offset = 556;
     synergy_offsets.vehicle_script_offset = 1544;
@@ -141,88 +142,93 @@ bool InitExtension()
     synergy_offsets.entervehicle_offset = 0x644;
     synergy_offsets.dropship_container_offset = 0x1030;
     synergy_offsets.metropolice_manhack_offset = 0x11C4;
+    synergy_offsets.manhack_m_pEyeGlow = 0x0F94;
+    synergy_offsets.manhack_m_pLightGlow = 0x0F98;
 
-    functions.SendNetMsg = (pThreeArgProt)(engine_srv->start_address + 0x002D0EB0);
-    functions.ClientCommand = (pFourArgProt)(engine_srv->start_address + 0x0030E300);
-    functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv->start_address + 0x0030D720);
-    functions.GetPlayerUserId = (pTwoArgProt)(engine_srv->start_address + 0x0030D5D0);
-    functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv->start_address + 0x002E5410);
-    functions.host_changelevel = (pThreeArgProt)(engine_srv->start_address + 0x002684B0);
-    functions.LevelChangedSnap = (pOneArgProt)(engine_srv->start_address + 0x002D98B0);
-    functions.RemoveEntitySnapReference = (pTwoArgProt)(engine_srv->start_address + 0x002DA520);
+    functions.SendNetMsg = (pThreeArgProt)(engine_srv->start + 0x002D0EB0);
+    functions.ClientCommand = (pFourArgProt)(engine_srv->start + 0x0030E300);
+    functions.PEntityOfEntIndex = (pTwoArgProt)(engine_srv->start + 0x0030D720);
+    functions.GetPlayerUserId = (pTwoArgProt)(engine_srv->start + 0x0030D5D0);
+    functions.SV_ReplicateConVarChange = (pTwoArgProt)(engine_srv->start + 0x002E5410);
+    functions.host_changelevel = (pThreeArgProt)(engine_srv->start + 0x002684B0);
+    functions.LevelChangedSnap = (pOneArgProt)(engine_srv->start + 0x002D98B0);
+    functions.RemoveEntitySnapReference = (pTwoArgProt)(engine_srv->start + 0x002DA520);
 
-    functions.ServiceEvents = (pOneArgProt)(server_srv->start_address + 0x00607B40);
-    functions.InvokePerFrameMethodFastCall = (pTwoArgProtFastCall)(server_srv->start_address + 0x006E6400);
-    functions.InvokeMethodReverseOrderFastCall = (pTwoArgProtFastCall)(server_srv->start_address + 0x006E6130);
-    functions.Physics_RunThinkFunctions = (pOneArgProt)(server_srv->start_address + 0x0074E750);
-    functions.SpawnPlayer = (pOneArgProt)(server_srv->start_address + 0x00C2F260);
-    functions.RemoveNormalDirect = (pOneArgProt)(server_srv->start_address + 0x008A0B70);
-    functions.RemoveNormal = (pOneArgProt)(server_srv->start_address + 0x008A0C80);
-    functions.RemoveInsta = (pOneArgProt)(server_srv->start_address + 0x008A0EA0);
-    functions.CreateEntityByName = (pTwoArgProt)(server_srv->start_address + 0x00700690);
-    functions.PhysSimEnt = (pOneArgProt)(server_srv->start_address + 0x0074E480);
-    functions.AcceptInput = (pSixArgProt)(server_srv->start_address + 0x005B48F0);
-    functions.UpdateOnRemoveBase = (pOneArgProt)(server_srv->start_address + 0x005AF0F0);
-    functions.VphysicsSetObject = (pOneArgProt)(server_srv->start_address + 0x005D0280);
-    functions.ClearAllEntities = (pOneArgProt)(server_srv->start_address + 0x0064AF80);
-    functions.SetSolidFlags = (pTwoArgProt)(server_srv->start_address + 0x006158D0);
-    functions.DisableEntityCollisions = (pTwoArgProt)(server_srv->start_address + 0x0077C350);
-    functions.EnableEntityCollisions = (pTwoArgProt)(server_srv->start_address + 0x0077C4B0);
-    functions.FindEntityByClassname = (pThreeArgProt)(server_srv->start_address + 0x0064B2B0);
-    functions.CleanupDeleteList = (pOneArgProt)(server_srv->start_address + 0x0064ACF0);
-    functions.SetOwnerEntity = (pTwoArgProt)(server_srv->start_address + 0x005B3EE0);
-    functions.VPhysicsUpdate = (pTwoArgProt)(server_srv->start_address + 0x005CF5F0);
-    functions.CalcAbsolutePosition = (pOneArgProt)(server_srv->start_address + 0x005B33F0);
-    functions.DispatchAnimEvents = (pTwoArgProt)(server_srv->start_address + 0x0056DC50);
-    functions.MapEntity_ParseAllEntities = (pThreeArgProt)(server_srv->start_address + 0x00700EF0);
-    functions.CEntityFactoryDictionary_Create = (pTwoArgProt)(server_srv->start_address + 0x0089FBE0);
-    functions.DispatchSpawn = (pOneArgProt)(server_srv->start_address + 0x008A5F80);
-    functions.AiSelectSchedule = (pOneArgProt)(server_srv->start_address + 0x004A6910);
-    functions.AiCleanupOnDeath = (pOneArgProt)(server_srv->start_address + 0x004A3CA0);
-    functions.MakeDormant = (pOneArgProt)(server_srv->start_address + 0x005B2820);
-    functions.SetAbsOrigin = (pTwoArgProt)(server_srv->start_address + 0x005B0F70);
-    functions.SetLocalOrigin = (pTwoArgProt)(server_srv->start_address + 0x005B0E00);
-    functions.UnloadAllModels = (pOneArgProtFastCall)(engine_srv->start_address + 0x0027BBC0);
-    functions.FindPickerEntity = (pOneArgProt)(server_srv->start_address + 0x0079EA30);
+    functions.ServiceEvents = (pOneArgProt)(server_srv->start + 0x00607B40);
+    functions.InvokePerFrameMethodFastCall = (pTwoArgProtFastCall)(server_srv->start + 0x006E6400);
+    functions.InvokeMethodReverseOrderFastCall = (pTwoArgProtFastCall)(server_srv->start + 0x006E6130);
+    functions.Physics_RunThinkFunctions = (pOneArgProt)(server_srv->start + 0x0074E750);
+    functions.SpawnPlayer = (pOneArgProt)(server_srv->start + 0x00C2F260);
+    functions.RemoveNormalDirect = (pOneArgProt)(server_srv->start + 0x008A0B70);
+    functions.RemoveNormal = (pOneArgProt)(server_srv->start + 0x008A0C80);
+    functions.RemoveInsta = (pOneArgProt)(server_srv->start + 0x008A0EA0);
+    functions.CreateEntityByName = (pTwoArgProt)(server_srv->start + 0x00700690);
+    functions.PhysSimEnt = (pOneArgProt)(server_srv->start + 0x0074E480);
+    functions.AcceptInput = (pSixArgProt)(server_srv->start + 0x005B48F0);
+    functions.UpdateOnRemoveBase = (pOneArgProt)(server_srv->start + 0x005AF0F0);
+    functions.VphysicsSetObject = (pOneArgProt)(server_srv->start + 0x005D0280);
+    functions.ClearAllEntities = (pOneArgProt)(server_srv->start + 0x0064AF80);
+    functions.SetSolidFlags = (pTwoArgProt)(server_srv->start + 0x006158D0);
+    functions.DisableEntityCollisions = (pTwoArgProt)(server_srv->start + 0x0077C350);
+    functions.EnableEntityCollisions = (pTwoArgProt)(server_srv->start + 0x0077C4B0);
+    functions.FindEntityByClassname = (pThreeArgProt)(server_srv->start + 0x0064B2B0);
+    functions.CleanupDeleteList = (pOneArgProt)(server_srv->start + 0x0064ACF0);
+    functions.SetOwnerEntity = (pTwoArgProt)(server_srv->start + 0x005B3EE0);
+    functions.VPhysicsUpdate = (pTwoArgProt)(server_srv->start + 0x005CF5F0);
+    functions.CalcAbsolutePosition = (pOneArgProt)(server_srv->start + 0x005B33F0);
+    functions.DispatchAnimEvents = (pTwoArgProt)(server_srv->start + 0x0056DC50);
+    functions.MapEntity_ParseAllEntities = (pThreeArgProt)(server_srv->start + 0x00700EF0);
+    functions.CEntityFactoryDictionary_Create = (pTwoArgProt)(server_srv->start + 0x0089FBE0);
+    functions.DispatchSpawn = (pOneArgProt)(server_srv->start + 0x008A5F80);
+    functions.AiSelectSchedule = (pOneArgProt)(server_srv->start + 0x004A6910);
+    functions.AiCleanupOnDeath = (pOneArgProt)(server_srv->start + 0x004A3CA0);
+    functions.MakeDormant = (pOneArgProt)(server_srv->start + 0x005B2820);
+    functions.SetAbsOrigin = (pTwoArgProt)(server_srv->start + 0x005B0F70);
+    functions.SetLocalOrigin = (pTwoArgProt)(server_srv->start + 0x005B0E00);
+    functions.UnloadAllModels = (pOneArgProtFastCall)(engine_srv->start + 0x0027BBC0);
+    functions.FindPickerEntity = (pOneArgProt)(server_srv->start + 0x0079EA30);
 
-    functions.GetEnemy = (pOneArgProt)(server_srv->start_address + 0x0043B850);
-    functions.GetEnemy2 = (pOneArgProt)(server_srv->start_address + 0x0043B8F0);
+    functions.GetEnemy = (pOneArgProt)(server_srv->start + 0x0043B850);
+    functions.GetEnemy2 = (pOneArgProt)(server_srv->start + 0x0043B8F0);
 
-    functions.UTIL_SetModel = (pTwoArgProt)(server_srv->start_address + 0x008A4A20);
-    functions.PrecacheModel = (pThreeArgProt)(engine_srv->start_address + 0x0030D080);
+    functions.UTIL_SetModel = (pTwoArgProt)(server_srv->start + 0x008A4A20);
+    functions.PrecacheModel = (pThreeArgProt)(engine_srv->start + 0x0030D080);
+
+    functions.SetModelScale = (SetModelScaleProt)(server_srv->start + 0x0056C680);
 
     
 
-    functions.EngineError = (Error)( (server_srv->start_address + 0x00700FB3) + (*(uint32_t*)(server_srv->start_address + 0x00700FB3+1)) + 5);
+    functions.EngineError = (Error)( (server_srv->start + 0x00700FB3) + (*(uint32_t*)(server_srv->start + 0x00700FB3+1)) + 5);
 
-    functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv->start_address + 0x000C4B70);
-    functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv->start_address + 0x000C7EB0);
+    functions.PackedStoreDestructor = (pOneArgProt)(dedicated_srv->start + 0x000C4B70);
+    functions.CanSatisfyVpkCacheInternal = (pSevenArgProt)(dedicated_srv->start + 0x000C7EB0);
 
-    functions.recheck_ov_element = (pTwoArgProt)(vphysics_srv->start_address + 0x0011F840);
-    functions.IVP_Real_Object_Destructor = (pOneArgProt)(vphysics_srv->start_address + 0x00102880);
+    functions.recheck_ov_element = (pTwoArgProt)(vphysics_srv->start + 0x0011F840);
+    functions.IVP_Real_Object_Destructor = (pOneArgProt)(vphysics_srv->start + 0x00102880);
 
-    synergy_functions.CombineDropshipSpawn = (pOneArgProt)(server_srv->start_address + 0x00AAE650);
-    synergy_functions.SaveGameState = (pFourArgProt)(server_srv->start_address + 0x00BE5960);
-    synergy_functions.RestorePlayer = (pTwoArgProt)(server_srv->start_address + 0x00BDC770);
-    synergy_functions.Autosave_Silent = (pOneArgProtFastCall)(server_srv->start_address + 0x00BEC650);
-    synergy_functions.LookupPoseParameterDropship = (pThreeArgProt)(server_srv->start_address + 0x0056F3F0);
-    synergy_functions.PopulatePoseParametersDropship = (pOneArgProt)(server_srv->start_address + 0x00AAA830);
-    synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint = (pTwoArgProt)(server_srv->start_address + 0x00C5F830);
-    synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence = (pTwoArgProt)(server_srv->start_address + 0x00C6E560);
-    synergy_functions.CAI_PassengerBehavior_GetEntryTarget = (pThreeArgProt)(server_srv->start_address + 0x00C62C70);
-    synergy_functions.CAI_PassengerBehavior_GetEntryPoint = (pFourArgProt)(server_srv->start_address + 0x00C5FD10);
-    synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions = (pOneArgProt)(server_srv->start_address + 0x00C66FB0);
-    synergy_functions.UTIL_GetPlayerMP = (pTwoArgProt)(server_srv->start_address + 0x008A0F00);
-    synergy_functions.CNPC_RollerMine_InputJoltVehicle = (pOneArgProt)(server_srv->start_address + 0x00B3AF40);
-    synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv->start_address + 0x00851A40);
-    synergy_functions.PrepForLevelTransition = (pOneArgProt)(server_srv->start_address + 0x0078B160);
-    synergy_functions.Restore = (pTwoArgProt)(server_srv->start_address + 0x00BE01A0);
-    synergy_functions.ReleaseManhack = (pOneArgProtFastCall)(server_srv->start_address + 0x00B0ECD0);
-    synergy_functions.CombineBallGunDrop = (pThreeArgProt)(server_srv->start_address + 0x00BA7BE0);
-    synergy_functions.ContentReset = (pVargArgProt)(synergy_srv->start_address + 0x00087140);
-    synergy_functions.CombineAnimEvent = (pTwoArgProt)(server_srv->start_address + 0x00AA2270);
-    synergy_functions.CAI_FollowBehavior_UpdateFollowPosition = (pOneArgProtFastCall)(server_srv->start_address + 0x004A2A10);
-    synergy_functions.SaveRestoreFinish = (pTwoArgProt)(server_srv->start_address + 0x00BE6D50);
+    synergy_functions.CombineDropshipSpawn = (pOneArgProt)(server_srv->start + 0x00AAE650);
+    synergy_functions.SaveGameState = (pFourArgProt)(server_srv->start + 0x00BE5960);
+    synergy_functions.RestorePlayer = (pTwoArgProt)(server_srv->start + 0x00BDC770);
+    synergy_functions.Autosave_Silent = (pOneArgProtFastCall)(server_srv->start + 0x00BEC650);
+    synergy_functions.LookupPoseParameterDropship = (pThreeArgProt)(server_srv->start + 0x0056F3F0);
+    synergy_functions.PopulatePoseParametersDropship = (pOneArgProt)(server_srv->start + 0x00AAA830);
+    synergy_functions.CAI_PassengerBehavior_ReserveEntryPoint = (pTwoArgProt)(server_srv->start + 0x00C5F830);
+    synergy_functions.CAI_PassengerBehaviorCompanion_FindEntrySequence = (pTwoArgProt)(server_srv->start + 0x00C6E560);
+    synergy_functions.CAI_PassengerBehavior_GetEntryTarget = (pThreeArgProt)(server_srv->start + 0x00C62C70);
+    synergy_functions.CAI_PassengerBehavior_GetEntryPoint = (pFourArgProt)(server_srv->start + 0x00C5FD10);
+    synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions = (pOneArgProt)(server_srv->start + 0x00C66FB0);
+    synergy_functions.UTIL_GetPlayerMP = (pTwoArgProt)(server_srv->start + 0x008A0F00);
+    synergy_functions.CNPC_RollerMine_InputJoltVehicle = (pOneArgProt)(server_srv->start + 0x00B3AF40);
+    synergy_functions.CSoundControllerImp_SoundChangeVolume = (pFourArgProt)(server_srv->start + 0x00851A40);
+    synergy_functions.PrepForLevelTransition = (pOneArgProt)(server_srv->start + 0x0078B160);
+    synergy_functions.Restore = (pTwoArgProt)(server_srv->start + 0x00BE01A0);
+    synergy_functions.ReleaseManhack = (pOneArgProtFastCall)(server_srv->start + 0x00B0ECD0);
+    synergy_functions.CombineBallGunDrop = (pThreeArgProt)(server_srv->start + 0x00BA7BE0);
+    synergy_functions.ContentReset = (pVargArgProt)(synergy_srv->start + 0x00087140);
+    synergy_functions.CombineAnimEvent = (pTwoArgProt)(server_srv->start + 0x00AA2270);
+    synergy_functions.CAI_FollowBehavior_UpdateFollowPosition = (pOneArgProtFastCall)(server_srv->start + 0x004A2A10);
+    synergy_functions.SaveRestoreFinish = (pTwoArgProt)(server_srv->start + 0x00BE6D50);
+    synergy_functions.KillSpritesManhack = (pOneArgProtFastCall)(server_srv->start + 0x00AFCB70);
 
     PopulateHookExclusionLists();
 
@@ -247,7 +253,7 @@ void ApplyPatches()
 {
     uint32_t offset = 0;
 
-    uint32_t patch_vpk_cache_allocation = dedicated_srv->start_address + 0x000C81CD;
+    uint32_t patch_vpk_cache_allocation = dedicated_srv->start + 0x000C81CD;
     memset((void*)patch_vpk_cache_allocation, 0x90, 0xC);
 
     //ebx
@@ -266,7 +272,7 @@ void ApplyPatches()
     *(uint8_t*)(patch_vpk_cache_allocation) = 0xE8;
     *(uint32_t*)(patch_vpk_cache_allocation+1) = offset;
 
-    uint32_t force_jump_vpk_allocation = dedicated_srv->start_address + 0x000C80B3;
+    uint32_t force_jump_vpk_allocation = dedicated_srv->start + 0x000C80B3;
     memset((void*)force_jump_vpk_allocation, 0x90, 6);
 
     *(uint8_t*)(force_jump_vpk_allocation) = 0xE9;
@@ -278,73 +284,73 @@ void ApplyPatches()
         memset((void*)(sdktools + 0x00016907), 0x90, 2);
     }
 
-    uint32_t remove_save_transition = server_srv->start_address + 0x00888A56;
+    uint32_t remove_save_transition = server_srv->start + 0x00888A56;
     memset((void*)remove_save_transition, 0x90, 3);
 
-    uint32_t phys_freeze_fix = server_srv->start_address + 0x0077B759;
+    uint32_t phys_freeze_fix = server_srv->start + 0x0077B759;
     *(uint8_t*)(phys_freeze_fix) = 0xEB;
 
-    uint32_t hook_game_frame = server_srv->start_address + 0x006B1F04;
+    uint32_t hook_game_frame = server_srv->start + 0x006B1F04;
     offset = (uint32_t)HooksUtil::SimulateEntitiesHook - hook_game_frame - 5;
     *(uint32_t*)(hook_game_frame+1) = offset;
 
-    uint32_t hook_reverse_order = server_srv->start_address + 0x006B1F10;
+    uint32_t hook_reverse_order = server_srv->start + 0x006B1F10;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_reverse_order - 5;
     *(uint32_t*)(hook_reverse_order+1) = offset;
 
-    uint32_t hook_post_systems = server_srv->start_address + 0x006B1F1C;
+    uint32_t hook_post_systems = server_srv->start + 0x006B1F1C;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_post_systems - 5;
     *(uint32_t*)(hook_post_systems+1) = offset;
 
-    uint32_t hook_service_event_queue = server_srv->start_address + 0x006B1F2A;
+    uint32_t hook_service_event_queue = server_srv->start + 0x006B1F2A;
     offset = (uint32_t)HooksUtil::EmptyCall - hook_service_event_queue - 5;
     *(uint32_t*)(hook_service_event_queue+1) = offset;
 
-    uint32_t nearplayer_bypass = server_srv->start_address + 0x00C2AF5C;
+    uint32_t nearplayer_bypass = server_srv->start + 0x00C2AF5C;
     *(uint8_t*)(nearplayer_bypass) = 0xE9;
     *(uint32_t*)(nearplayer_bypass+1) = 0x1A9;
 
-    uint32_t weapon_pitch_dropship_patch = server_srv->start_address + 0x00AAAA94;
+    uint32_t weapon_pitch_dropship_patch = server_srv->start + 0x00AAAA94;
     offset = (uint32_t)HooksSynergy::LookupPoseParameterDropshipHook - weapon_pitch_dropship_patch - 5;
     *(uint32_t*)(weapon_pitch_dropship_patch+1) = offset;
 
-    uint32_t weapon_yaw_dropship_patch = server_srv->start_address + 0x00AAAB02;
+    uint32_t weapon_yaw_dropship_patch = server_srv->start + 0x00AAAB02;
     offset = (uint32_t)HooksSynergy::LookupPoseParameterDropshipHook - weapon_yaw_dropship_patch - 5;
     *(uint32_t*)(weapon_yaw_dropship_patch+1) = offset;
 
-    uint32_t helicopter_sphere_fix = server_srv->start_address + 0x00A44AA9;
+    uint32_t helicopter_sphere_fix = server_srv->start + 0x00A44AA9;
     *(uint8_t*)(helicopter_sphere_fix) = 0xE9;
     *(uint32_t*)(helicopter_sphere_fix+1) = 0xA3;
 
     //spawning crash
-    uint32_t patch_player_spawn_crash = server_srv->start_address + 0x00C2F3AC;
+    uint32_t patch_player_spawn_crash = server_srv->start + 0x00C2F3AC;
     *(uint8_t*)(patch_player_spawn_crash) = 0xEB;
 
     //spawning crash
-    uint32_t patch_player_restore = server_srv->start_address + 0x00BDD1EC;
+    uint32_t patch_player_restore = server_srv->start + 0x00BDD1EC;
     memset((void*)patch_player_restore, 0x90, 0x26);
 
     //player vehicle restoring patch
-    uint32_t removebad_restorecode = server_srv->start_address + 0x00BDD00D;
+    uint32_t removebad_restorecode = server_srv->start + 0x00BDD00D;
     memset((void*)removebad_restorecode, 0x90, 2);
 
     //causes crash
-    uint32_t remove_car_transition = server_srv->start_address + 0x00BDD1CC;
+    uint32_t remove_car_transition = server_srv->start + 0x00BDD1CC;
     memset((void*)remove_car_transition, 0x90, 5);
 
-    uint32_t fix_save_transition = server_srv->start_address + 0x00BE597F;
+    uint32_t fix_save_transition = server_srv->start + 0x00BE597F;
     *(uint8_t*)(fix_save_transition) = 0xEB;
 
-    uint32_t patch_player_transition = server_srv->start_address + 0x00885EF1;
+    uint32_t patch_player_transition = server_srv->start + 0x00885EF1;
     offset = (uint32_t)HooksSynergy::PrepForLevelTransitionHook - patch_player_transition - 5;
     *(uint32_t*)(patch_player_transition+1) = offset;
 
     //CMessageEntity
-    uint32_t remove_extra_call = server_srv->start_address + 0x0070720B;
+    uint32_t remove_extra_call = server_srv->start + 0x0070720B;
     offset = (uint32_t)HooksUtil::EmptyCall - remove_extra_call - 5;
     *(uint32_t*)(remove_extra_call+1) = offset;
 
-    uint32_t script_think_patch = server_srv->start_address + 0x00832200;
+    uint32_t script_think_patch = server_srv->start + 0x00832200;
     *(uint8_t*)(script_think_patch) = 0xE9;
     *(uint32_t*)(script_think_patch+1) = 0xCD;
 }
@@ -359,7 +365,7 @@ void HookFunctions()
     HookFunction(server_srv, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
     HookFunction(server_srv, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
 
-    HookFunction(vphysics_srv, (void*)(vphysics_srv->start_address + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
+    HookFunction(vphysics_srv, (void*)(vphysics_srv->start + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
 
     HookFunction(engine_srv, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
     HookFunction(engine_srv, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
@@ -384,7 +390,7 @@ uint32_t HooksSynergy::SaveRestoreFinishHook(uint32_t arg0, uint32_t arg1)
 
     ConsolePrint("SaveRestoreFinish Leak %X", leak_buffer);
 
-    pOneArgProtFastCall HashTableDestructor = (pOneArgProtFastCall)(server_srv->start_address + 0x00BEC0C0);
+    pOneArgProtFastCall HashTableDestructor = (pOneArgProtFastCall)(server_srv->start + 0x00BEC0C0);
     HashTableDestructor(leak_buffer);
 
     return synergy_functions.SaveRestoreFinish(arg0, arg1);
@@ -483,10 +489,10 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
     functions.CleanupDeleteList(0);
 
     // Save the game
-    uint32_t save_thing = *(uint32_t*)(server_srv->start_address + 0x00EC7550+0x0C);
-    uint32_t save_thing_two = *(uint32_t*)(server_srv->start_address + 0x0023D6D0);
-    uint32_t save_thing_three = *(uint32_t*)(server_srv->start_address + 0x0023D6D0+4);
-    uint32_t save_thing_four = *(uint32_t*)(server_srv->start_address + 0x0023D6D0+4+4);
+    uint32_t save_thing = *(uint32_t*)(server_srv->start + 0x00EC7550+0x0C);
+    uint32_t save_thing_two = *(uint32_t*)(server_srv->start + 0x0023D6D0);
+    uint32_t save_thing_three = *(uint32_t*)(server_srv->start + 0x0023D6D0+4);
+    uint32_t save_thing_four = *(uint32_t*)(server_srv->start + 0x0023D6D0+4+4);
 
     pDynamicFourArgFunc = (pFourArgProt)( *(uint32_t*)((*(uint32_t*)(save_thing))+0x48) );
     pDynamicFourArgFunc(save_thing, save_thing_two, save_thing_three, save_thing_four);
@@ -539,7 +545,7 @@ uint32_t HooksSynergy::LookupPoseParameterDropshipHook(uint32_t arg0, uint32_t a
             ConsolePrint("Locked studio for dropship!");
 
             //CBaseAnimating::LockStudioHdr
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv->start_address + 0x0056AFB0);
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv->start + 0x0056AFB0);
             pDynamicOneArgFunc(container_object);
         }
 
@@ -706,7 +712,7 @@ uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t ar
 
     //ConsolePrint("Allowed usage!");
     
-    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv->start_address + 0x000DC6F0);
+    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv->start + 0x000DC6F0);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
@@ -799,7 +805,7 @@ uint32_t HooksUtil::GetEnemyHook(uint32_t arg0)
 
     if(!enemy)
     {
-        if((uint32_t)__builtin_return_address(0) == (server_srv->start_address + 0x004BBE8B))
+        if((uint32_t)__builtin_return_address(0) == (server_srv->start + 0x004BBE8B))
         {
             ConsolePrint("GetEnemy returned NULL");
 

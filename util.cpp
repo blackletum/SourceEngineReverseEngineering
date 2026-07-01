@@ -810,10 +810,10 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 
     if(VerifyEntity(arg0, true, true) == false)
     {
-        uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv->start_address;
-        uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv->start_address;
-        uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start_address;
-        uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start_address;
+        uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv->start;
+        uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv->start;
+        uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start;
+        uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start;
     
         ConsolePrint("UpdateOnRemove: Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
         exit(EXIT_FAILURE);
@@ -1308,7 +1308,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 
                 if(four_byte_addr == (uint32_t)target_pointer)
                 {
-                    if(IsAddressExcluded(binary->start_address, search_address))
+                    if(IsAddressExcluded(binary->start, search_address))
                     {
                         ConsolePrint("(abs) Skipped patch at [%X]", search_address);
                         search_address++;
@@ -1334,7 +1334,7 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 
                     if(chk == (uint32_t)target_pointer)
                     {
-                        if(IsAddressExcluded(binary->start_address, search_address))
+                        if(IsAddressExcluded(binary->start, search_address))
                         {
                             ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
                             search_address++;
@@ -1351,14 +1351,14 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
 
                         if(chk == (uint32_t)target_pointer)
                         {
-                            if(IsAddressExcluded(binary->start_address, search_address))
+                            if(IsAddressExcluded(binary->start, search_address))
                             {
                                 ConsolePrint("(signed) Skipped patch at [%X]", search_address);
                                 search_address++;
                                 continue;
                             }
 
-                            ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start_address);
+                            ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start);
                             uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                             *(uint32_t*)(search_address+1) = offset;
                             NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
@@ -1488,8 +1488,8 @@ Library* LoadLibrary(char* library_full_path)
                     new_lib->region = NULL;
                     new_lib->original_memory = NULL;
 
-                    new_lib->start_address = library_lm->l_addr;
-                    new_lib->end_address = 0;
+                    new_lib->start = library_lm->l_addr;
+                    new_lib->end = 0;
 
                     loaded_libraries[i] = (uint32_t)new_lib;
                     
@@ -1619,7 +1619,7 @@ void TakeRegionMemorySnapshot(bool original_memory)
             if(strstr(protections, "x") != 0)
                 save_protections = save_protections | PROT_EXEC;
 
-            currentLibrary->end_address = end_address_parsed;
+            currentLibrary->end = end_address_parsed;
 
             size_t pagesize = sysconf(_SC_PAGE_SIZE);
             uint32_t pagestart = start_address_parsed & -pagesize;

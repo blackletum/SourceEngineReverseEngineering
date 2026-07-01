@@ -42,10 +42,10 @@ void InitCore()
 
 bool IsAllowedToPatchSdkTools(Library* lib)
 {
-    uint32_t lib_integrity_chk_addr = lib->start_address + 0x00057919;
+    uint32_t lib_integrity_chk_addr = lib->start + 0x00057919;
     uint32_t str_len = 11;
 
-    bool integrity_chk = (lib_integrity_chk_addr + str_len) <= (lib->end_address);
+    bool integrity_chk = (lib_integrity_chk_addr + str_len) <= (lib->end);
 
     if(integrity_chk)
     {
@@ -63,10 +63,10 @@ bool IsAllowedToPatchSdkTools(Library* lib)
 
 void PopulateHookExclusionLists()
 {
-    hook_exclude_list_base[0] = server_srv->start_address;
+    hook_exclude_list_base[0] = server_srv->start;
     hook_exclude_list_offset[0] = 0x008A0E2F;
 
-    hook_exclude_list_base[1] = vphysics_srv->start_address;
+    hook_exclude_list_base[1] = vphysics_srv->start;
     hook_exclude_list_offset[1] = 0x0011D336;
 }
 
@@ -175,10 +175,10 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
         return;
     }
 
-    uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv->start_address;
-    uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv->start_address;
-    uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start_address;
-    uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start_address;
+    uint32_t first_return = ((uint32_t)__builtin_return_address(0)) - server_srv->start;
+    uint32_t second_return = ((uint32_t)__builtin_return_address(1)) - server_srv->start;
+    uint32_t third_return = ((uint32_t)__builtin_return_address(2)) - server_srv->start;
+    uint32_t fourth_return = ((uint32_t)__builtin_return_address(3)) - server_srv->start;
 
     ConsolePrint("Failed to validate entity 1:%p 2:%p 3:%p 4:%p", first_return, second_return, third_return, fourth_return);
     if(crash_server) exit(EXIT_FAILURE);
@@ -301,22 +301,30 @@ void MakePlayersLeaveVehicles()
             if(IsEntityValid(player_vehicle))
             {
                 char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
+                float car_modelscale = *(float*)(player_vehicle+offsets.modelscale_offset);
                 uint32_t passenger = GetPassengerIndex(player, player_vehicle);
 
                 if(passenger != -1u)
                 {
+                    float* car_modelscale_ptr = (float*)malloc(sizeof(float));
+                    *car_modelscale_ptr = car_modelscale;
+
                     Value* player_value = CreateNewValue((void*)*(uint32_t*)(player+offsets.refhandle_offset));
                     Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(player_vehicle+offsets.refhandle_offset));
                     Value* passenger_value = CreateNewValue((void*)passenger);
                     Value* steam_id_copy_one = CreateNewValue((void*)*(uint32_t*)(player_vehicle+0x0C));
                     Value* steam_id_copy_two = CreateNewValue((void*)*(uint32_t*)(player_vehicle+0x10));
+                    Value* modelscale_copy = CreateNewValue((void*)car_modelscale_ptr);
 
                     InsertToValuesList(save_player_vehicles_list, player_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, vehicle_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, passenger_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, steam_id_copy_one, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, steam_id_copy_two, NULL, true, false);
+                    InsertToValuesList(save_player_vehicles_list, modelscale_copy, NULL, true, false);
                 }
+
+                functions.SetModelScale(player_vehicle, 1.0, 0);
 
                 Vector emptyVector;
 
@@ -347,8 +355,11 @@ void EnterVehicles(ValueList vehi_list)
             uint32_t passenger = (uint32_t)first_player->nextVal->nextVal->value;
             uint32_t steam_id_copy_one = (uint32_t)first_player->nextVal->nextVal->nextVal->value;
             uint32_t steam_id_copy_two = (uint32_t)first_player->nextVal->nextVal->nextVal->nextVal->value;
+            float* modelscale_ptr = (float*)first_player->nextVal->nextVal->nextVal->nextVal->nextVal->value;
 
             ConsolePrint("Vehicle Entered! passenger [%d]", passenger);
+
+            *(float*)(vehicle+offsets.modelscale_offset) = *modelscale_ptr;
 
             *(uint32_t*)(vehicle+0x0C) = steam_id_copy_one;
             *(uint32_t*)(vehicle+0x10) = steam_id_copy_two;
@@ -356,10 +367,13 @@ void EnterVehicles(ValueList vehi_list)
             //EnterVehicle
             pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+synergy_offsets.entervehicle_offset) );
             pDynamicThreeArgFunc(player, *(uint32_t*)(vehicle+synergy_offsets.iserver_vehicle_offset), passenger);
+
+            free(modelscale_ptr);
         }
 
         Value* nextPlayer = first_player->nextVal->nextVal->nextVal->nextVal->nextVal;
 
+        free(first_player->nextVal->nextVal->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal);

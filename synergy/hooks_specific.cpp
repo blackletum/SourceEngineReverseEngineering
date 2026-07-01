@@ -11,22 +11,22 @@ void ApplyPatchesSpecific()
     uint32_t offset = 0;
 
     //CBaseEntity* corruption fix
-    uint32_t antlion_guard_fix_one = server_srv->start_address + 0x00A2B5F4;
+    uint32_t antlion_guard_fix_one = server_srv->start + 0x00A2B5F4;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - antlion_guard_fix_one - 5;
     *(uint32_t*)(antlion_guard_fix_one+1) = offset;
 
     //CBaseEntity* corruption fix
-    uint32_t antlion_guard_fix_two = server_srv->start_address + 0x00A2B610;
+    uint32_t antlion_guard_fix_two = server_srv->start + 0x00A2B610;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - antlion_guard_fix_two - 5;
     *(uint32_t*)(antlion_guard_fix_two+1) = offset;
 
     //CBaseEntity* corruption fix
-    uint32_t tripmine_fix_one = server_srv->start_address + 0x00D11E75;
+    uint32_t tripmine_fix_one = server_srv->start + 0x00D11E75;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - tripmine_fix_one - 5;
     *(uint32_t*)(tripmine_fix_one+1) = offset;
 
     //CBaseEntity* corruption fix
-    uint32_t combineball_fix = server_srv->start_address + 0x00BA6675;
+    uint32_t combineball_fix = server_srv->start + 0x00BA6675;
     offset = (uint32_t)HooksUtil::StrictEntityValidationSlow - combineball_fix - 5;
     *(uint32_t*)(combineball_fix+1) = offset;
 }
@@ -46,6 +46,27 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.CombineBallGunDrop, (void*)NativeHooks::CombineBallGunDropHook);
     HookFunction(server_srv, (void*)synergy_functions.CombineAnimEvent, (void*)NativeHooks::CombineAnimEventHook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_FollowBehavior_UpdateFollowPosition, (void*)NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.KillSpritesManhack, (void*)NativeHooks::KillSpritesManhackHook);
+}
+
+uint32_t NativeHooks::KillSpritesManhackHook(uint32_t arg0)
+{
+    uint32_t sprite_one = *(uint32_t*)(arg0+synergy_offsets.manhack_m_pEyeGlow);
+    uint32_t sprite_two = *(uint32_t*)(arg0+synergy_offsets.manhack_m_pLightGlow);
+
+    if(!IsEntityValid(sprite_one))
+    {
+        ConsolePrint("Found corrupted sprite in manhack!");
+        *(uint32_t*)(arg0+synergy_offsets.manhack_m_pEyeGlow) = 0;
+    }
+
+    if(!IsEntityValid(sprite_two))
+    {
+        ConsolePrint("Found corrupted sprite in manhack!");
+        *(uint32_t*)(arg0+synergy_offsets.manhack_m_pLightGlow) = 0;
+    }
+
+    return synergy_functions.KillSpritesManhack(arg0);
 }
 
 uint32_t NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook(uint32_t arg0)
