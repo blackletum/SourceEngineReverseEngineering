@@ -1295,22 +1295,34 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
     {
         uint32_t region_start_address = region_start->start;
         uint32_t region_end_address = region_start->end;
-        uint32_t region_protections = region_start->protections;
+        uint8_t* region_snapshot = region_start->snapshot;
+        size_t region_snapshot_size = region_start->snapshot_size;
 
         uint32_t search_address = region_start_address;
 
         while(search_address < region_end_address)
         {
-            // 4-byte absolute pointer match — needs 4 bytes available
+            uint32_t snapshot_offset = search_address - region_start_address;
+
+            // 4-byte absolute pointer match - needs 4 bytes available
             if(search_address + 3 < region_end_address)
             {
-                uint32_t four_byte_addr = *(uint32_t*)(search_address);
+                uint32_t four_byte_addr = *(uint32_t*)(region_snapshot + snapshot_offset);
 
                 if(four_byte_addr == (uint32_t)target_pointer)
                 {
                     if(IsAddressExcluded(binary->start, search_address))
                     {
                         ConsolePrint("(abs) Skipped patch at [%X]", search_address);
+                        search_address++;
+                        continue;
+                    }
+
+                    uint32_t live_four_byte_addr = *(uint32_t*)(search_address);
+
+                    if(live_four_byte_addr != four_byte_addr)
+                    {
+                        ConsolePrint("HookFunction warning (absolute): snapshot/live mismatch at [%X] snap [%X] live [%X]", search_address, four_byte_addr, live_four_byte_addr);
                         search_address++;
                         continue;
                     }
@@ -1323,13 +1335,13 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                 }
             }
 
-            uint8_t byte = *(uint8_t*)(search_address);
+            uint8_t byte = *(uint8_t*)(region_snapshot + snapshot_offset);
 
             if(byte == 0xE8 || byte == 0xE9)
             {
                 if(search_address + 4 < region_end_address)
                 {
-                    uint32_t call_address = *(uint32_t*)(search_address + 1);
+                    uint32_t call_address = *(uint32_t*)(region_snapshot + snapshot_offset + 1);
                     uint32_t chk = search_address + call_address + 5;
 
                     if(chk == (uint32_t)target_pointer)
@@ -1337,6 +1349,16 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                         if(IsAddressExcluded(binary->start, search_address))
                         {
                             ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
+                            search_address++;
+                            continue;
+                        }
+
+                        uint8_t live_byte = *(uint8_t*)(search_address);
+                        uint32_t live_call_address = *(uint32_t*)(search_address + 1);
+
+                        if(live_byte != byte || live_call_address != call_address)
+                        {
+                            ConsolePrint("HookFunction warning (relative/unsigned): snapshot/live mismatch at call [%X]", search_address);
                             search_address++;
                             continue;
                         }
@@ -1358,7 +1380,18 @@ void HookFunction(Library* binary, void* target_pointer, void* hook_pointer)
                                 continue;
                             }
 
+                            uint8_t live_byte = *(uint8_t*)(search_address);
+                            uint32_t live_call_address = *(uint32_t*)(search_address + 1);
+
+                            if(live_byte != byte || live_call_address != call_address)
+                            {
+                                ConsolePrint("HookFunction warning (relative/signed): snapshot/live mismatch at call [%X]", search_address);
+                                search_address++;
+                                continue;
+                            }
+
                             ConsolePrint("(signed) Hooked address: [%X]", search_address - binary->start);
+
                             uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                             *(uint32_t*)(search_address+1) = offset;
                             NoteHookFunctionPatch(search_address + 1, sizeof(uint32_t));
