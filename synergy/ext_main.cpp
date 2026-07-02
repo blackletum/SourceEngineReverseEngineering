@@ -387,12 +387,16 @@ void HookFunctions()
 uint32_t HooksSynergy::SaveRestoreFinishHook(uint32_t arg0, uint32_t arg1)
 {
     uint32_t save_buffer = *(uint32_t*)((*(uint32_t*)fields.gpGlobals)+0x2C);
-    uint32_t leak_buffer = save_buffer+0x594;
 
-    ConsolePrint("SaveRestoreFinish Leak %X", leak_buffer);
+    if(save_buffer)
+    {
+        uint32_t leak_buffer = save_buffer+0x594;
 
-    pOneArgProtFastCall HashTableDestructor = (pOneArgProtFastCall)(server_srv->start + 0x00BEC0C0);
-    HashTableDestructor(leak_buffer);
+        ConsolePrint("SaveRestoreFinish Leak %X", leak_buffer);
+
+        pOneArgProtFastCall HashTableDestructor = (pOneArgProtFastCall)(server_srv->start + 0x00BEC0C0);
+        HashTableDestructor(leak_buffer);
+    }
 
     return synergy_functions.SaveRestoreFinish(arg0, arg1);
 }
@@ -613,7 +617,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     functions.CleanupDeleteList(0);
 
-    if(savegame)
+    if(savegame && save_frames >= 25)
     {
         ConsolePrint("Autosave created!");
         SaveGame_Extension();
@@ -663,6 +667,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
     }
 
     SaveGame_Extension();
+    sleep(2);
     ConsolePrint("Skipped Restore! (loaded current game back from save)");
 
     disable_player_restore = true;
@@ -671,7 +676,8 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
 
     disable_player_restore = false;
 
-    SaveGame_Extension();
+    savegame = true;
+    save_frames = 25;
     return returnVal;
 }
 
