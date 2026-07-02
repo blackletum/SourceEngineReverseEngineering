@@ -186,8 +186,6 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
 
 void SaveGame_Extension()
 {
-    pOneArgProtFastCall pDynamicFastCallOneArgFunc;
-
     save_frames = 0;
     
     MakePlayersLeaveVehicles();
@@ -197,8 +195,7 @@ void SaveGame_Extension()
 
     savegame_autosave = true;
 
-    pDynamicFastCallOneArgFunc = (pOneArgProtFastCall)(synergy_functions.Autosave_Silent);
-    pDynamicFastCallOneArgFunc(0);
+    synergy_functions.Autosave_Silent(0);
 
     savegame_autosave = false;
 

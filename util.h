@@ -256,8 +256,6 @@ extern bool firstplayer_hasjoined;
 extern bool player_collision_rules_changed;
 extern bool player_worldspawn_collision_disabled;
 
-extern int min_collision_frames;
-
 extern uint32_t hook_exclude_list_offset[512];
 extern uint32_t hook_exclude_list_base[512];
 extern uint32_t our_libraries[512];
@@ -274,6 +272,7 @@ extern bool isTicking;
 extern bool server_sleeping;
 extern uint32_t global_vpk_cache_buffer;
 extern uint32_t current_vpk_buffer_ref;
+
 extern ValueList leakedResourcesVpkSystem;
 extern ValueList players_connect_commands_list;
 extern ValueList hook_function_patch_notes;
