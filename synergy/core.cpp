@@ -368,7 +368,7 @@ void EnterVehicles(ValueList vehi_list)
             free(modelscale_ptr);
         }
 
-        Value* nextPlayer = first_player->nextVal->nextVal->nextVal->nextVal->nextVal;
+        Value* nextPlayer = first_player->nextVal->nextVal->nextVal->nextVal->nextVal->nextVal;
 
         free(first_player->nextVal->nextVal->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal->nextVal->nextVal);
