@@ -22,6 +22,22 @@ bool saved_game_once;
 bool disable_player_restore;
 
 ValueList save_player_vehicles_list;
+ValueList save_map_vehicle_modelscale_list;
+
+bool IsTrackedVehicleClassname(const char* clsname)
+{
+    if(!clsname)
+        return false;
+
+    return
+    (
+        strcmp(clsname, "prop_vehicle_jeep") == 0
+        ||
+        strcmp(clsname, "prop_vehicle_mp") == 0
+        ||
+        strcmp(clsname, "prop_vehicle_airboat") == 0
+    );
+}
 
 void InitCore()
 {
@@ -187,7 +203,8 @@ void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_p
 void SaveGame_Extension()
 {
     save_frames = 0;
-    
+
+    SaveMapVehicleModelScales();
     MakePlayersLeaveVehicles();
     FixCars();
 
@@ -204,6 +221,59 @@ void SaveGame_Extension()
     saved_game_once = true;
 }
 
+void SaveMapVehicleModelScales()
+{
+    uint32_t mainEnt = 0;
+
+    while((mainEnt = functions.FindEntityByClassname(fields.gEntList, mainEnt, (uint32_t)"*")) != 0)
+    {
+        if(!IsEntityValid(mainEnt))
+            continue;
+
+        char* clsname = (char*)(*(uint32_t*)(mainEnt+offsets.classname_offset));
+
+        if(!IsTrackedVehicleClassname(clsname))
+            continue;
+
+        float* modelscale_copy = (float*)malloc(sizeof(float));
+        *modelscale_copy = *(float*)(mainEnt+offsets.modelscale_offset);
+
+        Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(mainEnt+offsets.refhandle_offset));
+        Value* modelscale_value = CreateNewValue((void*)modelscale_copy);
+
+        InsertToValuesList(save_map_vehicle_modelscale_list, vehicle_value, NULL, true, false);
+        InsertToValuesList(save_map_vehicle_modelscale_list, modelscale_value, NULL, true, false);
+
+        functions.SetModelScale(mainEnt, 1.0, 0);
+    }
+}
+
+void RestoreMapVehicleModelScales()
+{
+    Value* first_vehicle = *save_map_vehicle_modelscale_list;
+
+    while(first_vehicle && first_vehicle->nextVal)
+    {
+        uint32_t vehicle = GetCBaseEntity((uint32_t)first_vehicle->value);
+        float* modelscale_ptr = (float*)first_vehicle->nextVal->value;
+
+        if(IsEntityValid(vehicle))
+        {
+            functions.SetModelScale(vehicle, *modelscale_ptr, 0);
+        }
+
+        Value* next_vehicle = first_vehicle->nextVal->nextVal;
+
+        free(modelscale_ptr);
+        free(first_vehicle->nextVal);
+        free(first_vehicle);
+
+        first_vehicle = next_vehicle;
+    }
+
+    *save_map_vehicle_modelscale_list = NULL;
+}
+
 void FixCars()
 {
     uint32_t mainEnt = 0;
@@ -214,7 +284,7 @@ void FixCars()
         {
             char* clsname = (char*) ( *(uint32_t*)(mainEnt+offsets.classname_offset) );
         
-            if(strcmp(clsname, "prop_vehicle_jeep") != 0 && strcmp(clsname, "prop_vehicle_mp") != 0 && strcmp(clsname, "prop_vehicle_airboat") != 0)
+            if(!IsTrackedVehicleClassname(clsname))
                 continue;
     
             char* model = (char*)(*(uint32_t*)(mainEnt+synergy_offsets.vehicle_model_offset));
@@ -245,14 +315,7 @@ uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle)
     {
         char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
 
-        if
-        (
-        (vehicle_classname && strcmp(vehicle_classname, "prop_vehicle_airboat")) == 0
-            ||
-        (vehicle_classname && strcmp(vehicle_classname, "prop_vehicle_mp")) == 0
-            ||
-        (vehicle_classname && strncmp(vehicle_classname, "prop_vehicle_jeep", 17)) == 0
-        )
+        if(IsTrackedVehicleClassname(vehicle_classname))
         {
             uint32_t iserver_vehicle = *(uint32_t*)(player_vehicle+synergy_offsets.iserver_vehicle_offset);
             uint32_t base_vehicle = *(uint32_t*)(iserver_vehicle+synergy_offsets.base_vehicle_offset);
@@ -283,8 +346,6 @@ uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle)
 
 void MakePlayersLeaveVehicles()
 {
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
     uint32_t player = 0;
@@ -297,31 +358,22 @@ void MakePlayersLeaveVehicles()
 
             if(IsEntityValid(player_vehicle))
             {
-                char* vehicle_classname = (char*)(*(uint32_t*)(player_vehicle+offsets.classname_offset));
-                float car_modelscale = *(float*)(player_vehicle+offsets.modelscale_offset);
                 uint32_t passenger = GetPassengerIndex(player, player_vehicle);
 
                 if(passenger != -1u)
                 {
-                    float* car_modelscale_ptr = (float*)malloc(sizeof(float));
-                    *car_modelscale_ptr = car_modelscale;
-
                     Value* player_value = CreateNewValue((void*)*(uint32_t*)(player+offsets.refhandle_offset));
                     Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(player_vehicle+offsets.refhandle_offset));
                     Value* passenger_value = CreateNewValue((void*)passenger);
                     Value* steam_id_copy_one = CreateNewValue((void*)*(uint32_t*)(player_vehicle+0x0C));
                     Value* steam_id_copy_two = CreateNewValue((void*)*(uint32_t*)(player_vehicle+0x10));
-                    Value* modelscale_copy = CreateNewValue((void*)car_modelscale_ptr);
 
                     InsertToValuesList(save_player_vehicles_list, player_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, vehicle_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, passenger_value, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, steam_id_copy_one, NULL, true, false);
                     InsertToValuesList(save_player_vehicles_list, steam_id_copy_two, NULL, true, false);
-                    InsertToValuesList(save_player_vehicles_list, modelscale_copy, NULL, true, false);
                 }
-
-                functions.SetModelScale(player_vehicle, 1.0, 0);
 
                 Vector emptyVector;
 
@@ -352,11 +404,8 @@ void EnterVehicles(ValueList vehi_list)
             uint32_t passenger = (uint32_t)first_player->nextVal->nextVal->value;
             uint32_t steam_id_copy_one = (uint32_t)first_player->nextVal->nextVal->nextVal->value;
             uint32_t steam_id_copy_two = (uint32_t)first_player->nextVal->nextVal->nextVal->nextVal->value;
-            float* modelscale_ptr = (float*)first_player->nextVal->nextVal->nextVal->nextVal->nextVal->value;
 
             ConsolePrint("Vehicle Entered! passenger [%d]", passenger);
-
-            *(float*)(vehicle+offsets.modelscale_offset) = *modelscale_ptr;
 
             *(uint32_t*)(vehicle+0x0C) = steam_id_copy_one;
             *(uint32_t*)(vehicle+0x10) = steam_id_copy_two;
@@ -364,13 +413,10 @@ void EnterVehicles(ValueList vehi_list)
             //EnterVehicle
             pDynamicThreeArgFunc = (pThreeArgProt)( *(uint32_t*) ((*(uint32_t*)(player))+synergy_offsets.entervehicle_offset) );
             pDynamicThreeArgFunc(player, *(uint32_t*)(vehicle+synergy_offsets.iserver_vehicle_offset), passenger);
-
-            free(modelscale_ptr);
         }
 
-        Value* nextPlayer = first_player->nextVal->nextVal->nextVal->nextVal->nextVal->nextVal;
+        Value* nextPlayer = first_player->nextVal->nextVal->nextVal->nextVal->nextVal;
 
-        free(first_player->nextVal->nextVal->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal->nextVal);
         free(first_player->nextVal->nextVal);

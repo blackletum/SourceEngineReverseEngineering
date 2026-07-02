@@ -68,6 +68,7 @@ extern bool saved_game_once;
 extern bool disable_player_restore;
 
 extern ValueList save_player_vehicles_list;
+extern ValueList save_map_vehicle_modelscale_list;
 
 void ExtensionUpdateOnRemove(uint32_t arg0);
 void HandleSpecificEntityRemoval(uint32_t object, bool validate, bool validate_player, bool slow, bool crash_server);
@@ -75,7 +76,10 @@ bool IsAllowedToPatchSdkTools(Library* lib);
 uint32_t GetCBaseEntity(uint32_t EHandle);
 void PopulateHookExclusionLists();
 void InitCore();
+bool IsTrackedVehicleClassname(const char* clsname);
 void FixCars();
+void SaveMapVehicleModelScales();
+void RestoreMapVehicleModelScales();
 uint32_t GetPassengerIndex(uint32_t player, uint32_t player_vehicle);
 void MakePlayersLeaveVehicles();
 void EnterVehicles(ValueList vehi_list);

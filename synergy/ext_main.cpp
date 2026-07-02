@@ -89,6 +89,7 @@ bool InitExtension()
     disable_player_restore = false;
 
     save_player_vehicles_list = AllocateValuesList();
+    save_map_vehicle_modelscale_list = AllocateValuesList();
 
     fields.sv = engine_srv->start + 0x00402E58;
     fields.sv_cheats_cvar = engine_srv->start + 0x00402D70;
@@ -480,6 +481,7 @@ uint32_t HooksUtil::host_changelevelhook(uint32_t arg0, uint32_t arg1, uint32_t 
 
     ConsolePrint("Manual Save on Transition!");
 
+    SaveMapVehicleModelScales();
     MakePlayersLeaveVehicles();
     FixCars();
 
@@ -620,6 +622,7 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     }
 
     EnterVehicles(save_player_vehicles_list);
+    RestoreMapVehicleModelScales();
 
     RemoveBadEnts();
 
