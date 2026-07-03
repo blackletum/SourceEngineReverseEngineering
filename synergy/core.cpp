@@ -33,6 +33,8 @@ bool IsTrackedVehicleClassname(const char* clsname)
     (
         strcmp(clsname, "prop_vehicle_jeep") == 0
         ||
+        strcmp(clsname, "prop_vehicle_jeep_episodic") == 0
+        ||
         strcmp(clsname, "prop_vehicle_mp") == 0
         ||
         strcmp(clsname, "prop_vehicle_airboat") == 0
