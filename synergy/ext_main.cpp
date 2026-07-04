@@ -354,6 +354,32 @@ void ApplyPatches()
     uint32_t script_think_patch = server_srv->start + 0x00832200;
     *(uint8_t*)(script_think_patch) = 0xE9;
     *(uint32_t*)(script_think_patch+1) = 0xCD;
+
+    //UGLY PATCHES
+
+    uint32_t sound_patch = server_srv->start + 0x0085BE12;
+    offset = (uint32_t)HooksSynergy::Sound_UpdateForPlayer - sound_patch - 5;
+    *(uint32_t*)(sound_patch+1) = offset;
+
+    uint32_t baseai_patch = server_srv->start + 0x00461DF1;
+    memset((void*)baseai_patch, 0x90, 0x15);
+
+    *(uint8_t*)(baseai_patch) = 0x89;
+    *(uint8_t*)(baseai_patch+1) = 0x04;
+    *(uint8_t*)(baseai_patch+2) = 0x24;
+
+    *(uint8_t*)(baseai_patch+3) = 0x89;
+    *(uint8_t*)(baseai_patch+4) = 0x74;
+    *(uint8_t*)(baseai_patch+5) = 0x24;
+    *(uint8_t*)(baseai_patch+6) = 0x04;
+
+    baseai_patch = baseai_patch+7;
+
+    *(uint8_t*)(baseai_patch) = 0xE8;
+    offset = (uint32_t)HooksSynergy::BaseAiPatch - baseai_patch - 5;
+    *(uint32_t*)(baseai_patch+1) = offset;
+
+    // -- END
 }
 
 void HookFunctions()
@@ -382,6 +408,38 @@ void HookFunctions()
     HookFunction(engine_srv, (void*)functions.PrecacheModel, (void*)HooksUtil::PrecacheModelHook);
 
     HookFunction(server_srv, (void*)synergy_functions.SaveRestoreFinish, (void*)HooksSynergy::SaveRestoreFinishHook);
+}
+
+uint32_t HooksSynergy::BaseAiPatch(uint32_t arg0, uint32_t arg1)
+{
+    uint32_t esihandle = *(uint32_t*)(arg1);
+    uint32_t esi_ent = GetCBaseEntity(esihandle);
+
+    if(IsEntityValid(arg0))
+    {
+        pTwoArgProt Unknown = (pTwoArgProt)(  *(uint32_t*)((*(uint32_t*)(arg0))+0x3EC)  );
+        Unknown(arg0, 0);
+    }
+
+    if(IsEntityValid(esi_ent))
+    {
+        return esihandle;
+    }
+
+    return -1;
+}
+
+uint32_t HooksSynergy::Sound_UpdateForPlayer(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt UpdateForPlayer = (pTwoArgProt)(server_srv->start + 0x00855D00);
+
+    if(IsEntityValid(arg0))
+    {
+        return UpdateForPlayer(arg0, arg1);
+    }
+
+    ConsolePrint("Entity failed at UpdateForPlayer!");
+    return 0;
 }
 
 uint32_t HooksSynergy::SaveRestoreFinishHook(uint32_t arg0, uint32_t arg1)
@@ -611,12 +669,6 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         return 0;
     }
 
-    functions.CleanupDeleteList(0);
-
-    functions.Physics_RunThinkFunctions(simulating);
-
-    functions.CleanupDeleteList(0);
-
     if(savegame && save_frames >= 25)
     {
         ConsolePrint("Autosave created!");
@@ -625,10 +677,15 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    EnterVehicles(save_player_vehicles_list);
     RestoreMapVehicleModelScales();
-
+    EnterVehicles(save_player_vehicles_list);
     RemoveBadEnts();
+
+    functions.CleanupDeleteList(0);
+
+    functions.Physics_RunThinkFunctions(simulating);
+
+    functions.CleanupDeleteList(0);
 
     UpdateCollisions(true);
 
@@ -755,6 +812,7 @@ uint32_t HooksUtil::GlobalEntityListClear(uint32_t arg0)
 
     DeleteAllValuesInList(players_connect_commands_list, false, NULL);
     DeleteAllValuesInList(save_player_vehicles_list, false, NULL);
+    DeleteAllValuesInList(save_map_vehicle_modelscale_list, false, NULL);
 
     isTicking = false;
     firstplayer_hasjoined = false;
