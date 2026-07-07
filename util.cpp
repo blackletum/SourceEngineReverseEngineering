@@ -104,11 +104,8 @@ void HookFunctionsUtil()
     HookFunction(server_srv, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
     HookFunction(server_srv, (void*)functions.FindPickerEntity, (void*)HooksUtil::FindPickerEntityHook);
 
-    HookFunction(server_srv, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
-
     HookFunction(dedicated_srv, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
-    //HookFunction(dedicated_srv, (void*)malloc, (void*)HooksUtil::MallocHookLarge);
 }
 
 uint32_t HooksUtil::FindPickerEntityHook(uint32_t arg0)
@@ -830,6 +827,11 @@ uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
     if(IsMarkedForDeletion(arg0+offsets.iserver_offset))
     {
         ConsolePrint("Simulation ignored for [%s]", clsname);
+        return 0;
+    }
+
+    if(server_sleeping)
+    {
         return 0;
     }
 
@@ -1749,7 +1751,7 @@ void RestoreMemorySnapshots()
                 {
                     if(patch->address >= region_start->start && patch->address < region_start->end)
                     {
-                        size_t snapshot_offset = (size_t)(patch->address - region_start->start);
+                        uint32_t snapshot_offset = patch->address - region_start->start;
                         memcpy((void*)patch->address, region_start->snapshot + snapshot_offset, patch->length);
                         restored_patch = true;
                         break;

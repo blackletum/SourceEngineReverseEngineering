@@ -230,6 +230,8 @@ bool InitExtension()
     synergy_functions.CAI_FollowBehavior_UpdateFollowPosition = (pOneArgProtFastCall)(server_srv->start + 0x004A2A10);
     synergy_functions.SaveRestoreFinish = (pTwoArgProt)(server_srv->start + 0x00BE6D50);
     synergy_functions.KillSpritesManhack = (pOneArgProtFastCall)(server_srv->start + 0x00AFCB70);
+    synergy_functions.CAI_PassengerBehaviorCompanion_SelectFailSchedule = (pThreeArgProt)(server_srv->start + 0x00C6BCF0);
+    synergy_functions.TestCollision = (pFourArgProt)(server_srv->start + 0x00616600);
 
     PopulateHookExclusionLists();
 
@@ -385,29 +387,23 @@ void ApplyPatches()
 void HookFunctions()
 {
     HookFunction(synergy_srv, (void*)synergy_functions.ContentReset, (void*)HooksSynergy::ContentResetHook);
-    
+    HookFunction(server_srv, (void*)synergy_functions.SaveRestoreFinish, (void*)HooksSynergy::SaveRestoreFinishHook);
     HookFunction(server_srv, (void*)synergy_functions.Autosave_Silent, (void*)HooksSynergy::AutosaveHook);
     HookFunction(server_srv, (void*)synergy_functions.RestorePlayer, (void*)HooksSynergy::RestorePlayerHook);
     HookFunction(server_srv, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
     HookFunction(server_srv, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
     HookFunction(server_srv, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
 
-    HookFunction(vphysics_srv, (void*)(vphysics_srv->start + 0x000DC6F0), (void*)HooksSynergy::fix_wheels_hook);
-
     HookFunction(engine_srv, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
     HookFunction(engine_srv, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
-
     HookFunction(server_srv, (void*)functions.RemoveNormalDirect, (void*)HooksUtil::UTIL_RemoveHookFailsafe);
     HookFunction(server_srv, (void*)functions.RemoveNormal, (void*)HooksUtil::UTIL_RemoveBaseHook);
     HookFunction(server_srv, (void*)functions.RemoveInsta, (void*)HooksUtil::HookInstaKill);
     HookFunction(server_srv, (void*)functions.ClearAllEntities, (void*)HooksUtil::GlobalEntityListClear);
     HookFunction(server_srv, (void*)functions.SpawnPlayer, (void*)HooksUtil::PlayerSpawnHook);
     HookFunction(server_srv, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
-
     HookFunction(server_srv, (void*)functions.UTIL_SetModel, (void*)HooksUtil::UTIL_SetModelHook);
     HookFunction(engine_srv, (void*)functions.PrecacheModel, (void*)HooksUtil::PrecacheModelHook);
-
-    HookFunction(server_srv, (void*)synergy_functions.SaveRestoreFinish, (void*)HooksSynergy::SaveRestoreFinishHook);
 }
 
 uint32_t HooksSynergy::BaseAiPatch(uint32_t arg0, uint32_t arg1)
@@ -657,17 +653,11 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
 
     isTicking = true;
 
-    UpdateCollisions(true);
+    functions.CleanupDeleteList(0);
 
     SetServerSleepStatus();
     ReplicateCheatsOnClient();
     CorrectPhysics();
-
-    if(server_sleeping)
-    {
-        //ConsolePrint("No players exist on server skipping simulation!");
-        return 0;
-    }
 
     if(savegame && save_frames >= 25)
     {
@@ -677,27 +667,24 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
         savegame = false;
     }
 
-    RestoreMapVehicleModelScales();
     EnterVehicles(save_player_vehicles_list);
-    RemoveBadEnts();
+    RestoreMapVehicleModelScales();
 
     functions.CleanupDeleteList(0);
-
     functions.Physics_RunThinkFunctions(simulating);
-
     functions.CleanupDeleteList(0);
 
+    RemoveBadEnts();
     UpdateCollisions(true);
 
     //PostSystems
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
 
-    UpdateCollisions(true);
-
+    functions.CleanupDeleteList(0);
     functions.ServiceEvents(fields.g_EventQueue);
+    functions.CleanupDeleteList(0);
 
-    UpdateCollisions(true);
     return 0;
 }
 
@@ -764,22 +751,6 @@ uint32_t HooksSynergy::SaveGameStateHook(uint32_t arg0, uint32_t arg1, uint32_t 
     }
 
     return returnVal;
-}
-
-uint32_t HooksSynergy::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    if(save_frames < 80)
-    {
-        ConsolePrint("Prevented vehicle exit!");
-        return 0;
-    }
-
-    //ConsolePrint("Allowed usage!");
-    
-    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv->start + 0x000DC6F0);
-    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t HooksUtil::UTIL_RemoveHookFailsafe(uint32_t arg0)

@@ -237,8 +237,13 @@ void SaveMapVehicleModelScales()
         if(!IsTrackedVehicleClassname(clsname))
             continue;
 
+        float modelscale = *(float*)(mainEnt+offsets.modelscale_offset);
+
+        if(modelscale == 1.0)
+            continue;
+
         float* modelscale_copy = (float*)malloc(sizeof(float));
-        *modelscale_copy = *(float*)(mainEnt+offsets.modelscale_offset);
+        *modelscale_copy = modelscale;
 
         Value* vehicle_value = CreateNewValue((void*)*(uint32_t*)(mainEnt+offsets.refhandle_offset));
         Value* modelscale_value = CreateNewValue((void*)modelscale_copy);

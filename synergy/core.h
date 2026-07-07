@@ -49,6 +49,8 @@ typedef struct _synergy_game_functions {
     pOneArgProtFastCall CAI_FollowBehavior_UpdateFollowPosition = 0;
     pTwoArgProt SaveRestoreFinish = 0;
     pOneArgProtFastCall KillSpritesManhack = 0;
+    pThreeArgProt CAI_PassengerBehaviorCompanion_SelectFailSchedule = 0;
+    pFourArgProt TestCollision;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

@@ -38,6 +38,7 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryTarget, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryTarget_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehavior_GetEntryPoint, (void*)NativeHooks::CAI_PassengerBehavior_GetEntryPoint_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_GatherVehicleStateConditions_Hook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_PassengerBehaviorCompanion_SelectFailSchedule, (void*)NativeHooks::CAI_PassengerBehaviorCompanion_SelectFailSchedule_Hook);
 
     HookFunction(server_srv, (void*)synergy_functions.CSoundControllerImp_SoundChangeVolume, (void*)NativeHooks::CSoundControllerImp_SoundChangeVolume_Hook);
     HookFunction(server_srv, (void*)synergy_functions.CNPC_RollerMine_InputJoltVehicle, (void*)NativeHooks::CNPC_RollerMine_InputJoltVehicle_Hook);
@@ -47,6 +48,25 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.CombineAnimEvent, (void*)NativeHooks::CombineAnimEventHook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_FollowBehavior_UpdateFollowPosition, (void*)NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook);
     HookFunction(server_srv, (void*)synergy_functions.KillSpritesManhack, (void*)NativeHooks::KillSpritesManhackHook);
+    HookFunction(server_srv, (void*)synergy_functions.TestCollision, (void*)NativeHooks::TestCollisionHook);
+}
+
+uint32_t NativeHooks::TestCollisionHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    uint32_t entity = *(uint32_t*)(arg0+4);
+
+    if(IsEntityValid(entity))
+    {
+        uint32_t physics_object = *(uint32_t*)(entity+offsets.vphysics_object_offset);
+
+        if(physics_object)
+        {
+            return synergy_functions.TestCollision(arg0, arg1, arg2, arg3);
+        }
+    }
+
+    ConsolePrint("TestCollision failed!");
+    return 0;
 }
 
 uint32_t NativeHooks::KillSpritesManhackHook(uint32_t arg0)
@@ -86,6 +106,20 @@ uint32_t NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook(uint32_t arg0
     }
 
     return synergy_functions.CAI_FollowBehavior_UpdateFollowPosition(arg0);
+}
+
+uint32_t NativeHooks::CAI_PassengerBehaviorCompanion_SelectFailSchedule_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    uint32_t refhandle = *(uint32_t*)(arg0+0x44);
+    uint32_t object = GetCBaseEntity(refhandle);
+
+    if(IsEntityValid(object))
+    {
+        return synergy_functions.CAI_PassengerBehaviorCompanion_SelectFailSchedule(arg0, arg1, arg2);
+    }
+
+    ConsolePrint("Bad Entity - SelectFailSchedule");
+    return 0;
 }
 
 uint32_t NativeHooks::CAI_PassengerBehavior_GetEntryPoint_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

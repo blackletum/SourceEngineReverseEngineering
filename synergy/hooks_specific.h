@@ -17,6 +17,8 @@ public:
     static uint32_t CombineBallGunDropHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
     static uint32_t CombineAnimEventHook(uint32_t arg0, uint32_t arg1);
     static uint32_t CAI_PassengerBehavior_GetEntryPoint_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
+    static uint32_t CAI_PassengerBehaviorCompanion_SelectFailSchedule_Hook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+    static uint32_t TestCollisionHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 
     static __attribute__((fastcall)) uint32_t KillSpritesManhackHook(uint32_t arg0);
     static __attribute__((fastcall)) uint32_t ReleaseManhackHook(uint32_t arg0);
