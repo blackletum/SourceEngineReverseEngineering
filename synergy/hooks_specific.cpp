@@ -58,14 +58,15 @@ uint32_t NativeHooks::TestCollisionHook(uint32_t arg0, uint32_t arg1, uint32_t a
     if(IsEntityValid(entity))
     {
         uint32_t physics_object = *(uint32_t*)(entity+offsets.vphysics_object_offset);
+        float modelscale = *(float*)(entity+offsets.modelscale_offset);
 
-        if(physics_object)
+        if(physics_object || modelscale == 1.0)
         {
             return synergy_functions.TestCollision(arg0, arg1, arg2, arg3);
         }
     }
 
-    ConsolePrint("TestCollision failed!");
+    //ConsolePrint("TestCollision failed!");
     return 0;
 }
 
