@@ -1656,11 +1656,9 @@ void TakeRegionMemorySnapshot(bool original_memory)
 
             currentLibrary->end = end_address_parsed;
 
-            size_t pagesize = sysconf(_SC_PAGE_SIZE);
-            uint32_t pagestart = start_address_parsed & -pagesize;
-            uint32_t protect_length = end_address_parsed - pagestart;
+            uint32_t protect_length = end_address_parsed - start_address_parsed;
 
-            if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+            if(mprotect((void*)start_address_parsed, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
             {
                 free(file_line_cpy);
                 continue;
@@ -1704,11 +1702,9 @@ void ForceMemoryAccess()
                 uint32_t region_end_address = region_start->end;
                 uint32_t region_protections = region_start->protections;
 
-                size_t pagesize = sysconf(_SC_PAGE_SIZE);
-                uint32_t pagestart = region_start_address & -pagesize;
-                uint32_t protect_length = region_end_address - pagestart;
+                uint32_t protect_length = region_end_address - region_start_address;
 
-                if(mprotect((void*)pagestart, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+                if(mprotect((void*)region_start_address, protect_length, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
                 {
                     //ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
 
@@ -1806,11 +1802,9 @@ void RestoreMemoryProtections()
                 uint32_t region_end_address = region_start->end;
                 uint32_t region_protections = region_start->protections;
 
-                size_t pagesize = sysconf(_SC_PAGE_SIZE);
-                uint32_t pagestart = region_start_address & -pagesize;
-                uint32_t protect_length = region_end_address - pagestart;
+                uint32_t protect_length = region_end_address - region_start_address;
 
-                if(mprotect((void*)pagestart, protect_length, region_protections) == -1)
+                if(mprotect((void*)region_start_address, protect_length, region_protections) == -1)
                 {
                     perror("mprotect");
                     exit(EXIT_FAILURE);
