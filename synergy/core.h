@@ -50,7 +50,8 @@ typedef struct _synergy_game_functions {
     pTwoArgProt SaveRestoreFinish = 0;
     pOneArgProtFastCall KillSpritesManhack = 0;
     pThreeArgProt CAI_PassengerBehaviorCompanion_SelectFailSchedule = 0;
-    pFourArgProt TestCollision;
+    pFourArgProt TestCollision = 0;
+    pTwoArgProt CAI_Squad_GetSquadMemberNearestTo = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

@@ -232,6 +232,7 @@ bool InitExtension()
     synergy_functions.KillSpritesManhack = (pOneArgProtFastCall)(server_srv->start + 0x00AFCB70);
     synergy_functions.CAI_PassengerBehaviorCompanion_SelectFailSchedule = (pThreeArgProt)(server_srv->start + 0x00C6BCF0);
     synergy_functions.TestCollision = (pFourArgProt)(server_srv->start + 0x00616600);
+    synergy_functions.CAI_Squad_GetSquadMemberNearestTo = (pTwoArgProt)(server_srv->start + 0x00554070);
 
     PopulateHookExclusionLists();
 

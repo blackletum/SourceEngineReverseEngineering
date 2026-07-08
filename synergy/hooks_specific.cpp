@@ -49,6 +49,18 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.CAI_FollowBehavior_UpdateFollowPosition, (void*)NativeHooks::CAI_FollowBehavior_UpdateFollowPosition_Hook);
     HookFunction(server_srv, (void*)synergy_functions.KillSpritesManhack, (void*)NativeHooks::KillSpritesManhackHook);
     HookFunction(server_srv, (void*)synergy_functions.TestCollision, (void*)NativeHooks::TestCollisionHook);
+    HookFunction(server_srv, (void*)synergy_functions.CAI_Squad_GetSquadMemberNearestTo, (void*)NativeHooks::CAI_Squad_GetSquadMemberNearestToHook);
+}
+
+uint32_t NativeHooks::CAI_Squad_GetSquadMemberNearestToHook(uint32_t arg0, uint32_t arg1)
+{
+    if(IsEntityValid(arg0))
+    {
+        return synergy_functions.CAI_Squad_GetSquadMemberNearestTo(arg0, arg1);
+    }
+
+    ConsolePrint("CAI_Squad_GetSquadMemberNearestTo - Failed!");
+    return 0;
 }
 
 uint32_t NativeHooks::TestCollisionHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
