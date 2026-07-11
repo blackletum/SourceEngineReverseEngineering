@@ -54,7 +54,7 @@ void HookFunctionsSpecific()
 
 uint32_t NativeHooks::CAI_Squad_GetSquadMemberNearestToHook(uint32_t arg0, uint32_t arg1)
 {
-    if(IsEntityValid(arg0))
+    if(arg0)
     {
         return synergy_functions.CAI_Squad_GetSquadMemberNearestTo(arg0, arg1);
     }

@@ -19,6 +19,7 @@ public:
 	static uint32_t SaveRestoreFinishHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t Sound_UpdateForPlayer(uint32_t arg0, uint32_t arg1);
 	static uint32_t BaseAiPatch(uint32_t arg0, uint32_t arg1);
+	static uint32_t PlayerInitVCollisionHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 
 	static __attribute__((fastcall)) uint32_t AutosaveHook(uint32_t arg0);
 };

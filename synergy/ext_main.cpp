@@ -233,6 +233,7 @@ bool InitExtension()
     synergy_functions.CAI_PassengerBehaviorCompanion_SelectFailSchedule = (pThreeArgProt)(server_srv->start + 0x00C6BCF0);
     synergy_functions.TestCollision = (pFourArgProt)(server_srv->start + 0x00616600);
     synergy_functions.CAI_Squad_GetSquadMemberNearestTo = (pTwoArgProt)(server_srv->start + 0x00554070);
+    synergy_functions.PlayerInitVCollision = (pThreeArgProt)(server_srv->start + 0x009E2D50);
 
     PopulateHookExclusionLists();
 
@@ -394,6 +395,7 @@ void HookFunctions()
     HookFunction(server_srv, (void*)synergy_functions.SaveGameState, (void*)HooksSynergy::SaveGameStateHook);
     HookFunction(server_srv, (void*)synergy_functions.CombineDropshipSpawn, (void*)HooksSynergy::CombineDropshipSpawnHook);
     HookFunction(server_srv, (void*)synergy_functions.Restore, (void*)HooksSynergy::RestoreHook);
+    HookFunction(server_srv, (void*)synergy_functions.PlayerInitVCollision, (void*)HooksSynergy::PlayerInitVCollisionHook);
 
     HookFunction(engine_srv, (void*)functions.LevelChangedSnap, (void*)HooksUtil::LevelChangedSnapHook);
     HookFunction(engine_srv, (void*)functions.host_changelevel, (void*)HooksUtil::host_changelevelhook);
@@ -405,6 +407,18 @@ void HookFunctions()
     HookFunction(server_srv, (void*)functions.CEntityFactoryDictionary_Create, (void*)HooksUtil::CEntityFactoryDictionary_CreateHook);
     HookFunction(server_srv, (void*)functions.UTIL_SetModel, (void*)HooksUtil::UTIL_SetModelHook);
     HookFunction(engine_srv, (void*)functions.PrecacheModel, (void*)HooksUtil::PrecacheModelHook);
+}
+
+uint32_t HooksSynergy::PlayerInitVCollisionHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    if((uint32_t)__builtin_return_address(0) == (server_srv->start + 0x00C9327F))
+    {
+        ConsolePrint("Hunter attempted to call a player init collision!");
+        return 0;
+    }
+
+    //ConsolePrint("%p", (uint32_t)__builtin_return_address(0));
+    return synergy_functions.PlayerInitVCollision(arg0, arg1, arg2);
 }
 
 uint32_t HooksSynergy::BaseAiPatch(uint32_t arg0, uint32_t arg1)
