@@ -50,6 +50,21 @@ void HookFunctionsSpecific()
     HookFunction(server_srv, (void*)synergy_functions.KillSpritesManhack, (void*)NativeHooks::KillSpritesManhackHook);
     HookFunction(server_srv, (void*)synergy_functions.TestCollision, (void*)NativeHooks::TestCollisionHook);
     HookFunction(server_srv, (void*)synergy_functions.CAI_Squad_GetSquadMemberNearestTo, (void*)NativeHooks::CAI_Squad_GetSquadMemberNearestToHook);
+    HookFunction(server_srv, (void*)synergy_functions.CPropCombineBall_CaptureBySpawner, (void*)NativeHooks::CPropCombineBall_CaptureBySpawnerHook);
+}
+
+uint32_t NativeHooks::CPropCombineBall_CaptureBySpawnerHook(uint32_t arg0)
+{
+    uint32_t refhandle = *(uint32_t*)(arg0+0x4F4);
+    uint32_t object = GetCBaseEntity(refhandle);
+
+    if(IsEntityValid(object))
+    {
+        return synergy_functions.CPropCombineBall_CaptureBySpawner(arg0);
+    }
+
+    ConsolePrint("Entity failed - CaptureBySpawner!");
+    return 0;
 }
 
 uint32_t NativeHooks::CAI_Squad_GetSquadMemberNearestToHook(uint32_t arg0, uint32_t arg1)

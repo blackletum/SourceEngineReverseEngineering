@@ -53,6 +53,7 @@ typedef struct _synergy_game_functions {
     pFourArgProt TestCollision = 0;
     pTwoArgProt CAI_Squad_GetSquadMemberNearestTo = 0;
     pThreeArgProt PlayerInitVCollision = 0;
+    pOneArgProt CPropCombineBall_CaptureBySpawner = 0;
 } synergy_game_functions;
 
 extern synergy_game_fields synergy_fields;

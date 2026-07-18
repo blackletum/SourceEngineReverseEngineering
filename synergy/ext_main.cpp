@@ -234,6 +234,7 @@ bool InitExtension()
     synergy_functions.TestCollision = (pFourArgProt)(server_srv->start + 0x00616600);
     synergy_functions.CAI_Squad_GetSquadMemberNearestTo = (pTwoArgProt)(server_srv->start + 0x00554070);
     synergy_functions.PlayerInitVCollision = (pThreeArgProt)(server_srv->start + 0x009E2D50);
+    synergy_functions.CPropCombineBall_CaptureBySpawner = (pOneArgProt)(server_srv->start + 0x00BA52D0);
 
     PopulateHookExclusionLists();
 
@@ -530,8 +531,6 @@ uint32_t HooksSynergy::ContentResetHook(char *format, ...)
     va_end(marker);
     printf("\n");
 
-    functions.UnloadAllModels(fields.g_ModelLoader);
-
     return 0;
 }
 
@@ -674,14 +673,6 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     ReplicateCheatsOnClient();
     CorrectPhysics();
 
-    if(savegame && save_frames >= 25)
-    {
-        ConsolePrint("Autosave created!");
-        SaveGame_Extension();
-
-        savegame = false;
-    }
-
     EnterVehicles(save_player_vehicles_list);
     RestoreMapVehicleModelScales();
 
@@ -695,6 +686,16 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     //PostSystems
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
+
+    functions.CleanupDeleteList(0);
+
+    if(savegame && save_frames >= 25)
+    {
+        ConsolePrint("Autosave created!");
+        SaveGame_Extension();
+
+        savegame = false;
+    }
 
     functions.CleanupDeleteList(0);
     functions.ServiceEvents(fields.g_EventQueue);
@@ -716,8 +717,11 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
         if(restore_delay_frames >= 50)
         {
             uint32_t returnVal = synergy_functions.Restore(arg0, arg1);
-            SaveGame_Extension();
+
             restore_delay_frames = 0;
+            savegame = true;
+            save_frames = 0;
+
             return returnVal;
         }
 
