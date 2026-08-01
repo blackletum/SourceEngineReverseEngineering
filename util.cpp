@@ -103,6 +103,7 @@ void HookFunctionsUtil()
     HookFunction(server_srv, (void*)functions.SetEnemy, (void*)HooksUtil::SetEnemyHook);
     HookFunction(server_srv, (void*)functions.EngineError, (void*)HooksUtil::EngineErrorHook);
     HookFunction(server_srv, (void*)functions.FindPickerEntity, (void*)HooksUtil::FindPickerEntityHook);
+    HookFunction(server_srv, (void*)malloc, (void*)HooksUtil::MallocHookSmall);
 
     HookFunction(dedicated_srv, (void*)functions.PackedStoreDestructor, (void*)HooksUtil::PackedStoreDestructorHook);
     HookFunction(dedicated_srv, (void*)functions.CanSatisfyVpkCacheInternal, (void*)HooksUtil::CanSatisfyVpkCacheInternalHook);
@@ -562,8 +563,11 @@ uint32_t HooksUtil::EngineErrorHook(char const *pMsg, ...)
 {
     va_list marker;
     va_start(marker, pMsg);
-    vprintf( pMsg, marker );
-    //ConsolePrint(pMsg, marker);
+
+    char buffer[2048];
+    vsnprintf(buffer, sizeof(buffer), pMsg, marker);
+
+    ConsolePrint("%s", buffer);
     va_end(marker);
 
     return 0;
@@ -822,19 +826,6 @@ uint32_t HooksUtil::UpdateOnRemove(uint32_t arg0)
 
 uint32_t HooksUtil::PhysSimEnt(uint32_t arg0)
 {
-    char* clsname = (char*)(*(uint32_t*)(arg0+offsets.classname_offset));
-
-    if(IsMarkedForDeletion(arg0+offsets.iserver_offset))
-    {
-        ConsolePrint("Simulation ignored for [%s]", clsname);
-        return 0;
-    }
-
-    if(server_sleeping)
-    {
-        return 0;
-    }
-
     return functions.PhysSimEnt(arg0);
 }
 

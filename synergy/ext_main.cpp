@@ -673,33 +673,29 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     ReplicateCheatsOnClient();
     CorrectPhysics();
 
-    EnterVehicles(save_player_vehicles_list);
-    RestoreMapVehicleModelScales();
-
     functions.CleanupDeleteList(0);
     functions.Physics_RunThinkFunctions(simulating);
     functions.CleanupDeleteList(0);
+    functions.ServiceEvents(fields.g_EventQueue);
+    functions.CleanupDeleteList(0);
 
+    RestoreMapVehicleModelScales();
+    EnterVehicles(save_player_vehicles_list);
     RemoveBadEnts();
+
     UpdateCollisions(true);
 
     //PostSystems
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
 
-    functions.CleanupDeleteList(0);
-
-    if(savegame && save_frames >= 25)
+    if(savegame && save_frames >= 50)
     {
         ConsolePrint("Autosave created!");
         SaveGame_Extension();
 
         savegame = false;
     }
-
-    functions.CleanupDeleteList(0);
-    functions.ServiceEvents(fields.g_EventQueue);
-    functions.CleanupDeleteList(0);
 
     return 0;
 }
@@ -740,7 +736,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
     disable_player_restore = false;
 
     savegame = true;
-    save_frames = 25;
+    save_frames = 50;
     return returnVal;
 }
 
