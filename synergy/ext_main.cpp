@@ -525,11 +525,14 @@ uint32_t HooksUtil::LevelChangedSnapHook(uint32_t arg0)
 
 uint32_t HooksSynergy::ContentResetHook(char *format, ...)
 {
+    char buffer[2048];
+
     va_list marker;
     va_start(marker, format);
-    vprintf(format, marker);
+    vsnprintf(buffer, sizeof(buffer), format, marker);
     va_end(marker);
-    printf("\n");
+
+    ConsolePrint("%s", buffer);
 
     return 0;
 }
@@ -689,13 +692,17 @@ uint32_t HooksUtil::SimulateEntitiesHook(uint8_t simulating)
     functions.InvokeMethodReverseOrderFastCall(0x2D, 0);
     functions.InvokePerFrameMethodFastCall(0x41, 0);
 
-    if(savegame && save_frames >= 50)
+    UpdateCollisions(true);
+
+    if(savegame && save_frames >= 40)
     {
         ConsolePrint("Autosave created!");
         SaveGame_Extension();
 
         savegame = false;
     }
+
+    UpdateCollisions(true);
 
     return 0;
 }
@@ -736,7 +743,7 @@ uint32_t HooksSynergy::RestoreHook(uint32_t arg0, uint32_t arg1)
     disable_player_restore = false;
 
     savegame = true;
-    save_frames = 50;
+    save_frames = 40;
     return returnVal;
 }
 

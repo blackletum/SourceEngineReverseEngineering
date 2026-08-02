@@ -48,14 +48,11 @@ ValueList hook_function_patch_notes;
 
 void ConsolePrint(const char *pMsg, ...)
 {
-    char buffer[2048];
-    
     va_list marker;
     va_start(marker, pMsg);
-    vsnprintf(buffer, sizeof(buffer), pMsg, marker);
+    vprintf(pMsg, marker);
     va_end(marker);
-    
-    rootconsole->ConsolePrint("%s", buffer);
+    printf("\n");
 }
 
 void InitUtil()
@@ -494,7 +491,7 @@ uint32_t HooksUtil::MallocHookSmall(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
     
-    return (uint32_t)malloc(size*1.3);
+    return (uint32_t)malloc(size*1.5);
 }
 
 uint32_t HooksUtil::MallocHookLarge(uint32_t size)
